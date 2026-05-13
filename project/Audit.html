@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Artemide — Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { background: #F8F9FA; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    color: #2B2D30;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  .font-serif-display { font-family: 'Crimson Pro', Georgia, serif; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ---- Search input ----------------------------------------- */
+  .ff-search {
+    width: 240px;
+    transition: width 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-search:focus {
+    width: 320px;
+    outline: 2px solid #4A5E7C;
+    outline-offset: 2px;
+    border-color: #4A5E7C;
+  }
+  .ff-search::placeholder { color: #5A5C60; }
+
+  /* ---- Ghost button (charcoal default) ---------------------- */
+  .ff-ghost {
+    background: transparent;
+    color: #2B2D30;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost:hover { background: #2B2D30; color: #F8F9FA; border-color: #2B2D30; }
+  .ff-ghost:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Ghost button (vermillion) ---------------------------- */
+  .ff-ghost-v {
+    background: transparent;
+    color: #E63946;
+    border: 1px solid #E63946;
+    border-radius: 2px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+  .ff-ghost-v:hover { background: #E63946; color: #F8F9FA; }
+  .ff-ghost-v:hover:active { background: #C22A36; border-color: #C22A36; }
+  .ff-ghost-v:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Nav links --------------------------------------------- */
+  .ff-nav-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4A5E7C;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-nav-link:hover { color: #2B2D30; }
+  .ff-nav-link.is-active { border-bottom-color: #4A5E7C; }
+
+  /* ---- Checkbox -------------------------------------------- */
+  .ff-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    background: #FFFFFF;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+    display: inline-grid;
+    place-content: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-checkbox::before {
+    content: "";
+    width: 10px; height: 6px;
+    border-left: 2px solid #F8F9FA;
+    border-bottom: 2px solid #F8F9FA;
+    transform: rotate(-45deg) translate(1px, -1px);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .ff-checkbox:checked { background: #4A5E7C; }
+  .ff-checkbox:checked::before { opacity: 1; }
+  .ff-checkbox:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Section card row hover ------------------------------ */
+  .ff-row-hover { transition: background 0.2s ease; }
+  .ff-row-hover:hover { background: rgba(74, 94, 124, 0.04); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ───────────────────────────── DATA ─────────────────────────── */
+
+const SUMMARY = {
+  active: { label: "Active relationships", value: 8,  sub: "of 11 firms" },
+  overdue:{ label: "Overdue contacts",      value: 4,  sub: "vermillion if >3", accent: true },
+  open:   { label: "Open follow-ups",       value: 7,  sub: "across 5 partners" },
+  dormant:{ label: "Dormant relationships", value: 1,  sub: "primary tier" },
+};
+
+const PRIMARY_COVERAGE = [
+  { firm: "Spencer Stuart",       partner: null,             partnerOk: false, contactOk: false, lastContact: "never contacted",                    lastAccent: false },
+  { firm: "Heidrick & Struggles", partner: null,             partnerOk: false, contactOk: false, lastContact: "never contacted",                    lastAccent: false },
+  { firm: "Russell Reynolds",     partner: null,             partnerOk: false, contactOk: false, lastContact: "never contacted",                    lastAccent: false },
+  { firm: "Egon Zehnder",         partner: "Elena Brescia",  partnerOk: true,  contactOk: true,  lastContact: "last contact 89 days ago",           lastAccent: true  },
+  { firm: "Korn Ferry",           partner: null,             partnerOk: false, contactOk: false, lastContact: "never contacted",                    lastAccent: false },
+];
+
+const DORMANT = [
+  { name: "Hugh Bairstow", firm: "TML Partners", days: 95,
+    note: "Status: nearly dormant (primary threshold 180d)." },
+];
+
+const FOLLOW_UPS = [
+  { name: "David Reeves",    firm: "TML Partners",         task: "Send Q2 PoV draft",                          days: 4  },
+  { name: "David Reeves",    firm: "TML Partners",         task: "Introduce him to Mark Loughran (HFS)",       days: 4  },
+  { name: "Imogen Carr",     firm: "TML Partners",         task: "Send comp benchmarking summary",             days: 12 },
+  { name: "Elena Brescia",   firm: "Egon Zehnder",         task: "NED track follow-up call",                   days: 38 },
+  { name: "James Donlan",    firm: "Korn Ferry",           task: "Share Drum Top 100 list link",               days: 22 },
+  { name: "Sarah Whitfield", firm: "Spencer Stuart",       task: "Forward CMO Council research",               days: 8  },
+  { name: "Marcus Penrose",  firm: "Heidrick & Struggles", task: "Confirm Q3 catch-up date",                   days: 16 },
+];
+
+const RECIPROCITY = [
+  {
+    name: "David Reeves",
+    firm: "TML Partners",
+    given: 4,
+    received: 0,
+    givenDetail: "PoV doc, comp benchmark, intro, chapter preview",
+    suggestion: "Prompt him for market intel at the next contact, not the other way round.",
+  },
+];
+
+const ACTIONS = [
+  "Identify named partner at Spencer Stuart via WEF Strategic Communicators network. Cold-warm route preferred over LinkedIn outreach.",
+  "Send Q2 PoV draft to David Reeves and Imogen Carr. Use the agentic CMO chapter previews.",
+  "Re-engage Hugh Bairstow with the digital transformation chapter preview. Schedule a call by 26 May.",
+  "Identify CMO practice partner at Russell Reynolds. Use the editorial board connection at JDSM as a route.",
+  "Follow up with Elena Brescia on the NED track conversation. 38 days outstanding is the longest gap in the book.",
+];
+
+/* ───────────────────────────── ICONS (lucide-style inline) ─────── */
+
+function CheckIcon({ size = 18, color = "#4A5E7C" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+function XIcon({ size = 18, color = "#E63946" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+/* ───────────────────────────── HEADER ───────────────────────────── */
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-30 w-full"
+            style={{ height: "64px", background: "#F8F9FA", borderBottom: "1px solid #D8D9DA" }}>
+      <div className="h-full max-w-[1280px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
+        <a href="Dashboard.html" className="flex flex-col items-start shrink-0"
+           aria-label="Artemide home" style={{ textDecoration: "none" }}>
+          <span className="font-serif-display tabular"
+                style={{ color: "#4A5E7C", fontWeight: 700, fontSize: "32px", lineHeight: 1 }}>FF</span>
+          <span aria-hidden="true"
+                style={{ width: "24px", height: "3px", background: "#E63946", marginTop: "2px" }} />
+        </a>
+
+        <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
+          <a className="ff-nav-link" href="Dashboard.html">Dashboard</a>
+          <a className="ff-nav-link" href="FirmDetail.html">Firms</a>
+          <a className="ff-nav-link" href="Plan.html">Plan</a>
+          <a className="ff-nav-link is-active" href="Audit.html" aria-current="page">Audit</a>
+          <a className="ff-nav-link" href="#">Notes</a>
+        </nav>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="sr-only" htmlFor="audit-search">Search</label>
+          <input id="audit-search" type="search"
+                 placeholder="Search firms, partners, notes…"
+                 className="ff-search hidden sm:block bg-[#F8F9FA] text-[#2B2D30] border border-[#D8D9DA]"
+                 style={{ padding: "8px 12px", borderRadius: "2px", fontSize: "14px", fontFamily: "inherit" }} />
+          <button type="button" className="ff-ghost">Sign out</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────────── PAGE TITLE ─────────────────────── */
+
+function PageTitle() {
+  return (
+    <section data-screen-label="Page title" style={{ marginBottom: "32px" }}>
+      <div className="flex items-start justify-between flex-wrap" style={{ gap: "16px" }}>
+        <div style={{ flex: "1 1 320px", minWidth: 0 }}>
+          <h1 className="font-serif-display"
+              style={{ color: "#4A5E7C", fontSize: "36px", fontWeight: 700,
+                       lineHeight: 1.1, margin: 0 }}>
+            Audit report
+          </h1>
+          <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                      margin: "8px 0 0" }}>
+            Generated 12 May 2026, 09:14 BST · 11 firms · 23 partners · 87 contacts in scope
+          </p>
+        </div>
+
+        <div className="flex items-center" style={{ gap: "8px", flexShrink: 0 }}>
+          <button type="button" className="ff-ghost">Re-run audit</button>
+          <button type="button" className="ff-ghost" onClick={() => window.print()}>Print</button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── STAT CARDS ─────────────────────── */
+
+function StatCard({ label, value, sub, accent }) {
+  return (
+    <article style={{
+      background: "#FFFFFF",
+      border: "1px solid #D8D9DA",
+      borderRadius: "4px",
+      padding: "16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px",
+    }}>
+      <div style={{ color: "#4A5E7C", fontSize: "12px", fontWeight: 500,
+                    lineHeight: 1.3 }}>
+        {label}
+      </div>
+      <div className="font-serif-display tabular"
+           style={{ color: accent ? "#E63946" : "#4A5E7C",
+                    fontSize: "32px", fontWeight: 700, lineHeight: 1 }}>
+        {value}
+      </div>
+      <div style={{ color: "#2B2D30", fontSize: "12px", lineHeight: 1.4, opacity: 0.85 }}>
+        {sub}
+      </div>
+    </article>
+  );
+}
+
+function StatsRow() {
+  return (
+    <section data-screen-label="Summary stats"
+             className="ff-stats-grid"
+             style={{
+               display: "grid",
+               gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+               gap: "16px",
+               marginBottom: "24px",
+             }}>
+      <StatCard {...SUMMARY.active} />
+      <StatCard {...SUMMARY.overdue} />
+      <StatCard {...SUMMARY.open} />
+      <StatCard {...SUMMARY.dormant} />
+    </section>
+  );
+}
+
+/* ───────────────────────────── SECTION SHELL ─────────────────── */
+
+function SectionCard({ heading, subline, children, label }) {
+  return (
+    <section data-screen-label={label || heading}
+             style={{
+               background: "#FFFFFF",
+               border: "1px solid #D8D9DA",
+               borderRadius: "4px",
+               padding: "24px",
+             }}>
+      <header style={{ marginBottom: "16px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                     lineHeight: 1.2, margin: 0 }}>
+          {heading}
+        </h2>
+        {subline && (
+          <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                      margin: "6px 0 0" }}>
+            {subline}
+          </p>
+        )}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/* ───────────────────────────── PRIMARY TIER COVERAGE ─────────── */
+
+function PrimaryCoverage() {
+  return (
+    <SectionCard heading="Primary tier coverage" label="Primary tier coverage">
+      <div className="ff-coverage-table"
+           style={{
+             border: "1px solid #D8D9DA",
+             borderRadius: "2px",
+             overflow: "hidden",
+           }}>
+        {/* header row (desktop) */}
+        <div className="ff-coverage-head hidden md:grid"
+             style={{
+               gridTemplateColumns: "minmax(180px, 1.4fr) minmax(160px, 1.2fr) minmax(140px, 1fr) minmax(180px, 1.4fr)",
+               columnGap: "16px",
+               padding: "10px 16px",
+               background: "#F8F9FA",
+               borderBottom: "1px solid #D8D9DA",
+             }}>
+          {["Firm", "Active partner", "Contact ≤90d", "Last contact"].map((h) => (
+            <span key={h} style={{
+              color: "#4A5E7C", fontSize: "11px", fontWeight: 600,
+              letterSpacing: "0.08em", textTransform: "uppercase", lineHeight: 1.2,
+            }}>{h}</span>
+          ))}
+        </div>
+
+        {PRIMARY_COVERAGE.map((row, i) => (
+          <div key={row.firm}
+               className="ff-coverage-row ff-row-hover"
+               style={{
+                 display: "grid",
+                 gridTemplateColumns: "minmax(180px, 1.4fr) minmax(160px, 1.2fr) minmax(140px, 1fr) minmax(180px, 1.4fr)",
+                 columnGap: "16px",
+                 padding: "14px 16px",
+                 borderTop: i === 0 ? "none" : "1px solid #D8D9DA",
+                 alignItems: "center",
+               }}>
+            <span style={{ color: "#4A5E7C", fontSize: "16px", fontWeight: 600, lineHeight: 1.3 }}>
+              {row.firm}
+            </span>
+
+            <span className="flex items-center" style={{ gap: "8px",
+                  color: row.partnerOk ? "#2B2D30" : "#2B2D30",
+                  fontSize: "14px", lineHeight: 1.4 }}>
+              {row.partnerOk ? <CheckIcon /> : <XIcon />}
+              <span style={{ opacity: row.partnerOk ? 1 : 0.85 }}>
+                {row.partner || "no active partner"}
+              </span>
+            </span>
+
+            <span className="flex items-center" style={{ gap: "8px",
+                  fontSize: "14px", color: "#2B2D30", lineHeight: 1.4 }}>
+              {row.contactOk ? <CheckIcon /> : <XIcon />}
+              <span style={{ opacity: row.contactOk ? 1 : 0.85 }}>
+                {row.contactOk ? "yes" : "no"}
+              </span>
+            </span>
+
+            <span className="tabular"
+                  style={{ color: row.lastAccent ? "#E63946" : "#2B2D30",
+                           fontSize: "14px", lineHeight: 1.4,
+                           fontWeight: row.lastAccent ? 600 : 400 }}>
+              {row.lastContact}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p style={{ color: "#2B2D30", fontSize: "16px", fontStyle: "italic",
+                  lineHeight: 1.55, margin: "20px 0 0", maxWidth: "68ch" }}>
+        3 of 5 primary firms have no contactable partner. This is the most urgent gap.
+      </p>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── DORMANT RELATIONSHIPS ─────────── */
+
+function DormantSection() {
+  return (
+    <SectionCard heading="Dormant relationships" label="Dormant relationships">
+      <ul style={{ listStyle: "none", margin: 0, padding: 0,
+                   display: "flex", flexDirection: "column", gap: "12px" }}>
+        {DORMANT.map((d) => (
+          <li key={d.name}
+              className="ff-dormant-row"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto",
+                columnGap: "16px",
+                rowGap: "8px",
+                alignItems: "center",
+                padding: "16px",
+                border: "1px solid #D8D9DA",
+                borderRadius: "2px",
+              }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: "#4A5E7C", fontSize: "16px", fontWeight: 600,
+                            lineHeight: 1.35 }}>
+                {d.name} <span style={{ color: "#2B2D30", fontWeight: 400, fontSize: "14px" }}>
+                  ({d.firm})
+                </span>
+              </div>
+              <div className="tabular"
+                   style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                            marginTop: "4px" }}>
+                {d.days} days since last contact. {d.note}
+              </div>
+            </div>
+            <div style={{ justifySelf: "end" }}>
+              <button type="button" className="ff-ghost-v">Re-engage</button>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── FOLLOW-UPS ────────────────────── */
+
+function DaysBadge({ days }) {
+  const overdue = days > 30;
+  return (
+    <span className="tabular"
+          style={{
+            color: overdue ? "#F8F9FA" : "#4A5E7C",
+            background: overdue ? "#E63946" : "#D8D9DA",
+            fontSize: "12px",
+            fontWeight: 600,
+            padding: "4px 10px",
+            borderRadius: "999px",
+            lineHeight: 1,
+            whiteSpace: "nowrap",
+            letterSpacing: "0.01em",
+          }}>
+      {days}d outstanding
+    </span>
+  );
+}
+
+function FollowUpsSection() {
+  return (
+    <SectionCard heading="Open follow-ups" label="Open follow-ups">
+      <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {FOLLOW_UPS.map((f, i) => (
+          <li key={i}
+              className="ff-followup-row ff-row-hover"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(180px, 1.2fr) minmax(0, 2fr) auto",
+                columnGap: "20px",
+                rowGap: "6px",
+                alignItems: "center",
+                padding: "14px 12px",
+                margin: "0 -12px",
+                borderTop: i === 0 ? "none" : "1px solid #D8D9DA",
+                borderRadius: "2px",
+              }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: "#4A5E7C", fontSize: "14px", fontWeight: 600,
+                            lineHeight: 1.3 }}>
+                {f.name}
+              </div>
+              <div style={{ color: "#2B2D30", fontSize: "12px", lineHeight: 1.4,
+                            marginTop: "2px", opacity: 0.85 }}>
+                {f.firm}
+              </div>
+            </div>
+            <div style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                          minWidth: 0 }}>
+              {f.task}
+            </div>
+            <div style={{ justifySelf: "end" }}>
+              <DaysBadge days={f.days} />
+            </div>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── RECIPROCITY ──────────────────── */
+
+function ReciprocitySection() {
+  return (
+    <SectionCard
+      heading="Reciprocity imbalances"
+      label="Reciprocity imbalances"
+      subline="Partners where I've given substantive value 3+ times with no return."
+    >
+      <ul style={{ listStyle: "none", margin: 0, padding: 0,
+                   display: "flex", flexDirection: "column", gap: "16px" }}>
+        {RECIPROCITY.map((r) => (
+          <li key={r.name}
+              style={{
+                border: "1px solid #D8D9DA",
+                borderLeft: "3px solid #E63946",
+                borderRadius: "2px",
+                padding: "16px 20px",
+                background: "#FFFFFF",
+              }}>
+            <div className="flex items-baseline flex-wrap" style={{ gap: "8px" }}>
+              <span style={{ color: "#4A5E7C", fontSize: "16px", fontWeight: 600,
+                             lineHeight: 1.3 }}>
+                {r.name}
+              </span>
+              <span style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.3 }}>
+                · {r.firm}
+              </span>
+            </div>
+
+            <div className="tabular"
+                 style={{ marginTop: "10px", color: "#2B2D30", fontSize: "14px",
+                          lineHeight: 1.55 }}>
+              <span style={{ color: "#4A5E7C", fontWeight: 600 }}>{r.given} value-given</span>
+              <span style={{ opacity: 0.8 }}> ({r.givenDetail}), </span>
+              <span style={{ color: "#E63946", fontWeight: 600 }}>{r.received} value-received recorded</span>
+            </div>
+
+            <div style={{ marginTop: "10px", color: "#2B2D30", fontSize: "14px",
+                          lineHeight: 1.55 }}>
+              <span style={{ color: "#4A5E7C", fontWeight: 600 }}>Suggested shift: </span>
+              {r.suggestion}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── SUMMARY ACTIONS ──────────────── */
+
+function ActionsSection() {
+  const [checked, setChecked] = useState(() => ACTIONS.map(() => false));
+
+  const toggle = (i) => setChecked((cur) => {
+    const next = cur.slice();
+    next[i] = !next[i];
+    return next;
+  });
+
+  return (
+    <SectionCard
+      heading="Summary actions"
+      label="Summary actions"
+      subline="What to do in the next 14 days, in priority order."
+    >
+      <ol style={{ listStyle: "none", margin: 0, padding: 0,
+                   display: "flex", flexDirection: "column", gap: "12px",
+                   counterReset: "ff-actions" }}>
+        {ACTIONS.map((text, i) => {
+          const done = checked[i];
+          const id = `ff-action-${i}`;
+          return (
+            <li key={i}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto auto 1fr",
+                  columnGap: "14px",
+                  alignItems: "start",
+                  padding: "4px 0",
+                }}>
+              <input id={id} type="checkbox"
+                     className="ff-checkbox"
+                     checked={done}
+                     onChange={() => toggle(i)}
+                     style={{ marginTop: "4px" }} />
+              <span className="tabular"
+                    aria-hidden="true"
+                    style={{
+                      color: "#4A5E7C",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      lineHeight: 1.5,
+                      minWidth: "20px",
+                      opacity: done ? 0.5 : 1,
+                    }}>
+                {i + 1}.
+              </span>
+              <label htmlFor={id}
+                     style={{
+                       color: "#2B2D30",
+                       fontSize: "16px",
+                       lineHeight: 1.55,
+                       cursor: "pointer",
+                       textDecoration: done ? "line-through" : "none",
+                       opacity: done ? 0.5 : 1,
+                       maxWidth: "68ch",
+                     }}>
+                {text}
+              </label>
+            </li>
+          );
+        })}
+      </ol>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── FOOTER ───────────────────────── */
+
+function Footer() {
+  return (
+    <footer style={{ marginTop: "64px", paddingTop: "16px",
+                     borderTop: "1px solid #D8D9DA" }}>
+      <p className="tabular"
+         style={{ margin: 0, color: "#2B2D30",
+                  fontSize: "12px", opacity: 0.85 }}>
+        Last backup: 11 May 2026 03:00 UTC · Artemide v0.1
+      </p>
+    </footer>
+  );
+}
+
+/* ───────────────────────────── APP ──────────────────────────── */
+
+function App() {
+  return (
+    <div className="min-h-screen w-full bg-[#F8F9FA]"
+         data-screen-label="Audit — 12 May 2026">
+      <Header />
+
+      <main className="max-w-[1280px] mx-auto" style={{ padding: "32px" }}>
+        <PageTitle />
+        <StatsRow />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <PrimaryCoverage />
+          <DormantSection />
+          <FollowUpsSection />
+          <ReciprocitySection />
+          <ActionsSection />
+        </div>
+
+        <p style={{ marginTop: "24px", color: "#2B2D30", fontSize: "12px",
+                    fontStyle: "italic", lineHeight: 1.5, opacity: 0.8 }}>
+          Audit logic version 1.0 · Cadence thresholds: primary 90/120/180d, specialist 180/240/365d, NED deferred.
+        </p>
+
+        <Footer />
+      </main>
+
+      <style>{`
+        @media (max-width: 1023px) {
+          .ff-stats-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+          }
+        }
+        @media (max-width: 880px) {
+          .ff-coverage-head { display: none !important; }
+          .ff-coverage-row {
+            grid-template-columns: 1fr !important;
+            row-gap: 6px !important;
+            padding: 16px !important;
+          }
+          .ff-followup-row {
+            grid-template-columns: 1fr !important;
+            row-gap: 6px !important;
+          }
+          .ff-followup-row > div:last-child { justify-self: start !important; }
+        }
+        @media (max-width: 640px) {
+          main { padding: 24px 16px !important; }
+          .ff-stats-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .ff-dormant-row {
+            grid-template-columns: 1fr !important;
+          }
+          .ff-dormant-row > div:last-child { justify-self: start !important; }
+        }
+        @media print {
+          header.sticky { position: static !important; }
+          .ff-ghost, .ff-ghost-v { display: none !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

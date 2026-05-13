@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Artemide — Sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { background: #F8F9FA; }
+  body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif; color: #2B2D30; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  .font-serif-display { font-family: 'Crimson Pro', Georgia, serif; }
+  /* Spinner */
+  @keyframes ff-spin { to { transform: rotate(360deg); } }
+  .ff-spinner { animation: ff-spin 0.7s linear infinite; }
+  /* Focus ring for inputs — Slate Blue outline per spec */
+  .ff-input:focus { outline: 2px solid #4A5E7C; outline-offset: 2px; border-color: #4A5E7C; }
+  .ff-input:disabled { background: #F8F9FA; color: #5A5C60; cursor: not-allowed; }
+  .ff-btn-primary:hover:not(:disabled) { background: #C22A36; }
+  .ff-btn-primary:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+  .ff-btn-primary:disabled { cursor: not-allowed; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+// — Spinner —————————————————————————————————————————
+function Spinner() {
+  return (
+    <svg className="ff-spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" stroke="#F8F9FA" strokeOpacity="0.35" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="#F8F9FA" strokeWidth="3" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+// — Card ————————————————————————————————————————————
+// state: "default" | "loading" | "error"
+function LoginCard({ state }) {
+  const isLoading = state === "loading";
+  const isError = state === "error";
+
+  const inputValue =
+    state === "loading" ? "••••••••••••••••••••" :
+    state === "error"   ? "••••••••••••" :
+    "";
+
+  const inputBorder = isError ? "border-[#E63946]" : "border-[#D8D9DA]";
+
+  return (
+    <div className="w-full max-w-[400px] mx-auto bg-[#F8F9FA] border border-[#D8D9DA] rounded-[4px] px-6 py-6 sm:p-12">
+      {/* Monogram */}
+      <div className="flex flex-col items-center">
+        <div
+          className="font-serif-display font-bold text-[#4A5E7C] leading-none"
+          style={{ fontSize: "64px" }}
+        >
+          FF
+        </div>
+        <div
+          className="mt-4"
+          style={{ width: "24px", height: "3px", background: "#E63946" }}
+          aria-hidden="true"
+        />
+      </div>
+
+      {/* Subline */}
+      <p
+        className="text-center text-[#2B2D30] mt-8 mb-0"
+        style={{ fontSize: "16px", lineHeight: 1.5 }}
+      >
+        Sign in to continue.
+      </p>
+
+      {/* Form */}
+      <form
+        className="mt-8"
+        onSubmit={(e) => e.preventDefault()}
+        noValidate
+      >
+        <label
+          htmlFor={`access-token-${state}`}
+          className="block uppercase text-[#7D8E9E]"
+          style={{
+            fontSize: "12px",
+            letterSpacing: "0.08em",
+            fontWeight: 500,
+            marginBottom: "8px",
+          }}
+        >
+          Access token
+        </label>
+
+        <input
+          id={`access-token-${state}`}
+          type="password"
+          autoComplete="current-password"
+          disabled={isLoading}
+          defaultValue={inputValue}
+          aria-invalid={isError || undefined}
+          aria-describedby={isError ? `err-${state}` : undefined}
+          className={`ff-input w-full bg-[#F8F9FA] text-[#2B2D30] border ${inputBorder} rounded-[2px]`}
+          style={{
+            padding: "12px 14px",
+            fontSize: "15px",
+            fontFamily: "inherit",
+            letterSpacing: inputValue ? "0.05em" : "normal",
+          }}
+        />
+
+        {/* Primary button */}
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="ff-btn-primary w-full bg-[#E63946] text-[#F8F9FA] rounded-[2px] mt-4 inline-flex items-center justify-center gap-2"
+          style={{
+            padding: "12px 16px",
+            fontSize: "15px",
+            fontWeight: 600,
+            letterSpacing: "0.01em",
+            transition: "background 0.2s ease",
+            opacity: isLoading ? 0.92 : 1,
+          }}
+        >
+          {isLoading ? (
+            <React.Fragment>
+              <Spinner />
+              <span>Signing in</span>
+            </React.Fragment>
+          ) : (
+            "Sign in"
+          )}
+        </button>
+
+        {/* Error message */}
+        {isError && (
+          <p
+            id={`err-${state}`}
+            role="alert"
+            className="text-[#E63946] mt-4 mb-0"
+            style={{ fontSize: "14px", lineHeight: 1.4 }}
+          >
+            Invalid token.
+          </p>
+        )}
+      </form>
+    </div>
+  );
+}
+
+// — State label (eyebrow above each card) ————————————
+function StateLabel({ index, name }) {
+  return (
+    <div className="flex items-baseline gap-3 max-w-[400px] mx-auto mb-4 px-1">
+      <span
+        className="uppercase text-[#7D8E9E]"
+        style={{
+          fontSize: "12px",
+          letterSpacing: "0.08em",
+          fontWeight: 500,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        0{index} · {name}
+      </span>
+      <span className="flex-1 border-t border-[#D8D9DA]" aria-hidden="true" />
+    </div>
+  );
+}
+
+// — Footer ————————————————————————————————————————
+function Footer() {
+  return (
+    <p
+      className="text-center text-[#2B2D30] mt-6 mb-0"
+      style={{ fontSize: "12px", letterSpacing: "0.02em" }}
+    >
+      Artemide v0.1
+    </p>
+  );
+}
+
+// — App ——————————————————————————————————————————
+function App() {
+  const states = [
+    { key: "default", name: "Default" },
+    { key: "loading", name: "Loading" },
+    { key: "error",   name: "Error" },
+  ];
+
+  return (
+    <main className="min-h-screen w-full bg-[#F8F9FA]" data-screen-label="Login states">
+      {/* Header for the artifact (study sheet framing) */}
+      <header className="max-w-[640px] mx-auto px-6 pt-16 pb-10">
+        <p
+          className="uppercase text-[#7D8E9E]"
+          style={{ fontSize: "12px", letterSpacing: "0.08em", fontWeight: 500 }}
+        >
+          Artemide · Login · States
+        </p>
+        <h1
+          className="font-serif-display text-[#4A5E7C] mt-2"
+          style={{ fontSize: "32px", fontWeight: 600, lineHeight: 1.15, margin: 0, marginTop: "8px" }}
+        >
+          artemide.francescofederico.net
+        </h1>
+        <p
+          className="text-[#5A5C60] mt-2"
+          style={{ fontSize: "14px", lineHeight: 1.5, margin: 0, marginTop: "8px" }}
+        >
+          Default, loading, and error — same composition, hardcoded states.
+        </p>
+      </header>
+
+      {/* Cards stack */}
+      <div className="flex flex-col items-stretch gap-16 px-6 pb-32">
+        {states.map((s, i) => (
+          <section key={s.key} data-screen-label={`0${i + 1} ${s.name}`}>
+            <StateLabel index={i + 1} name={s.name} />
+            <LoginCard state={s.key} />
+            <Footer />
+          </section>
+        ))}
+      </div>
+    </main>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

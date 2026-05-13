@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Artemide — Settings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { background: #F8F9FA; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    color: #2B2D30;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  .font-serif-display { font-family: 'Crimson Pro', Georgia, serif; }
+  .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ---- Search input ----------------------------------------- */
+  .ff-search {
+    width: 240px;
+    transition: width 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-search:focus {
+    width: 320px;
+    outline: 2px solid #4A5E7C;
+    outline-offset: 2px;
+    border-color: #4A5E7C;
+  }
+  .ff-search::placeholder { color: #5A5C60; }
+
+  /* ---- Ghost button (charcoal default) ---------------------- */
+  .ff-ghost {
+    background: transparent;
+    color: #2B2D30;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost:hover { background: #2B2D30; color: #F8F9FA; border-color: #2B2D30; }
+  .ff-ghost:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Ghost button (slate blue text, borderless link-style) - */
+  .ff-ghost-link {
+    background: transparent;
+    color: #4A5E7C;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    border-bottom: 1px solid transparent;
+    line-height: 1.3;
+  }
+  .ff-ghost-link:hover { color: #2B2D30; border-bottom-color: #2B2D30; }
+  .ff-ghost-link:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Ghost button (slate blue outline) -------------------- */
+  .ff-ghost-slate {
+    background: transparent;
+    color: #4A5E7C;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .ff-ghost-slate:hover { background: #4A5E7C; color: #F8F9FA; }
+  .ff-ghost-slate:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Primary button (vermillion) -------------------------- */
+  .ff-primary-v {
+    background: #E63946;
+    color: #F8F9FA;
+    border: 1px solid #E63946;
+    border-radius: 2px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .ff-primary-v:hover { background: #C22A36; border-color: #C22A36; }
+  .ff-primary-v:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+  .ff-primary-v:disabled { opacity: 0.4; cursor: not-allowed; background: #E63946; border-color: #E63946; }
+  .ff-primary-v:disabled:hover { background: #E63946; border-color: #E63946; }
+
+  /* ---- Secondary button (slate blue solid) ------------------ */
+  .ff-primary-slate {
+    background: #4A5E7C;
+    color: #F8F9FA;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .ff-primary-slate:hover { background: #2B2D30; border-color: #2B2D30; }
+  .ff-primary-slate:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Nav links --------------------------------------------- */
+  .ff-nav-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4A5E7C;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    background: transparent;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+  }
+  .ff-nav-link:hover { color: #2B2D30; }
+  .ff-nav-link.is-active { border-bottom-color: #4A5E7C; }
+
+  /* ---- More dropdown menu ----------------------------------- */
+  .ff-more-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    background: #FFFFFF;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 6px 0;
+    z-index: 40;
+  }
+  .ff-more-item {
+    display: block;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #2B2D30;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+    cursor: pointer;
+  }
+  .ff-more-item:hover { background: #F8F9FA; color: #4A5E7C; }
+  .ff-more-item.is-active { color: #4A5E7C; font-weight: 600; }
+
+  /* ---- Checkbox -------------------------------------------- */
+  .ff-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    background: #FFFFFF;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin: 0;
+    display: inline-grid;
+    place-content: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-checkbox::before {
+    content: "";
+    width: 9px; height: 5px;
+    border-left: 2px solid #F8F9FA;
+    border-bottom: 2px solid #F8F9FA;
+    transform: rotate(-45deg) translate(1px, -1px);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .ff-checkbox:checked { background: #4A5E7C; }
+  .ff-checkbox:checked::before { opacity: 1; }
+  .ff-checkbox:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Row hover -------------------------------------------- */
+  .ff-row-hover { transition: background 0.2s ease; }
+  .ff-row-hover:hover { background: rgba(74, 94, 124, 0.04); }
+
+  /* ---- Modal stage label ----------------------------------- */
+  .ff-stage-label {
+    color: #4A5E7C;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  /* ---- Backdrop (rendered inline as part of the artifact) ---- */
+  .ff-backdrop {
+    background: rgba(43, 45, 48, 0.5);
+    padding: 32px 24px;
+    border-radius: 2px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 480px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+/* ───────────────────────────── DATA ─────────────────────────── */
+
+const TOKEN = {
+  maskedFull: "ar_•••••••••••••••••••••••••••••f8a3",
+  // last 8 of the "real" token (for the reveal action). Hardcoded sample.
+  lastEight: "0e2ff8a3",
+  rotatedHumanDate: "12 February 2026",
+  rotatedDaysAgo: 89,
+  rotationThreshold: 75,
+};
+
+const NEW_TOKEN = "ar_4f2a9e7b6c1d3f8e0a5b9c2d4e7f1a3b6c8d0e2f";
+
+const CLIENTS_TO_UPDATE = [
+  { name: "Claude (MCP server header)", where: "claude.ai settings" },
+  { name: "n8n workflows (if any)",     where: "credential 'artemide-api'" },
+  { name: "Direct REST scripts (if any)", where: "local .env files" },
+];
+
+const CLIENT_INSTRUCTIONS = [
+  "Update Claude MCP header → settings → integrations → Artemide → edit Authorization header",
+  "Update n8n credential 'artemide-api' → settings → credentials",
+  "Update any local .env files → ARTEMIDE_API_TOKEN=<new value>",
+];
+
+const BACKUPS = [
+  { date: "12 May 2026", time: "03:00 UTC", size: "1.8 MB" },
+  { date: "11 May 2026", time: "03:00 UTC", size: "1.8 MB" },
+  { date: "10 May 2026", time: "03:00 UTC", size: "1.7 MB" },
+  { date: "9 May 2026",  time: "03:00 UTC", size: "1.7 MB" },
+  { date: "8 May 2026",  time: "03:00 UTC", size: "1.7 MB" },
+];
+
+const SYSTEM_INFO = [
+  ["Schema version",     "005"],
+  ["Build hash",         "a1b2c3d"],
+  ["Python",             "3.12.3"],
+  ["FastAPI",            "0.115.2"],
+  ["FastMCP",            "2.1.0"],
+  ["Astro",              "5.0.4"],
+  ["Total firms",        "11"],
+  ["Total partners",     "23"],
+  ["Total contacts",     "87"],
+  ["Total notes",        "14"],
+  ["Audit log entries",  "412"],
+];
+
+/* ───────────────────────────── ICONS (lucide-style inline) ──── */
+
+function DownloadIcon({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="1.75"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+function CopyIcon({ size = 16, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="1.75"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+function ChevronDown({ size = 14, color = "currentColor" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+function Spinner({ size = 20, color = "#4A5E7C" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth="2.25"
+         strokeLinecap="round" aria-hidden="true"
+         style={{ animation: "ff-spin 1s linear infinite" }}>
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+/* ───────────────────────────── HEADER ───────────────────────── */
+
+function Header() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const onDoc = (e) => {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    const onEsc = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, []);
+
+  return (
+    <header className="sticky top-0 z-30 w-full"
+            style={{ height: "64px", background: "#F8F9FA", borderBottom: "1px solid #D8D9DA" }}>
+      <div className="h-full max-w-[1280px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
+        <a href="Dashboard.html" className="flex flex-col items-start shrink-0"
+           aria-label="Artemide home" style={{ textDecoration: "none" }}>
+          <span className="font-serif-display tabular"
+                style={{ color: "#4A5E7C", fontWeight: 700, fontSize: "32px", lineHeight: 1 }}>FF</span>
+          <span aria-hidden="true"
+                style={{ width: "24px", height: "3px", background: "#E63946", marginTop: "2px" }} />
+        </a>
+
+        <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
+          <a className="ff-nav-link" href="Dashboard.html">Dashboard</a>
+          <a className="ff-nav-link" href="FirmDetail.html">Firms</a>
+          <a className="ff-nav-link" href="Plan.html">Plan</a>
+          <a className="ff-nav-link" href="Audit.html">Audit</a>
+          <a className="ff-nav-link" href="#">Notes</a>
+
+          <div ref={wrapRef} style={{ position: "relative" }}>
+            <button type="button"
+                    className="ff-nav-link flex items-center"
+                    aria-haspopup="menu"
+                    aria-expanded={open}
+                    onClick={() => setOpen((v) => !v)}
+                    style={{ gap: "4px" }}>
+              More
+              <ChevronDown />
+            </button>
+            {open && (
+              <div className="ff-more-menu" role="menu">
+                <a className="ff-more-item is-active" role="menuitem" href="Settings.html" aria-current="page">Settings</a>
+                <a className="ff-more-item" role="menuitem" href="#">Help</a>
+                <a className="ff-more-item" role="menuitem" href="#">Changelog</a>
+              </div>
+            )}
+          </div>
+        </nav>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="sr-only" htmlFor="settings-search">Search</label>
+          <input id="settings-search" type="search"
+                 placeholder="Search firms, partners, notes…"
+                 className="ff-search hidden sm:block bg-[#F8F9FA] text-[#2B2D30] border border-[#D8D9DA]"
+                 style={{ padding: "8px 12px", borderRadius: "2px", fontSize: "14px", fontFamily: "inherit" }} />
+          <button type="button" className="ff-ghost">Sign out</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────────── PAGE TITLE ───────────────────── */
+
+function PageTitle() {
+  return (
+    <section data-screen-label="Page title" style={{ marginBottom: "32px" }}>
+      <h1 className="font-serif-display"
+          style={{ color: "#4A5E7C", fontSize: "36px", fontWeight: 700,
+                   lineHeight: 1.1, margin: 0 }}>
+        Settings
+      </h1>
+    </section>
+  );
+}
+
+/* ───────────────────────────── SECTION CARD ──────────────────── */
+
+function SectionCard({ heading, subline, label, children }) {
+  return (
+    <section data-screen-label={label || heading}
+             style={{
+               background: "#FFFFFF",
+               border: "1px solid #D8D9DA",
+               borderRadius: "4px",
+               padding: "32px",
+             }}>
+      <header style={{ marginBottom: "20px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                     lineHeight: 1.2, margin: 0 }}>
+          {heading}
+        </h2>
+        {subline && (
+          <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                      margin: "6px 0 0", maxWidth: "68ch" }}>
+            {subline}
+          </p>
+        )}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/* ───────────────────────────── KV ROW ──────────────────────── */
+
+function KVRow({ label, value, accent, accentText }) {
+  return (
+    <div className="ff-kv-row"
+         style={{
+           display: "grid",
+           gridTemplateColumns: "180px 1fr auto",
+           columnGap: "16px",
+           rowGap: "4px",
+           alignItems: "baseline",
+           padding: "12px 0",
+           borderTop: "1px solid #D8D9DA",
+         }}>
+      <span style={{ color: "#4A5E7C", fontSize: "12px", fontWeight: 500,
+                     lineHeight: 1.4, textTransform: "uppercase",
+                     letterSpacing: "0.04em" }}>
+        {label}
+      </span>
+      <span className="tabular"
+            style={{ color: "#2B2D30", fontSize: "14px", fontWeight: 600,
+                     lineHeight: 1.5, minWidth: 0, wordBreak: "break-all" }}>
+        {value}
+      </span>
+      {accent && (
+        <span className="tabular"
+              style={{ color: "#E63946", fontSize: "12px", fontWeight: 600,
+                       lineHeight: 1.4, whiteSpace: "nowrap" }}>
+          {accentText}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────────── API TOKEN SECTION ────────────── */
+
+function ApiTokenSection({ onRotate }) {
+  const [revealed, setRevealed] = useState(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleReveal = () => {
+    setRevealed(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setRevealed(false), 10000);
+  };
+
+  const dueSoon = TOKEN.rotatedDaysAgo > TOKEN.rotationThreshold;
+
+  const displayedToken = revealed
+    ? `ar_•••••••••••••••••••••••••••••${TOKEN.lastEight}`
+    : TOKEN.maskedFull;
+
+  return (
+    <SectionCard
+      heading="API token"
+      label="API token"
+      subline="Used by Claude (MCP) and any external integrations. Rotate every 90 days."
+    >
+      <div className="ff-kv-row"
+           style={{
+             display: "grid",
+             gridTemplateColumns: "180px 1fr auto",
+             columnGap: "16px",
+             rowGap: "4px",
+             alignItems: "baseline",
+             padding: "12px 0",
+             borderTop: "1px solid #D8D9DA",
+           }}>
+        <span style={{ color: "#4A5E7C", fontSize: "12px", fontWeight: 500,
+                       lineHeight: 1.4, textTransform: "uppercase",
+                       letterSpacing: "0.04em" }}>
+          Current token
+        </span>
+        <span className="font-mono tabular"
+              style={{ color: "#2B2D30", fontSize: "14px", fontWeight: 600,
+                       lineHeight: 1.5, minWidth: 0,
+                       wordBreak: "break-all", letterSpacing: "0.01em" }}>
+          {displayedToken}
+        </span>
+        <button type="button"
+                className="ff-ghost-link"
+                onClick={handleReveal}
+                style={{ whiteSpace: "nowrap" }}>
+          {revealed ? "Revealed (10s)" : "Reveal last 8 chars"}
+        </button>
+      </div>
+
+      <KVRow
+        label="Last rotated"
+        value={`${TOKEN.rotatedHumanDate} (${TOKEN.rotatedDaysAgo} days ago)`}
+        accent={dueSoon}
+        accentText="Rotation due soon"
+      />
+
+      <div style={{ borderTop: "1px solid #D8D9DA", paddingTop: "20px", marginTop: "8px" }}>
+        <button type="button" className="ff-primary-v" onClick={onRotate}>
+          Rotate token
+        </button>
+      </div>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── BACKUP SECTION ────────────────── */
+
+function BackupSection() {
+  return (
+    <SectionCard
+      heading="Backup status"
+      label="Backup status"
+      subline="Nightly automatic backups · Off-site copy to R2 storage."
+    >
+      <KVRow label="Last backup"      value="12 May 2026 03:00 UTC (size 1.8 MB)" />
+      <KVRow label="Backups retained" value="30 days locally · 365 days off-site" />
+
+      <div style={{ borderTop: "1px solid #D8D9DA", paddingTop: "20px", marginTop: "8px",
+                    marginBottom: "20px" }}>
+        <button type="button" className="ff-ghost-slate">
+          Trigger backup now
+        </button>
+      </div>
+
+      <div style={{ border: "1px solid #D8D9DA", borderRadius: "2px", overflow: "hidden" }}>
+        <div className="ff-backups-head hidden md:grid"
+             style={{
+               gridTemplateColumns: "minmax(140px, 1.4fr) minmax(120px, 1fr) minmax(80px, 0.6fr) minmax(120px, 1fr)",
+               columnGap: "16px",
+               padding: "10px 16px",
+               background: "#F8F9FA",
+               borderBottom: "1px solid #D8D9DA",
+             }}>
+          {["Date", "Time", "Size", ""].map((h, i) => (
+            <span key={i} style={{
+              color: "#4A5E7C", fontSize: "11px", fontWeight: 600,
+              letterSpacing: "0.08em", textTransform: "uppercase", lineHeight: 1.2,
+            }}>{h}</span>
+          ))}
+        </div>
+        {BACKUPS.map((b, i) => (
+          <div key={i}
+               className="ff-backup-row ff-row-hover"
+               style={{
+                 display: "grid",
+                 gridTemplateColumns: "minmax(140px, 1.4fr) minmax(120px, 1fr) minmax(80px, 0.6fr) minmax(120px, 1fr)",
+                 columnGap: "16px",
+                 padding: "12px 16px",
+                 alignItems: "center",
+                 borderTop: i === 0 ? "none" : "1px solid #D8D9DA",
+               }}>
+            <span className="tabular"
+                  style={{ color: "#2B2D30", fontSize: "14px", fontWeight: 500, lineHeight: 1.4 }}>
+              {b.date}
+            </span>
+            <span className="tabular"
+                  style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.4, opacity: 0.85 }}>
+              {b.time}
+            </span>
+            <span className="tabular"
+                  style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.4, opacity: 0.85 }}>
+              {b.size}
+            </span>
+            <span style={{ justifySelf: "end" }}>
+              <a href="#"
+                 className="flex items-center"
+                 style={{ color: "#4A5E7C", fontSize: "14px", fontWeight: 600,
+                          textDecoration: "none", gap: "6px", lineHeight: 1.3 }}>
+                <DownloadIcon size={16} color="#4A5E7C" />
+                Download
+              </a>
+            </span>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── SYSTEM SECTION ────────────────── */
+
+function SystemSection() {
+  return (
+    <SectionCard heading="System" label="System">
+      <dl className="ff-system-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            columnGap: "32px",
+            rowGap: 0,
+            margin: 0,
+            padding: 0,
+          }}>
+        {SYSTEM_INFO.map(([k, v], i) => (
+          <div key={k}
+               style={{
+                 display: "grid",
+                 gridTemplateColumns: "minmax(140px, 1fr) auto",
+                 columnGap: "16px",
+                 alignItems: "baseline",
+                 padding: "10px 0",
+                 borderTop: "1px solid #D8D9DA",
+               }}>
+            <dt style={{ color: "#4A5E7C", fontSize: "12px", fontWeight: 500,
+                         lineHeight: 1.4, textTransform: "uppercase",
+                         letterSpacing: "0.04em", margin: 0 }}>
+              {k}
+            </dt>
+            <dd className="font-mono tabular"
+                style={{ color: "#2B2D30", fontSize: "14px", fontWeight: 600,
+                         lineHeight: 1.5, margin: 0, justifySelf: "end",
+                         textAlign: "right" }}>
+              {v}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </SectionCard>
+  );
+}
+
+/* ───────────────────────────── MODAL: CONFIRM ───────────────── */
+
+function ModalConfirm({ acknowledged, onAcknowledge, onCancel, onRotate, inline }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="confirm-title"
+         style={{
+           background: "#FFFFFF",
+           width: "100%",
+           maxWidth: "520px",
+           borderRadius: "4px",
+           border: inline ? "1px solid #D8D9DA" : "none",
+           padding: "32px",
+         }}>
+      <h3 id="confirm-title" className="font-serif-display"
+          style={{ color: "#4A5E7C", fontSize: "28px", fontWeight: 700,
+                   lineHeight: 1.2, margin: 0 }}>
+        Rotate API token?
+      </h3>
+      <p style={{ color: "#2B2D30", fontSize: "16px", lineHeight: 1.55,
+                  margin: "12px 0 0", maxWidth: "60ch" }}>
+        The current token will be revoked immediately. Any client still using it will fail
+        authentication until updated.
+      </p>
+
+      <div style={{ marginTop: "20px" }}>
+        <div className="ff-eyebrow"
+             style={{ color: "#4A5E7C", fontSize: "11px", fontWeight: 600,
+                      letterSpacing: "0.08em", textTransform: "uppercase",
+                      lineHeight: 1.2, marginBottom: "8px" }}>
+          Clients that will need updating
+        </div>
+        <ul style={{ listStyle: "none", margin: 0, padding: 0,
+                     display: "flex", flexDirection: "column", gap: "8px" }}>
+          {CLIENTS_TO_UPDATE.map((c, i) => (
+            <li key={i}
+                style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                         paddingLeft: "16px", position: "relative" }}>
+              <span aria-hidden="true"
+                    style={{ position: "absolute", left: 0, top: "10px",
+                             width: "6px", height: "1px", background: "#4A5E7C" }} />
+              <span style={{ color: "#2B2D30", fontWeight: 600 }}>{c.name}</span>
+              <span style={{ color: "#2B2D30", opacity: 0.75 }}> — {c.where}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <label style={{
+               display: "flex", alignItems: "flex-start", gap: "10px",
+               padding: "16px", marginTop: "20px",
+               background: "#F8F9FA", borderRadius: "2px",
+               cursor: "pointer",
+             }}>
+        <input type="checkbox"
+               className="ff-checkbox"
+               checked={acknowledged}
+               onChange={(e) => onAcknowledge(e.target.checked)}
+               style={{ marginTop: "2px" }} />
+        <span style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5 }}>
+          I've identified all clients that will need the new token.
+        </span>
+      </label>
+
+      <div className="flex items-center justify-end flex-wrap"
+           style={{ gap: "12px", marginTop: "24px" }}>
+        <button type="button" className="ff-ghost-link" onClick={onCancel}>
+          Cancel
+        </button>
+        <button type="button"
+                className="ff-primary-v"
+                disabled={!acknowledged}
+                onClick={onRotate}>
+          Rotate token
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────── MODAL: IN-PROGRESS ───────────── */
+
+function ModalInProgress({ inline }) {
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="progress-title"
+         style={{
+           background: "#FFFFFF",
+           width: "100%",
+           maxWidth: "520px",
+           borderRadius: "4px",
+           border: inline ? "1px solid #D8D9DA" : "none",
+           padding: "32px",
+         }}>
+      <div className="flex items-center" style={{ gap: "12px" }}>
+        <Spinner size={24} color="#4A5E7C" />
+        <h3 id="progress-title" className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                     lineHeight: 1.2, margin: 0 }}>
+          Rotating token…
+        </h3>
+      </div>
+      <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.55,
+                  margin: "16px 0 0" }}>
+        Revoking the current token and issuing a new one. Do not close this window.
+      </p>
+
+      <ol style={{ listStyle: "none", margin: "20px 0 0", padding: 0,
+                   display: "flex", flexDirection: "column", gap: "8px" }}>
+        {[
+          { text: "Revoke current token", done: true },
+          { text: "Generate new token",   done: true },
+          { text: "Persist to keystore",  done: false, active: true },
+        ].map((s, i) => (
+          <li key={i}
+              className="flex items-center"
+              style={{ gap: "10px", fontSize: "14px",
+                       color: s.done ? "#2B2D30" : (s.active ? "#4A5E7C" : "#2B2D30"),
+                       opacity: !s.done && !s.active ? 0.5 : 1,
+                       lineHeight: 1.4 }}>
+            <span aria-hidden="true"
+                  className="font-mono tabular"
+                  style={{ width: "16px", display: "inline-flex",
+                           justifyContent: "center", color: "#4A5E7C",
+                           fontSize: "13px", fontWeight: 600 }}>
+              {s.done ? "✓" : (s.active ? "·" : "·")}
+            </span>
+            {s.text}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/* ───────────────────────────── MODAL: SUCCESS ───────────────── */
+
+function ModalSuccess({ onDone, inline }) {
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
+  useEffect(() => () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); }, []);
+
+  const handleCopy = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(NEW_TOKEN).catch(() => {});
+    }
+    setCopied(true);
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="success-title"
+         style={{
+           background: "#FFFFFF",
+           width: "100%",
+           maxWidth: "520px",
+           borderRadius: "4px",
+           border: inline ? "1px solid #D8D9DA" : "none",
+           padding: "32px",
+         }}>
+      <h3 id="success-title" className="font-serif-display"
+          style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                   lineHeight: 1.2, margin: 0 }}>
+        New token generated
+      </h3>
+
+      <div className="flex items-stretch flex-wrap"
+           style={{ gap: "8px", marginTop: "16px" }}>
+        <code className="font-mono"
+              style={{
+                flex: "1 1 280px",
+                minWidth: 0,
+                background: "#F8F9FA",
+                border: "1px solid #D8D9DA",
+                borderRadius: "2px",
+                padding: "12px",
+                color: "#2B2D30",
+                fontSize: "13px",
+                lineHeight: 1.5,
+                wordBreak: "break-all",
+                fontWeight: 500,
+              }}>
+          {NEW_TOKEN}
+        </code>
+        <button type="button"
+                className="ff-primary-v flex items-center"
+                onClick={handleCopy}
+                style={{ gap: "6px" }}>
+          <CopyIcon size={16} color="#F8F9FA" />
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+
+      <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.55,
+                  margin: "12px 0 0", maxWidth: "60ch" }}>
+        This is the only time the full token will be shown. Copy it now and update your clients.
+      </p>
+
+      <div style={{ marginTop: "20px" }}>
+        <div style={{ color: "#4A5E7C", fontSize: "11px", fontWeight: 600,
+                      letterSpacing: "0.08em", textTransform: "uppercase",
+                      lineHeight: 1.2, marginBottom: "8px" }}>
+          Next steps
+        </div>
+        <ol style={{ listStyle: "none", margin: 0, padding: 0,
+                     display: "flex", flexDirection: "column", gap: "10px",
+                     counterReset: "ff-steps" }}>
+          {CLIENT_INSTRUCTIONS.map((line, i) => (
+            <li key={i}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr",
+                  columnGap: "12px",
+                  alignItems: "baseline",
+                  color: "#2B2D30",
+                  fontSize: "14px",
+                  lineHeight: 1.55,
+                }}>
+              <span className="tabular"
+                    style={{ color: "#4A5E7C", fontSize: "14px", fontWeight: 600,
+                             minWidth: "16px" }}>
+                {i + 1}.
+              </span>
+              <span>{line}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div className="flex items-center justify-end" style={{ marginTop: "24px" }}>
+        <button type="button" className="ff-primary-slate" onClick={onDone}>
+          Done
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────── ROTATION-FLOW REVIEW STRIP ───────────────── */
+/* All three states shown side-by-side (or stacked) so the manager
+   can review the full flow in a single artifact, per the brief.    */
+
+function StagedBackdrop({ label, children }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px", minWidth: 0 }}>
+      <span className="ff-stage-label">{label}</span>
+      <div className="ff-backdrop">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function RotationFlowReview() {
+  // Local non-interactive demos: each stage is shown in its frozen state.
+  return (
+    <section data-screen-label="Rotation flow — all states"
+             style={{ marginTop: "48px" }}>
+      <header style={{ marginBottom: "16px" }}>
+        <div className="ff-stage-label" style={{ marginBottom: "6px" }}>
+          Rotation flow — review
+        </div>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "28px", fontWeight: 700,
+                     lineHeight: 1.2, margin: 0 }}>
+          Token rotation — all three states
+        </h2>
+        <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                    margin: "6px 0 0", maxWidth: "68ch" }}>
+          The three modal states the user passes through when rotating the API token.
+          Shown here statically so the full flow can be reviewed at a glance.
+          The live modal opens from the “Rotate token” button above.
+        </p>
+      </header>
+
+      <div className="ff-flow-grid"
+           style={{
+             display: "grid",
+             gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+             gap: "16px",
+             alignItems: "start",
+           }}>
+        <StagedBackdrop label="01 · Confirmation">
+          <ModalConfirm
+            acknowledged={true}
+            onAcknowledge={() => {}}
+            onCancel={() => {}}
+            onRotate={() => {}}
+          />
+        </StagedBackdrop>
+
+        <StagedBackdrop label="02 · In-progress">
+          <ModalInProgress />
+        </StagedBackdrop>
+
+        <StagedBackdrop label="03 · Success">
+          <ModalSuccess onDone={() => {}} />
+        </StagedBackdrop>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── LIVE MODAL OVERLAY ───────────── */
+
+function LiveRotationModal({ stage, setStage, acknowledged, setAcknowledged, onClose }) {
+  // Esc handling
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  // Auto-advance from in-progress → success
+  useEffect(() => {
+    if (stage !== "progress") return;
+    const t = setTimeout(() => setStage("success"), 1400);
+    return () => clearTimeout(t);
+  }, [stage, setStage]);
+
+  return (
+    <div role="presentation"
+         onClick={onClose}
+         style={{
+           position: "fixed", inset: 0,
+           background: "rgba(43, 45, 48, 0.5)",
+           display: "flex", alignItems: "center", justifyContent: "center",
+           padding: "24px", zIndex: 100,
+         }}>
+      <div onClick={(e) => e.stopPropagation()}
+           style={{ width: "100%", maxWidth: "520px" }}>
+        {stage === "confirm" && (
+          <ModalConfirm
+            acknowledged={acknowledged}
+            onAcknowledge={setAcknowledged}
+            onCancel={onClose}
+            onRotate={() => setStage("progress")}
+          />
+        )}
+        {stage === "progress" && <ModalInProgress />}
+        {stage === "success"  && <ModalSuccess onDone={onClose} />}
+      </div>
+    </div>
+  );
+}
+
+/* ───────────────────────────── FOOTER ───────────────────────── */
+
+function Footer() {
+  return (
+    <footer style={{ marginTop: "64px", paddingTop: "16px",
+                     borderTop: "1px solid #D8D9DA" }}>
+      <p className="tabular"
+         style={{ margin: 0, color: "#2B2D30",
+                  fontSize: "12px", opacity: 0.85 }}>
+        Last backup: 11 May 2026 03:00 UTC · Artemide v0.1
+      </p>
+    </footer>
+  );
+}
+
+/* ───────────────────────────── APP ──────────────────────────── */
+
+function App() {
+  const [stage, setStage] = useState(null); // null | "confirm" | "progress" | "success"
+  const [acknowledged, setAcknowledged] = useState(false);
+
+  const openModal = () => {
+    setAcknowledged(false);
+    setStage("confirm");
+  };
+  const closeModal = () => setStage(null);
+
+  return (
+    <div className="min-h-screen w-full bg-[#F8F9FA]"
+         data-screen-label="Settings">
+      <Header />
+
+      <main className="max-w-[1280px] mx-auto" style={{ padding: "32px" }}>
+        <PageTitle />
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <ApiTokenSection onRotate={openModal} />
+          <BackupSection />
+          <SystemSection />
+        </div>
+
+        <RotationFlowReview />
+
+        <Footer />
+      </main>
+
+      {stage && (
+        <LiveRotationModal
+          stage={stage}
+          setStage={setStage}
+          acknowledged={acknowledged}
+          setAcknowledged={setAcknowledged}
+          onClose={closeModal}
+        />
+      )}
+
+      <style>{`
+        @keyframes ff-spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 1023px) {
+          .ff-flow-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 880px) {
+          .ff-backups-head { display: none !important; }
+          .ff-backup-row {
+            grid-template-columns: 1fr auto !important;
+            row-gap: 4px !important;
+          }
+          .ff-backup-row > span:nth-child(2),
+          .ff-backup-row > span:nth-child(3) {
+            grid-column: 1 / 2 !important;
+          }
+          .ff-backup-row > span:last-child {
+            grid-row: 1 / span 3 !important;
+            grid-column: 2 / 3 !important;
+            align-self: center !important;
+          }
+          .ff-system-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .ff-kv-row {
+            grid-template-columns: 1fr !important;
+            row-gap: 4px !important;
+          }
+          .ff-kv-row > span:nth-child(3),
+          .ff-kv-row > button:nth-child(3) {
+            justify-self: start !important;
+            margin-top: 4px !important;
+          }
+        }
+        @media (max-width: 640px) {
+          main { padding: 24px 16px !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

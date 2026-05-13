@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Artemide — David Reeves</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { background: #F8F9FA; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    color: #2B2D30;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  .font-serif-display { font-family: 'Crimson Pro', Georgia, serif; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ---- Search input ----------------------------------------- */
+  .ff-search {
+    width: 240px;
+    transition: width 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-search:focus {
+    width: 320px;
+    outline: 2px solid #4A5E7C;
+    outline-offset: 2px;
+    border-color: #4A5E7C;
+  }
+  .ff-search::placeholder { color: #5A5C60; }
+
+  /* ---- Ghost button (charcoal) ------------------------------ */
+  .ff-ghost {
+    background: transparent;
+    color: #2B2D30;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost:hover { background: #2B2D30; color: #F8F9FA; border-color: #2B2D30; }
+  .ff-ghost:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Ghost button (slate blue) ---------------------------- */
+  .ff-ghost-slate {
+    background: transparent;
+    color: #4A5E7C;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost-slate:hover { background: #4A5E7C; color: #F8F9FA; }
+  .ff-ghost-slate:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Primary button (vermillion) -------------------------- */
+  .ff-primary {
+    background: #E63946;
+    color: #F8F9FA;
+    border: 0;
+    border-radius: 2px;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ff-primary:hover { background: #C22A36; }
+  .ff-primary:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Nav links --------------------------------------------- */
+  .ff-nav-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4A5E7C;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-nav-link:hover { color: #2B2D30; }
+  .ff-nav-link.is-active { border-bottom-color: #4A5E7C; }
+
+  /* ---- Links ------------------------------------------------- */
+  .ff-link {
+    color: #4A5E7C;
+    border-bottom: 1px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-link:hover { color: #2B2D30; border-bottom-color: currentColor; }
+
+  /* ---- Inline-editable value --------------------------------- */
+  .ff-editable {
+    cursor: text;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    padding: 0 1px;
+    margin: 0 -1px;
+  }
+  .ff-editable:hover {
+    border-bottom-color: #4A5E7C;
+  }
+  .ff-editable-input {
+    font: inherit;
+    color: inherit;
+    background: #F8F9FA;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    padding: 2px 6px;
+    margin: -3px -7px;
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ---- Form input shared ------------------------------------ */
+  .ff-input {
+    width: 100%;
+    background: #FFFFFF;
+    color: #2B2D30;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: inherit;
+    line-height: 1.4;
+    transition: border-color 0.15s ease, outline-color 0.15s ease;
+    box-sizing: border-box;
+  }
+  .ff-input::placeholder { color: #7D8E9E; }
+  .ff-input:focus {
+    outline: 2px solid #4A5E7C;
+    outline-offset: 0;
+    border-color: #4A5E7C;
+  }
+  textarea.ff-input { resize: vertical; min-height: 80px; line-height: 1.5; }
+  select.ff-input {
+    appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A5E7C' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+
+  /* ---- Toggle segmented (Initiated by) ---------------------- */
+  .ff-seg {
+    display: inline-flex;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .ff-seg button {
+    background: #FFFFFF;
+    color: #2B2D30;
+    border: 0;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .ff-seg button + button { border-left: 1px solid #D8D9DA; }
+  .ff-seg button.is-active { background: #4A5E7C; color: #F8F9FA; }
+
+  /* ---- Checkbox --------------------------------------------- */
+  .ff-check {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    background: #FFFFFF;
+    cursor: pointer;
+    display: inline-block;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .ff-check:checked { background: #4A5E7C; }
+  .ff-check:checked::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid #F8F9FA;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .ff-check:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Timeline ---------------------------------------------- */
+  .ff-timeline-trigger {
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+    color: inherit;
+  }
+  .ff-timeline-trigger:focus-visible {
+    outline: 2px solid #E63946;
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+  .ff-timeline-card {
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-timeline-trigger:hover .ff-timeline-card {
+    background: rgba(74, 94, 124, 0.04);
+    border-color: #4A5E7C;
+  }
+
+  /* ---- Note body markdown ----------------------------------- */
+  .ff-note ul {
+    list-style: disc;
+    padding-left: 20px;
+    margin: 6px 0 0;
+  }
+  .ff-note ul li { margin: 2px 0; }
+  .ff-note strong { font-weight: 600; color: #2B2D30; }
+  .ff-note p { margin: 0; }
+  .ff-note p + p { margin-top: 6px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ───────────────────────────── DATA ─────────────────────────── */
+
+const PARTNER = {
+  firm: "TML Partners",
+  name: "David Reeves",
+  subline: "Partner · Marketing & Communications Practice · TML Partners",
+  status: "due_soon",
+};
+
+const FACTS = [
+  { key: "seniority",     label: "Seniority",        value: "Partner" },
+  { key: "location",      label: "Location",         value: "London" },
+  { key: "introduced",    label: "Introduced via",   value: "WEF Strategic Communicators dinner, October 2024" },
+  { key: "first",         label: "First contact",    value: "18 October 2024" },
+  { key: "last",          label: "Last contact",     value: "4 May 2026 (8 days ago)" },
+  { key: "next",          label: "Next planned touch", value: "18 May 2026 (in 6 days)" },
+  { key: "topic",         label: "Next planned topic", value: "Q2 PoV share — agentic CMO themes" },
+];
+
+const FOLLOW_UPS = [
+  { id: "f1", text: "Send Q2 PoV draft (agentic CMO themes)", due: "due 25 May 2026" },
+  { id: "f2", text: "Introduce him to Mark Loughran (HFS Research)", due: "due 30 May 2026" },
+];
+
+const TIMELINE = [
+  {
+    id: "t1",
+    date: "4 May 2026",
+    channel: "coffee",
+    summary: "Discussed his Q1 placements; I shared Y/Y view on B2B CMO comp trends.",
+    valueGiven: "Comp benchmark insight — B2B SaaS CMO base ranges, LTI mix trends.",
+    valueReceived: "Three live mandates in financial information services.",
+    followUp: "Send Q2 PoV draft by 25 May.",
+    defaultOpen: true,
+  },
+  {
+    id: "t2",
+    date: "18 April 2026",
+    channel: "email",
+    summary: "Market-mapping debrief scheduled.",
+  },
+  {
+    id: "t3",
+    date: "2 March 2026",
+    channel: "event",
+    summary: "Met at the WEF Strategic Communicators dinner.",
+  },
+  {
+    id: "t4",
+    date: "14 February 2026",
+    channel: "email",
+    summary: "Sent year-ahead PoV doc.",
+    valueGiven: "PoV PDF — agentic operating models for marketing.",
+  },
+  {
+    id: "t5",
+    date: "22 January 2026",
+    channel: "call",
+    summary: "Quarterly catch-up.",
+  },
+  {
+    id: "t6",
+    date: "18 October 2024",
+    channel: "coffee",
+    summary: "First substantive meeting after WEF intro.",
+  },
+];
+
+/* ───────────────────────────── ICONS ─────────────────────────── */
+
+const ICON_PATHS = {
+  email: (
+    <>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </>
+  ),
+  call: (
+    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+  ),
+  coffee: (
+    <>
+      <path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+      <path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+      <line x1="6"  y1="2" x2="6"  y2="4" />
+      <line x1="10" y1="2" x2="10" y2="4" />
+      <line x1="14" y1="2" x2="14" y2="4" />
+    </>
+  ),
+  event: (
+    <>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <line x1="16" y1="2"  x2="16" y2="6"  />
+      <line x1="8"  y1="2"  x2="8"  y2="6"  />
+      <line x1="3"  y1="10" x2="21" y2="10" />
+    </>
+  ),
+  message: (
+    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+  ),
+  inmail: (
+    <>
+      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z" />
+      <rect x="2" y="9" width="4" height="12" />
+      <circle cx="4" cy="4" r="2" />
+    </>
+  ),
+  other: <circle cx="12" cy="12" r="10" />,
+};
+
+const CHANNEL_LABEL = {
+  email: "Email", call: "Call", coffee: "Coffee", event: "Event",
+  inmail: "InMail", message: "Message", other: "Other",
+};
+
+function ChannelIcon({ name, size = 16, color = "#F8F9FA", stroke = 1.75 }) {
+  const body = ICON_PATHS[name] || ICON_PATHS.other;
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke={color} strokeWidth={stroke}
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {body}
+    </svg>
+  );
+}
+
+function ChevronIcon({ open, size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round"
+         style={{ transition: "transform 0.2s ease",
+                  transform: open ? "rotate(180deg)" : "rotate(0deg)",
+                  flexShrink: 0 }} aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function PlusIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function XIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="1.75"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function InfoIcon({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="1.75"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="16" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12.01" y2="8" />
+    </svg>
+  );
+}
+
+/* ───────────────────────────── PRIMITIVES ───────────────────────────── */
+
+function StatusPill({ status }) {
+  const map = {
+    warm:     { bg: "#4A5E7C",                 fg: "#F8F9FA", label: "warm" },
+    warming:  { bg: "rgba(74, 94, 124, 0.4)",  fg: "#F8F9FA", label: "warming" },
+    cold:     { bg: "#D8D9DA",                 fg: "#2B2D30", label: "cold" },
+    dormant:  { bg: "#9CA3AF",                 fg: "#F8F9FA", label: "dormant" },
+    overdue:  { bg: "#E63946",                 fg: "#F8F9FA", label: "overdue" },
+    due_soon: { bg: "#4A5E7C",                 fg: "#F8F9FA", label: "due_soon" },
+  };
+  const s = map[status] || map.cold;
+  return (
+    <span className="inline-flex items-center" style={{
+      background: s.bg, color: s.fg,
+      fontSize: "12px", fontWeight: 600,
+      padding: "4px 12px", borderRadius: "999px",
+      lineHeight: 1, letterSpacing: "0.01em", whiteSpace: "nowrap",
+    }}>{s.label}</span>
+  );
+}
+
+/* ───────────────────────────── HEADER ───────────────────────────── */
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-30 w-full"
+            style={{ height: "64px", background: "#F8F9FA", borderBottom: "1px solid #D8D9DA" }}>
+      <div className="h-full max-w-[1280px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
+        <a href="#" className="flex flex-col items-start shrink-0"
+           aria-label="Artemide home" style={{ textDecoration: "none" }}>
+          <span className="font-serif-display tabular"
+                style={{ color: "#4A5E7C", fontWeight: 700, fontSize: "32px", lineHeight: 1 }}>FF</span>
+          <span aria-hidden="true"
+                style={{ width: "24px", height: "3px", background: "#E63946", marginTop: "2px" }} />
+        </a>
+
+        <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
+          <a className="ff-nav-link" href="Dashboard.html">Dashboard</a>
+          <a className="ff-nav-link is-active" href="FirmDetail.html" aria-current="page">Firms</a>
+          <a className="ff-nav-link" href="#">Plan</a>
+          <a className="ff-nav-link" href="#">Audit</a>
+          <a className="ff-nav-link" href="#">Notes</a>
+        </nav>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="sr-only" htmlFor="firm-search">Search</label>
+          <input id="firm-search" type="search"
+                 placeholder="Search firms, partners, notes…"
+                 className="ff-search hidden sm:block bg-[#F8F9FA] text-[#2B2D30] border border-[#D8D9DA]"
+                 style={{ padding: "8px 12px", borderRadius: "2px", fontSize: "14px", fontFamily: "inherit" }} />
+          <button type="button" className="ff-ghost">Sign out</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────────── PARTNER HEADER STRIP ───────────────────────────── */
+
+function PartnerHeader({ onLog }) {
+  return (
+    <section data-screen-label="Partner header"
+             className="max-w-[1280px] mx-auto"
+             style={{ background: "rgba(74, 94, 124, 0.04)", padding: "32px" }}>
+      <div className="flex items-start justify-between gap-6 flex-wrap">
+        <div className="flex-1 min-w-0">
+          {/* Breadcrumb */}
+          <nav aria-label="Breadcrumb"
+               style={{ fontSize: "12px", color: "#4A5E7C", lineHeight: 1.4, marginBottom: "12px" }}>
+            <a href="#" className="ff-link" style={{ color: "#4A5E7C", fontWeight: 500 }}>Firms</a>
+            <span aria-hidden="true" style={{ margin: "0 8px" }}>/</span>
+            <a href="FirmDetail.html" className="ff-link" style={{ color: "#4A5E7C", fontWeight: 500 }}>TML Partners</a>
+            <span aria-hidden="true" style={{ margin: "0 8px" }}>/</span>
+            <span>David Reeves</span>
+          </nav>
+
+          {/* Name */}
+          <h1 className="font-serif-display"
+              style={{ color: "#4A5E7C", fontSize: "48px", fontWeight: 700,
+                       lineHeight: 1.05, margin: 0 }}>
+            {PARTNER.name}
+          </h1>
+
+          {/* Sub-line */}
+          <p style={{ color: "#2B2D30", fontSize: "18px", lineHeight: 1.4,
+                      margin: "12px 0 0", maxWidth: "68ch" }}>
+            {PARTNER.subline}
+          </p>
+
+          {/* Status pill */}
+          <div className="flex items-center" style={{ gap: "8px", marginTop: "16px" }}>
+            <StatusPill status={PARTNER.status} />
+          </div>
+        </div>
+
+        {/* Right — Log contact CTA */}
+        <div className="shrink-0">
+          <button type="button" className="ff-primary" onClick={onLog}>
+            <PlusIcon size={14} />
+            Log contact
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── FACTS PANEL ───────────────────────────── */
+
+function EditableValue({ value }) {
+  const [editing, setEditing] = useState(false);
+  const [v, setV] = useState(value);
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        className="ff-editable-input"
+        value={v}
+        onChange={(e) => setV(e.target.value)}
+        onBlur={() => setEditing(false)}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setEditing(false); }}
+        style={{ fontSize: "14px", fontWeight: 600, color: "#2B2D30",
+                 fontFamily: "inherit" }}
+      />
+    );
+  }
+  return (
+    <span className="ff-editable" tabIndex={0}
+          onClick={() => setEditing(true)}
+          onKeyDown={(e) => { if (e.key === "Enter") setEditing(true); }}>
+      {v}
+    </span>
+  );
+}
+
+function FactsPanel() {
+  return (
+    <section data-screen-label="Facts"
+             style={{
+               background: "#FFFFFF",
+               border: "1px solid #D8D9DA",
+               borderRadius: "4px",
+               padding: "24px",
+             }}>
+      <h2 className="font-serif-display"
+          style={{ color: "#4A5E7C", fontSize: "20px", fontWeight: 600,
+                   lineHeight: 1.2, margin: "0 0 20px" }}>
+        Facts
+      </h2>
+
+      <dl className="ff-facts-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(140px, 200px) 1fr",
+            columnGap: "24px",
+            rowGap: "12px",
+            margin: 0,
+          }}>
+        {FACTS.map((f) => (
+          <React.Fragment key={f.key}>
+            <dt style={{ color: "#4A5E7C", fontSize: "12px", lineHeight: 1.4,
+                         paddingTop: "2px" }}>
+              {f.label}
+            </dt>
+            <dd style={{ color: "#2B2D30", fontSize: "14px", fontWeight: 600,
+                         lineHeight: 1.4, margin: 0 }}>
+              <EditableValue value={f.value} />
+            </dd>
+          </React.Fragment>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+/* ───────────────────────────── NOTES SECTION ───────────────────────────── */
+
+function NotesSection() {
+  return (
+    <section data-screen-label="Notes" style={{ marginTop: "32px" }}>
+      <header className="flex items-baseline gap-3" style={{ marginBottom: "16px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "20px", fontWeight: 600,
+                     lineHeight: 1.2, margin: 0 }}>
+          Notes
+        </h2>
+        <span style={{ color: "#2B2D30", fontSize: "14px", opacity: 0.75 }}>3 notes</span>
+      </header>
+
+      <ol className="flex flex-col" style={{ listStyle: "none", margin: 0, padding: 0, gap: "12px" }}>
+        <NoteCard date="2 May 2026">
+          <p>
+            David mentioned three new mandates in financial information services:
+            one with a UK exchange holding, one US-based data provider, one Asian
+            custody bank. Worth tracking the exchange mandate specifically —
+            overlaps with my current sector.
+          </p>
+        </NoteCard>
+
+        <NoteCard date="14 April 2026">
+          <p><strong>Comp benchmark exchange.</strong> David asked for my view on:</p>
+          <ul>
+            <li>Public-co CMO base ranges in B2B SaaS</li>
+            <li>LTI mix (RSU vs PSU) trends 2024–2026</li>
+            <li>Sign-on practice for CMO hires from BU GM seats</li>
+          </ul>
+        </NoteCard>
+
+        <NoteCard date="12 December 2025">
+          <p>
+            Reciprocity flag: I've shared 3 substantive PoVs across the
+            relationship; received intel only once. Worth shifting the balance —
+            ask for his market view next time.
+          </p>
+        </NoteCard>
+      </ol>
+
+      <div style={{ marginTop: "16px" }}>
+        <button type="button" className="ff-ghost-slate">+ Add note</button>
+      </div>
+    </section>
+  );
+}
+
+function NoteCard({ date, children }) {
+  return (
+    <li style={{
+      background: "#FFFFFF",
+      border: "1px solid #D8D9DA",
+      borderRadius: "4px",
+      padding: "16px 20px",
+    }}>
+      <div className="tabular"
+           style={{ color: "#4A5E7C", fontSize: "12px", fontWeight: 600,
+                    letterSpacing: "0.01em", marginBottom: "8px" }}>
+        {date}
+      </div>
+      <div className="ff-note"
+           style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.55 }}>
+        {children}
+      </div>
+    </li>
+  );
+}
+
+/* ───────────────────────────── FOLLOW-UPS PANEL ───────────────────────────── */
+
+function FollowUpsPanel() {
+  const [items, setItems] = useState(FOLLOW_UPS);
+  const [draft, setDraft] = useState("");
+  const [checked, setChecked] = useState({});
+
+  const open = items.filter((it) => !checked[it.id]).length;
+
+  const addItem = () => {
+    const t = draft.trim();
+    if (!t) return;
+    setItems((xs) => [...xs, { id: "f" + Date.now(), text: t, due: "no due date" }]);
+    setDraft("");
+  };
+
+  return (
+    <aside data-screen-label="Follow-ups"
+           style={{
+             background: "#FFFFFF",
+             border: "1px solid #D8D9DA",
+             borderRadius: "4px",
+             padding: "24px",
+           }}>
+      <header className="flex items-baseline gap-3" style={{ marginBottom: "20px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "20px", fontWeight: 600,
+                     lineHeight: 1.2, margin: 0 }}>
+          Follow-ups
+        </h2>
+        <span style={{ color: "#2B2D30", fontSize: "14px", opacity: 0.75 }}>
+          {open} open
+        </span>
+      </header>
+
+      <ul className="flex flex-col"
+          style={{ listStyle: "none", margin: 0, padding: 0, gap: "16px" }}>
+        {items.map((it) => {
+          const done = !!checked[it.id];
+          return (
+            <li key={it.id} className="flex items-start" style={{ gap: "12px" }}>
+              <input
+                type="checkbox"
+                className="ff-check"
+                checked={done}
+                onChange={() => setChecked((m) => ({ ...m, [it.id]: !m[it.id] }))}
+                style={{ marginTop: "2px" }}
+                aria-label={it.text}
+              />
+              <div className="flex-1 min-w-0">
+                <div style={{
+                  color: "#2B2D30",
+                  fontSize: "14px",
+                  lineHeight: 1.45,
+                  textDecoration: done ? "line-through" : "none",
+                  opacity: done ? 0.55 : 1,
+                }}>
+                  {it.text}
+                </div>
+                <div className="tabular"
+                     style={{ color: "#4A5E7C", fontSize: "12px",
+                              marginTop: "4px", letterSpacing: "0.01em" }}>
+                  {it.due}
+                </div>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* Add follow-up row */}
+      <div style={{ marginTop: "20px", paddingTop: "16px",
+                    borderTop: "1px solid #D8D9DA" }}
+           className="flex items-stretch gap-2">
+        <input
+          type="text"
+          className="ff-input"
+          placeholder="Add a follow-up…"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addItem(); }}
+          style={{ padding: "8px 12px", fontSize: "13px" }}
+        />
+        <button
+          type="button"
+          onClick={addItem}
+          className="ff-ghost-slate"
+          style={{ padding: "8px 14px", fontSize: "13px" }}
+        >
+          Add
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+/* ───────────────────────────── TIMELINE ───────────────────────────── */
+
+function TimelineEntry({ entry, isLast }) {
+  const [open, setOpen] = useState(Boolean(entry.defaultOpen));
+  const hasDetails = Boolean(entry.valueGiven) || Boolean(entry.valueReceived) || Boolean(entry.followUp);
+
+  return (
+    <li className="relative"
+        style={{ paddingLeft: "56px", paddingBottom: isLast ? 0 : "32px" }}>
+      {!isLast && (
+        <span aria-hidden="true"
+              style={{ position: "absolute", left: "15.5px", top: "32px",
+                       bottom: 0, width: "1px", background: "#D8D9DA" }} />
+      )}
+
+      <span aria-hidden="true"
+            style={{ position: "absolute", left: 0, top: 0,
+                     width: "32px", height: "32px", borderRadius: "999px",
+                     background: "#4A5E7C",
+                     display: "inline-flex",
+                     alignItems: "center", justifyContent: "center" }}>
+        <ChannelIcon name={entry.channel} size={16} color="#F8F9FA" />
+      </span>
+
+      <button type="button" className="ff-timeline-trigger"
+              aria-expanded={open}
+              onClick={() => hasDetails && setOpen((v) => !v)}
+              style={{ cursor: hasDetails ? "pointer" : "default" }}>
+        <div className="ff-timeline-card"
+             style={{ background: "#FFFFFF",
+                      border: "1px solid #D8D9DA",
+                      borderRadius: "4px",
+                      padding: "16px 20px" }}>
+          <div className="flex items-baseline justify-between gap-3 flex-wrap">
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="tabular"
+                    style={{ color: "#4A5E7C", fontSize: "14px",
+                             fontWeight: 600, letterSpacing: "0.01em" }}>
+                {entry.date}
+              </span>
+              <span style={{ color: "#D8D9DA" }} aria-hidden="true">·</span>
+              <span style={{ fontSize: "11px", letterSpacing: "0.08em",
+                             textTransform: "uppercase", color: "#7D8E9E",
+                             fontWeight: 500 }}>
+                {CHANNEL_LABEL[entry.channel] || "Other"}
+              </span>
+            </div>
+            {hasDetails && (
+              <span aria-hidden="true"
+                    style={{ color: "#4A5E7C", display: "inline-flex",
+                             alignItems: "center" }}>
+                <ChevronIcon open={open} />
+              </span>
+            )}
+          </div>
+
+          <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                      margin: "8px 0 0", maxWidth: "none" }}>
+            {entry.summary}
+          </p>
+
+          {open && hasDetails && (
+            <div style={{ marginTop: "16px", paddingTop: "16px",
+                          borderTop: "1px solid #D8D9DA",
+                          display: "grid",
+                          gridTemplateColumns: "auto 1fr",
+                          columnGap: "20px", rowGap: "10px" }}>
+              {entry.valueGiven && (
+                <React.Fragment>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.08em",
+                                 textTransform: "uppercase", color: "#7D8E9E",
+                                 fontWeight: 500, whiteSpace: "nowrap",
+                                 paddingTop: "1px" }}>
+                    Value given →
+                  </span>
+                  <span style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5 }}>
+                    {entry.valueGiven}
+                  </span>
+                </React.Fragment>
+              )}
+              {entry.valueReceived && (
+                <React.Fragment>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.08em",
+                                 textTransform: "uppercase", color: "#7D8E9E",
+                                 fontWeight: 500, whiteSpace: "nowrap",
+                                 paddingTop: "1px" }}>
+                    ← Value received
+                  </span>
+                  <span style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5 }}>
+                    {entry.valueReceived}
+                  </span>
+                </React.Fragment>
+              )}
+              {entry.followUp && (
+                <React.Fragment>
+                  <span style={{ fontSize: "11px", letterSpacing: "0.08em",
+                                 textTransform: "uppercase", color: "#E63946",
+                                 fontWeight: 600, whiteSpace: "nowrap",
+                                 paddingTop: "1px" }}>
+                    Follow-up
+                  </span>
+                  <span style={{ color: "#2B2D30", fontSize: "14px",
+                                 lineHeight: 1.5, fontWeight: 500 }}>
+                    {entry.followUp}
+                  </span>
+                </React.Fragment>
+              )}
+            </div>
+          )}
+        </div>
+      </button>
+    </li>
+  );
+}
+
+function TimelineSection() {
+  return (
+    <section data-screen-label="Contact history" style={{ marginTop: "64px" }}>
+      <header style={{ marginBottom: "24px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "28px",
+                     fontWeight: 700, lineHeight: 1.1, margin: 0 }}>
+          Contact history
+        </h2>
+        <p className="tabular"
+           style={{ color: "#2B2D30", fontSize: "14px",
+                    margin: "4px 0 0", opacity: 0.75 }}>
+          12 contacts since October 2024
+        </p>
+      </header>
+
+      <ol className="flex flex-col" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+        {TIMELINE.map((e, i) => (
+          <TimelineEntry key={e.id} entry={e} isLast={i === TIMELINE.length - 1} />
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+/* ───────────────────────────── FOOTER ───────────────────────────── */
+
+function Footer() {
+  return (
+    <footer style={{ marginTop: "64px", paddingTop: "16px",
+                     borderTop: "1px solid #D8D9DA" }}>
+      <p className="tabular"
+         style={{ margin: 0, color: "#2B2D30",
+                  fontSize: "12px", opacity: 0.85 }}>
+        Last backup: 11 May 2026 03:00 UTC · Artemide v0.1
+      </p>
+    </footer>
+  );
+}
+
+/* ───────────────────────────── LOG CONTACT MODAL ───────────────────────────── */
+
+function LogContactModalCard({ onClose }) {
+  const [date, setDate] = useState("2026-05-12");
+  const [channel, setChannel] = useState("call");
+  const [initiator, setInitiator] = useState("FF");
+  const [given, setGiven] = useState("");
+  const [received, setReceived] = useState("");
+  const [summary, setSummary] = useState("");
+  const [followup, setFollowup] = useState("");
+  const [advance, setAdvance] = useState(false);
+
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="log-contact-title"
+         style={{
+           background: "#FFFFFF",
+           border: "1px solid #D8D9DA",
+           borderRadius: "4px",
+           padding: "32px",
+           width: "100%",
+           maxWidth: "480px",
+           boxSizing: "border-box",
+           position: "relative",
+         }}>
+      {/* Close */}
+      <button type="button" aria-label="Close"
+              onClick={onClose}
+              style={{
+                position: "absolute", top: "16px", right: "16px",
+                background: "transparent", border: 0, padding: 4,
+                color: "#4A5E7C", cursor: "pointer", lineHeight: 0,
+              }}>
+        <XIcon size={24} />
+      </button>
+
+      <h2 id="log-contact-title" className="font-serif-display"
+          style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                   lineHeight: 1.2, margin: 0, paddingRight: "32px" }}>
+        Log contact with David Reeves
+      </h2>
+
+      <form className="flex flex-col"
+            style={{ gap: "16px", marginTop: "24px" }}
+            onSubmit={(e) => { e.preventDefault(); onClose && onClose(); }}>
+        {/* Date */}
+        <Field label="Date">
+          <input type="date" className="ff-input"
+                 value={date}
+                 onChange={(e) => setDate(e.target.value)} />
+        </Field>
+
+        {/* Channel */}
+        <Field label="Channel">
+          <select className="ff-input"
+                  value={channel}
+                  onChange={(e) => setChannel(e.target.value)}>
+            <option value="email">Email</option>
+            <option value="call">Call</option>
+            <option value="coffee">Coffee</option>
+            <option value="event">Event</option>
+            <option value="inmail">InMail</option>
+            <option value="message">Message</option>
+            <option value="other">Other</option>
+          </select>
+        </Field>
+
+        {/* Initiated by */}
+        <Field label="Initiated by">
+          <div className="ff-seg" role="group" aria-label="Initiated by">
+            <button type="button"
+                    className={initiator === "FF" ? "is-active" : ""}
+                    onClick={() => setInitiator("FF")}>
+              FF
+            </button>
+            <button type="button"
+                    className={initiator === "Partner" ? "is-active" : ""}
+                    onClick={() => setInitiator("Partner")}>
+              Partner
+            </button>
+          </div>
+        </Field>
+
+        {/* Value given */}
+        <Field label="Value given">
+          <textarea className="ff-input" rows={3}
+                    placeholder="What did you share with them?"
+                    value={given}
+                    onChange={(e) => setGiven(e.target.value)} />
+        </Field>
+
+        {/* Value received */}
+        <Field label="Value received">
+          <textarea className="ff-input" rows={3}
+                    placeholder="What did they share with you?"
+                    value={received}
+                    onChange={(e) => setReceived(e.target.value)} />
+        </Field>
+
+        {/* Summary */}
+        <Field label="Summary">
+          <input type="text" className="ff-input"
+                 placeholder="One sentence capturing the substance"
+                 value={summary}
+                 onChange={(e) => setSummary(e.target.value)} />
+        </Field>
+
+        {/* Follow-up */}
+        <Field label="Follow-up">
+          <input type="text" className="ff-input"
+                 placeholder="What do you need to do next?"
+                 value={followup}
+                 onChange={(e) => setFollowup(e.target.value)} />
+        </Field>
+
+        {/* Advance toggle */}
+        <label className="flex items-center"
+               style={{ gap: "10px", marginTop: "4px",
+                        color: "#2B2D30", fontSize: "13px",
+                        cursor: "pointer" }}>
+          <input type="checkbox" className="ff-check"
+                 checked={advance}
+                 onChange={(e) => setAdvance(e.target.checked)} />
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+            Advance relationship state if conditions met
+            <span title="Promotes cold → warming → warm based on contact frequency and substance."
+                  style={{ color: "#4A5E7C", display: "inline-flex",
+                           alignItems: "center", cursor: "help" }}>
+              <InfoIcon size={14} />
+            </span>
+          </span>
+        </label>
+
+        {/* Actions */}
+        <div className="flex items-center justify-end"
+             style={{ gap: "12px", marginTop: "8px" }}>
+          <button type="button"
+                  onClick={onClose}
+                  style={{
+                    background: "transparent", border: 0, padding: "12px 16px",
+                    color: "#4A5E7C", fontSize: "14px", fontWeight: 600,
+                    cursor: "pointer", fontFamily: "inherit",
+                    borderRadius: "2px",
+                  }}>
+            Cancel
+          </button>
+          <button type="submit" className="ff-primary">
+            Log contact
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="flex flex-col" style={{ gap: "6px" }}>
+      <span style={{ color: "#4A5E7C", fontSize: "12px", fontWeight: 500,
+                     letterSpacing: "0.01em" }}>
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
+
+/* Overlay used over the real page */
+function LogContactOverlay({ onClose }) {
+  return (
+    <div role="presentation"
+         onClick={onClose}
+         style={{
+           position: "fixed", inset: 0, zIndex: 50,
+           background: "rgba(43, 45, 48, 0.5)",
+           display: "flex", alignItems: "center", justifyContent: "center",
+           padding: "16px",
+         }}>
+      <div onClick={(e) => e.stopPropagation()}
+           style={{ width: "100%", maxWidth: "480px" }}>
+        <LogContactModalCard onClose={onClose} />
+      </div>
+    </div>
+  );
+}
+
+/* Static frame for the side-by-side preview */
+function ModalPreviewFrame() {
+  return (
+    <section data-screen-label="Modal: Log Contact"
+             className="max-w-[1280px] mx-auto"
+             style={{ padding: "32px 32px 64px" }}>
+      {/* Divider label */}
+      <div className="flex items-center" style={{ gap: "16px", marginBottom: "24px" }}>
+        <span aria-hidden="true"
+              style={{ flex: 1, height: "1px", background: "#D8D9DA" }} />
+        <span style={{
+          fontSize: "11px", letterSpacing: "0.12em",
+          textTransform: "uppercase", color: "#4A5E7C",
+          fontWeight: 600,
+        }}>
+          Modal · Log contact
+        </span>
+        <span aria-hidden="true"
+              style={{ flex: 1, height: "1px", background: "#D8D9DA" }} />
+      </div>
+
+      <p style={{ color: "#2B2D30", fontSize: "13px",
+                  opacity: 0.7, margin: "0 0 20px",
+                  maxWidth: "60ch" }}>
+        Shown statically so the form layout can be reviewed alongside the page.
+        The same modal opens as an overlay when "Log contact" is clicked above.
+      </p>
+
+      {/* Backdrop frame containing the modal */}
+      <div style={{
+        background: "rgba(43, 45, 48, 0.5)",
+        padding: "48px 16px",
+        borderRadius: "4px",
+        display: "flex",
+        justifyContent: "center",
+      }}>
+        <LogContactModalCard onClose={() => {}} />
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────── APP ───────────────────────────── */
+
+function App() {
+  const [modalOpen, setModalOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen w-full bg-[#F8F9FA]"
+         data-screen-label="Partner — David Reeves">
+      <Header />
+      <PartnerHeader onLog={() => setModalOpen(true)} />
+
+      <main className="max-w-[1280px] mx-auto" style={{ padding: "32px" }}>
+        <div className="ff-two-col"
+             style={{
+               display: "grid",
+               gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1fr)",
+               gap: "32px",
+               alignItems: "start",
+             }}>
+          {/* Left column */}
+          <div>
+            <FactsPanel />
+            <NotesSection />
+          </div>
+
+          {/* Right column */}
+          <FollowUpsPanel />
+        </div>
+
+        <TimelineSection />
+
+        <Footer />
+      </main>
+
+      {/* Static preview of the modal as a sibling component */}
+      <ModalPreviewFrame />
+
+      {/* Live overlay version */}
+      {modalOpen && <LogContactOverlay onClose={() => setModalOpen(false)} />}
+
+      <style>{`
+        @media (max-width: 1023px) {
+          .ff-two-col { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          main { padding: 24px 16px !important; }
+          .ff-facts-grid { grid-template-columns: 1fr !important; row-gap: 16px !important; }
+          .ff-facts-grid dt { padding-top: 0 !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

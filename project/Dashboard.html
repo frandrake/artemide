@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Artemide — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { background: #F8F9FA; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    color: #2B2D30;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  .font-serif-display { font-family: 'Crimson Pro', Georgia, serif; }
+
+  /* ---- Inputs ------------------------------------------------ */
+  .ff-search {
+    width: 240px;
+    transition: width 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-search:focus {
+    width: 320px;
+    outline: 2px solid #4A5E7C;
+    outline-offset: 2px;
+    border-color: #4A5E7C;
+  }
+  .ff-search::placeholder { color: #5A5C60; }
+
+  /* ---- Ghost button ------------------------------------------ */
+  .ff-ghost {
+    background: transparent;
+    color: #2B2D30;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost:hover { background: #2B2D30; color: #F8F9FA; border-color: #2B2D30; }
+  .ff-ghost:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Nav links --------------------------------------------- */
+  .ff-nav-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4A5E7C;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-nav-link:hover { color: #2B2D30; }
+  .ff-nav-link.is-active { border-bottom-color: #4A5E7C; }
+
+  /* ---- Touch row hover --------------------------------------- */
+  .ff-touch-row .ff-touch-log { opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+  .ff-touch-row:hover .ff-touch-log,
+  .ff-touch-row:focus-within .ff-touch-log { opacity: 1; pointer-events: auto; }
+
+  /* ---- Link with hover underline ----------------------------- */
+  .ff-link {
+    color: #4A5E7C;
+    border-bottom: 1px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-link:hover { color: #2B2D30; border-bottom-color: currentColor; }
+
+  .ff-link-accent { color: #E63946; border-bottom: 1px solid transparent; transition: color 0.2s ease, border-color 0.2s ease; }
+  .ff-link-accent:hover { color: #C22A36; border-bottom-color: currentColor; }
+
+  /* Tabular nums for date / days / numerals */
+  .tabular { font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ───────────────────────────── DATA (hardcoded) ───────────────────────────── */
+
+const PRIMARY_FIRMS = [
+  { name: "TML Partners",          region: "London", status: "warm",
+    spark: [0,1,0,2,0,1,0,1,0,1,0,0] },                                  // 6 contacts
+  { name: "Spencer Stuart",        region: "Global", status: "cold",
+    spark: [0,0,0,0,0,0,0,0,0,0,0,0] },
+  { name: "Heidrick & Struggles",  region: "Global", status: "cold",
+    spark: [0,0,0,0,0,0,0,0,0,0,0,0] },
+  { name: "Egon Zehnder",          region: "Europe", status: "cold",
+    spark: [0,0,0,0,0,0,0,0,1,0,0,0] },                                  // single tick 3mo ago
+  { name: "Russell Reynolds",      region: "Global", status: "cold",
+    spark: [0,0,0,0,0,0,0,0,0,0,0,0] },
+];
+
+const TOUCHES = [
+  { name: "David Reeves",     firm: "TML Partners",          days: -5, topic: "Q2 PoV share" },
+  { name: "Sarah Whitfield",  firm: "Spencer Stuart",        days:  2, topic: "warm intro via WEF" },
+  { name: "Marcus Penrose",   firm: "Heidrick & Struggles",  days:  4, topic: "market-mapping call" },
+  { name: "Elena Brescia",    firm: "Egon Zehnder",          days:  9, topic: "NED track exploration" },
+  { name: "James Donlan",     firm: "Korn Ferry",            days: 12, topic: "comp benchmarking" },
+];
+
+const AUDIT_INSIGHTS = [
+  { finding: "3 primary firms have no contact in the last 90 days.",                    cta: "Open coverage gaps" },
+  { finding: "Reciprocity imbalance with TML Partners: 4 value-given, 0 value-received.", cta: "Plan a value-receive prompt" },
+  { finding: "Q2 value-exchange topic not set.",                                         cta: "Set Q2 topic" },
+];
+
+/* ───────────────────────────── PRIMITIVES ───────────────────────────── */
+
+function StatusPill({ status }) {
+  // warm | warming | cold | dormant | overdue
+  const map = {
+    warm:    { bg: "#4A5E7C",                 fg: "#F8F9FA", label: "warm" },
+    warming: { bg: "rgba(74, 94, 124, 0.4)",  fg: "#4A5E7C", label: "warming" },
+    cold:    { bg: "#D8D9DA",                 fg: "#2B2D30", label: "cold" },
+    dormant: { bg: "#9CA3AF",                 fg: "#F8F9FA", label: "dormant" },
+    overdue: { bg: "#E63946",                 fg: "#F8F9FA", label: "overdue" },
+  };
+  const s = map[status] || map.cold;
+  return (
+    <span
+      className="inline-flex items-center"
+      style={{
+        background: s.bg,
+        color: s.fg,
+        fontSize: "12px",
+        fontWeight: 600,
+        padding: "4px 12px",
+        borderRadius: "999px",
+        lineHeight: 1,
+        letterSpacing: "0.01em",
+      }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
+function RegionBadge({ region }) {
+  return (
+    <span
+      className="inline-flex items-center"
+      style={{
+        background: "#D8D9DA",
+        color: "#2B2D30",
+        fontSize: "12px",
+        fontWeight: 400,
+        padding: "2px 8px",
+        borderRadius: "999px",
+        lineHeight: 1.4,
+      }}
+    >
+      {region}
+    </span>
+  );
+}
+
+/** 60x20 sparkline — vertical ticks per contact event, 12 cells across. */
+function Sparkline({ data, color = "#4A5E7C" }) {
+  const W = 60, H = 20, n = data.length;
+  const cellW = W / n;
+  const hasAny = data.some((v) => v > 0);
+
+  return (
+    <svg
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      aria-hidden="true"
+      style={{ display: "block", flexShrink: 0 }}
+    >
+      {/* baseline */}
+      <line
+        x1="0" y1={H - 1} x2={W} y2={H - 1}
+        stroke="#D8D9DA"
+        strokeWidth="1"
+      />
+      {hasAny &&
+        data.map((v, i) => {
+          if (!v) return null;
+          const x = i * cellW + cellW / 2;
+          // each contact = a tick from baseline up; cap at H-2
+          const h = Math.min(H - 2, v * 6 + 4);
+          return (
+            <line
+              key={i}
+              x1={x}
+              y1={H - 1}
+              x2={x}
+              y2={H - 1 - h}
+              stroke={color}
+              strokeWidth="1.5"
+              strokeLinecap="square"
+            />
+          );
+        })}
+    </svg>
+  );
+}
+
+/* ───────────────────────────── HEADER ───────────────────────────── */
+
+function Header() {
+  return (
+    <header
+      className="sticky top-0 z-30 w-full"
+      style={{
+        height: "64px",
+        background: "#F8F9FA",
+        borderBottom: "1px solid #D8D9DA",
+      }}
+    >
+      <div className="h-full max-w-[1280px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
+        {/* Left — monogram */}
+        <a
+          href="#"
+          className="flex flex-col items-start shrink-0"
+          aria-label="Artemide home"
+          style={{ textDecoration: "none" }}
+        >
+          <span
+            className="font-serif-display tabular"
+            style={{
+              color: "#4A5E7C",
+              fontWeight: 700,
+              fontSize: "32px",
+              lineHeight: 1,
+            }}
+          >
+            FF
+          </span>
+          <span
+            aria-hidden="true"
+            style={{
+              width: "24px",
+              height: "3px",
+              background: "#E63946",
+              marginTop: "2px",
+            }}
+          />
+        </a>
+
+        {/* Centre — nav */}
+        <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
+          <a className="ff-nav-link is-active" href="#" aria-current="page">Dashboard</a>
+          <a className="ff-nav-link" href="#">Firms</a>
+          <a className="ff-nav-link" href="#">Plan</a>
+          <a className="ff-nav-link" href="#">Audit</a>
+          <a className="ff-nav-link" href="#">Notes</a>
+        </nav>
+
+        {/* Right — search + sign-out */}
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="sr-only" htmlFor="dash-search">Search</label>
+          <input
+            id="dash-search"
+            type="search"
+            placeholder="Search firms, partners, notes…"
+            className="ff-search hidden sm:block bg-[#F8F9FA] text-[#2B2D30] border border-[#D8D9DA]"
+            style={{
+              padding: "8px 12px",
+              borderRadius: "2px",
+              fontSize: "14px",
+              fontFamily: "inherit",
+            }}
+          />
+          <button type="button" className="ff-ghost">Sign out</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────────── WIDGET SHELL ───────────────────────────── */
+
+function Widget({ title, subline, children }) {
+  return (
+    <section
+      className="flex flex-col"
+      style={{
+        background: "#FFFFFF",
+        border: "1px solid #D8D9DA",
+        borderRadius: "4px",
+        padding: "24px",
+      }}
+    >
+      <header style={{ marginBottom: "16px" }}>
+        <h2
+          className="font-serif-display"
+          style={{
+            color: "#4A5E7C",
+            fontWeight: 600,
+            fontSize: "24px",
+            lineHeight: 1.2,
+            margin: 0,
+          }}
+        >
+          {title}
+        </h2>
+        {subline && (
+          <p
+            style={{
+              color: "#2B2D30",
+              fontSize: "12px",
+              margin: "4px 0 0",
+              lineHeight: 1.4,
+            }}
+          >
+            {subline}
+          </p>
+        )}
+      </header>
+      {children}
+    </section>
+  );
+}
+
+/* ───────────────────────────── W1 — PIPELINE ───────────────────────────── */
+
+function PipelineWidget() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Widget title="Primary tier">
+      <ul className="flex flex-col" style={{ gap: "12px", listStyle: "none", margin: 0, padding: 0 }}>
+        {PRIMARY_FIRMS.map((f) => (
+          <li
+            key={f.name}
+            className="flex items-center gap-3 flex-wrap"
+            style={{
+              padding: "12px 0",
+              borderBottom: "1px solid #D8D9DA",
+            }}
+          >
+            <div className="flex-1 min-w-0 flex flex-col items-start" style={{ gap: "4px" }}>
+              <span
+                style={{
+                  color: "#4A5E7C",
+                  fontWeight: 600,
+                  fontSize: "16px",
+                  lineHeight: 1.25,
+                }}
+              >
+                {f.name}
+              </span>
+              <RegionBadge region={f.region} />
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <Sparkline data={f.spark} />
+              <StatusPill status={f.status} />
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="self-start"
+        style={{
+          marginTop: "16px",
+          color: "#4A5E7C",
+          fontSize: "14px",
+          fontWeight: 600,
+          background: "transparent",
+          border: 0,
+          padding: 0,
+          cursor: "pointer",
+          fontFamily: "inherit",
+        }}
+      >
+        {open ? "− Hide specialist firms" : "+ 6 specialist firms"}
+      </button>
+
+      {open && (
+        <ul
+          style={{
+            margin: "12px 0 0",
+            padding: 0,
+            listStyle: "none",
+            color: "#2B2D30",
+            fontSize: "14px",
+          }}
+        >
+          {[
+            "Per Ardua — Tech / London",
+            "Eric Salmon & Partners — Europe",
+            "Saxton Bampfylde — London",
+            "Odgers Berndtson — Global",
+            "True Search — Global",
+            "Boyden — Global",
+          ].map((s) => (
+            <li
+              key={s}
+              style={{
+                padding: "8px 0",
+                borderTop: "1px solid #D8D9DA",
+              }}
+            >
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+    </Widget>
+  );
+}
+
+/* ───────────────────────────── W2 — TOUCHES ───────────────────────────── */
+
+function TouchesWidget() {
+  return (
+    <Widget title="Next 14 days">
+      <ul className="flex flex-col" style={{ gap: 0, listStyle: "none", margin: 0, padding: 0 }}>
+        {TOUCHES.map((t, i) => {
+          const overdue = t.days < 0;
+          const due_soon = t.days >= 0 && t.days <= 7;
+          const daysColor = overdue ? "#E63946" : (due_soon ? "#4A5E7C" : "#2B2D30");
+          const daysLabel =
+            overdue ? `${Math.abs(t.days)} days overdue` :
+            t.days === 0 ? "today" :
+            t.days === 1 ? "tomorrow" :
+            `in ${t.days} days`;
+
+          return (
+            <li
+              key={i}
+              className="ff-touch-row flex items-center gap-3"
+              style={{
+                padding: "12px",
+                paddingLeft: overdue ? "9px" : "12px",
+                borderLeft: overdue ? "3px solid #E63946" : "3px solid transparent",
+                borderBottom: i < TOUCHES.length - 1 ? "1px solid #D8D9DA" : "none",
+                marginLeft: "-12px",
+                marginRight: "-12px",
+              }}
+            >
+              <div className="flex-1 min-w-0 flex flex-col" style={{ gap: "2px" }}>
+                <span
+                  style={{
+                    color: "#4A5E7C",
+                    fontWeight: 600,
+                    fontSize: "16px",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {t.name}
+                </span>
+                <span
+                  style={{
+                    color: "#2B2D30",
+                    fontSize: "12px",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {t.firm} · {t.topic}
+                </span>
+              </div>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <span
+                  className="tabular"
+                  style={{
+                    color: daysColor,
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    lineHeight: 1.2,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {daysLabel}
+                </span>
+                <button
+                  type="button"
+                  className="ff-ghost ff-touch-log"
+                  style={{ padding: "4px 10px", fontSize: "12px" }}
+                >
+                  Log contact
+                </button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </Widget>
+  );
+}
+
+/* ───────────────────────────── W3 — AUDIT ───────────────────────────── */
+
+function AuditWidget() {
+  return (
+    <Widget title="From the latest audit" subline="Run 11 May 2026">
+      <ol
+        className="flex flex-col"
+        style={{
+          gap: "12px",
+          listStyle: "none",
+          margin: 0,
+          padding: 0,
+          counterReset: "audit",
+        }}
+      >
+        {AUDIT_INSIGHTS.map((ins, i) => (
+          <li
+            key={i}
+            style={{
+              display: "flex",
+              gap: "12px",
+              padding: "12px",
+              border: "1px solid #D8D9DA",
+              borderRadius: "2px",
+              background: "#F8F9FA",
+            }}
+          >
+            <span
+              className="font-serif-display tabular"
+              aria-hidden="true"
+              style={{
+                color: "#4A5E7C",
+                fontWeight: 700,
+                fontSize: "20px",
+                lineHeight: 1.1,
+                width: "20px",
+                flexShrink: 0,
+              }}
+            >
+              {i + 1}
+            </span>
+            <div className="flex-1 flex flex-col" style={{ gap: "8px" }}>
+              <p
+                style={{
+                  color: "#2B2D30",
+                  fontSize: "14px",
+                  lineHeight: 1.45,
+                  margin: 0,
+                }}
+              >
+                {ins.finding}
+              </p>
+              <a href="#" className="ff-link-accent self-start" style={{ fontSize: "13px", fontWeight: 600 }}>
+                {ins.cta} →
+              </a>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #D8D9DA" }}>
+        <a href="#" className="ff-link" style={{ fontSize: "14px", fontWeight: 600 }}>
+          View full audit →
+        </a>
+      </div>
+    </Widget>
+  );
+}
+
+/* ───────────────────────────── EMPTY STATE + FOOTER ───────────────────────────── */
+
+function NotesEmpty() {
+  return (
+    <section
+      className="flex items-center justify-between gap-4 flex-wrap"
+      style={{
+        background: "#F8F9FA",
+        border: "1px dashed #D8D9DA",
+        borderRadius: "2px",
+        padding: "16px 24px",
+      }}
+    >
+      <p style={{ margin: 0, color: "#2B2D30", fontSize: "14px" }}>
+        No notes captured in the last 7 days.
+      </p>
+      <button type="button" className="ff-ghost">Add note</button>
+    </section>
+  );
+}
+
+function Footer() {
+  return (
+    <footer style={{ marginTop: "32px", paddingTop: "16px", borderTop: "1px solid #D8D9DA" }}>
+      <p
+        className="tabular"
+        style={{
+          margin: 0,
+          color: "#2B2D30",
+          fontSize: "12px",
+          opacity: 0.85,
+        }}
+      >
+        Last backup: 11 May 2026 03:00 UTC · Artemide v0.1
+      </p>
+    </footer>
+  );
+}
+
+/* ───────────────────────────── APP ───────────────────────────── */
+
+function App() {
+  return (
+    <div className="min-h-screen w-full bg-[#F8F9FA]" data-screen-label="Dashboard">
+      <Header />
+
+      <main className="max-w-[1280px] mx-auto" style={{ padding: "32px" }}>
+        {/* Page title */}
+        <div style={{ marginBottom: "32px" }}>
+          <h1
+            className="font-serif-display"
+            style={{
+              color: "#4A5E7C",
+              fontSize: "36px",
+              fontWeight: 700,
+              lineHeight: 1.1,
+              margin: 0,
+            }}
+          >
+            Dashboard
+          </h1>
+          <p
+            className="tabular"
+            style={{
+              color: "#2B2D30",
+              fontSize: "14px",
+              lineHeight: 1.5,
+              margin: "8px 0 0",
+            }}
+          >
+            Tuesday, 12 May 2026 · last activity 2 hours ago
+          </p>
+        </div>
+
+        {/* Three widgets */}
+        <div
+          className="grid"
+          style={{
+            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+            gap: "32px",
+          }}
+        >
+          <PipelineWidget />
+          <TouchesWidget />
+          <AuditWidget />
+        </div>
+
+        {/* Empty state */}
+        <div style={{ marginTop: "32px" }}>
+          <NotesEmpty />
+        </div>
+
+        <Footer />
+      </main>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

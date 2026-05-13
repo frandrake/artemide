@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Artemide — Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { background: #F8F9FA; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+    color: #2B2D30;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  .font-serif-display { font-family: 'Crimson Pro', Georgia, serif; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* ---- Search input ----------------------------------------- */
+  .ff-search {
+    width: 240px;
+    transition: width 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-search:focus {
+    width: 320px;
+    outline: 2px solid #4A5E7C;
+    outline-offset: 2px;
+    border-color: #4A5E7C;
+  }
+  .ff-search::placeholder { color: #5A5C60; }
+
+  /* ---- Ghost button (charcoal) ------------------------------ */
+  .ff-ghost {
+    background: transparent;
+    color: #2B2D30;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost:hover { background: #2B2D30; color: #F8F9FA; border-color: #2B2D30; }
+  .ff-ghost:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Ghost button (slate blue) ---------------------------- */
+  .ff-ghost-slate {
+    background: transparent;
+    color: #4A5E7C;
+    border: 1px solid #4A5E7C;
+    border-radius: 2px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost-slate:hover { background: #4A5E7C; color: #F8F9FA; }
+  .ff-ghost-slate:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Small ghost (used inline with topics) ---------------- */
+  .ff-ghost-sm {
+    background: transparent;
+    color: #4A5E7C;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .ff-ghost-sm:hover { background: #4A5E7C; color: #F8F9FA; border-color: #4A5E7C; }
+  .ff-ghost-sm:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Year selector icon button ---------------------------- */
+  .ff-year-step {
+    width: 28px; height: 28px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent;
+    color: #4A5E7C;
+    border: 1px solid #D8D9DA;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-year-step:hover { background: #4A5E7C; color: #F8F9FA; border-color: #4A5E7C; }
+  .ff-year-step:focus-visible { outline: 2px solid #E63946; outline-offset: 2px; }
+
+  /* ---- Nav links --------------------------------------------- */
+  .ff-nav-link {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4A5E7C;
+    padding: 4px 0;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .ff-nav-link:hover { color: #2B2D30; }
+  .ff-nav-link.is-active { border-bottom-color: #4A5E7C; }
+
+  /* ---- Suggested-contact row hover -------------------------- */
+  .ff-contact-row {
+    transition: background 0.2s ease;
+  }
+  .ff-contact-row:hover { background: rgba(74, 94, 124, 0.04); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState } = React;
+
+/* ───────────────────────────── DATA ─────────────────────────── */
+
+const YEAR = 2026;
+const CURRENT_Q = 2;
+
+const QUARTERS = [
+  {
+    n: 1,
+    status: "completed",
+    topic: "Year-ahead PoV on B2B information services marketing",
+    dates: "1 Jan – 31 Mar",
+  },
+  {
+    n: 2,
+    status: "in_progress",
+    topic: "Agentic CMO themes: chapter previews for the v2 manuscript launch",
+    dates: "1 Apr – 30 Jun",
+  },
+  {
+    n: 3,
+    status: "planned",
+    topic: "Mid-year market-map of agentic AI in marketing operations",
+    dates: "1 Jul – 30 Sep",
+  },
+  {
+    n: 4,
+    status: "planned",
+    topic: "End-of-year retrospective: which agentic CMO predictions held",
+    dates: "1 Oct – 31 Dec",
+  },
+];
+
+const SUGGESTED = [
+  {
+    week: "Week of 19 May",
+    name: "Hugh Bairstow",
+    firm: "TML Partners",
+    rationale: "Last contact 95 days ago; overdue. Topic vehicle: digital transformation chapter preview.",
+  },
+  {
+    week: "Week of 26 May",
+    name: "Sarah Whitfield",
+    firm: "Spencer Stuart",
+    rationale: "Cold relationship. Topic vehicle: WEF Strategic Communicators warm intro brief.",
+  },
+  {
+    week: "Week of 2 June",
+    name: "Marcus Penrose",
+    firm: "Heidrick & Struggles",
+    rationale: "Cold relationship. Topic vehicle: market-mapping call request.",
+  },
+  {
+    week: "Week of 9 June",
+    name: "Elena Brescia",
+    firm: "Egon Zehnder",
+    rationale: "Last contact 89 days ago. Topic vehicle: NED track conversation.",
+  },
+  {
+    week: "Week of 16 June",
+    name: "Imogen Carr",
+    firm: "TML Partners",
+    rationale: "Last contact 34 days ago. Topic vehicle: Q2 PoV draft review.",
+  },
+];
+
+const GAPS = [
+  {
+    firm: "Russell Reynolds",
+    note: "No active partner. Action: identify CMO practice partner via WEF directory.",
+  },
+  {
+    firm: "Korn Ferry",
+    note: "No active partner. Action: target comp practice introduction.",
+  },
+];
+
+/* ───────────────────────────── ICONS ─────────────────────────── */
+
+function ChevronLeft({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+function ChevronRight({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+/* ───────────────────────────── PRIMITIVES ───────────────────────────── */
+
+function StatusPill({ status }) {
+  const map = {
+    completed:   { bg: "#4A5E7C",                fg: "#F8F9FA", label: "completed" },
+    in_progress: { bg: "rgba(74, 94, 124, 0.4)", fg: "#4A5E7C", label: "in_progress" },
+    planned:     { bg: "#D8D9DA",                fg: "#2B2D30", label: "planned" },
+  };
+  const s = map[status] || map.planned;
+  return (
+    <span className="inline-flex items-center" style={{
+      background: s.bg, color: s.fg,
+      fontSize: "12px", fontWeight: 600,
+      padding: "4px 12px", borderRadius: "999px",
+      lineHeight: 1, letterSpacing: "0.01em", whiteSpace: "nowrap",
+    }}>{s.label}</span>
+  );
+}
+
+/* ───────────────────────────── HEADER ───────────────────────────── */
+
+function Header() {
+  return (
+    <header className="sticky top-0 z-30 w-full"
+            style={{ height: "64px", background: "#F8F9FA", borderBottom: "1px solid #D8D9DA" }}>
+      <div className="h-full max-w-[1280px] mx-auto px-4 sm:px-8 flex items-center justify-between gap-4">
+        <a href="Dashboard.html" className="flex flex-col items-start shrink-0"
+           aria-label="Artemide home" style={{ textDecoration: "none" }}>
+          <span className="font-serif-display tabular"
+                style={{ color: "#4A5E7C", fontWeight: 700, fontSize: "32px", lineHeight: 1 }}>FF</span>
+          <span aria-hidden="true"
+                style={{ width: "24px", height: "3px", background: "#E63946", marginTop: "2px" }} />
+        </a>
+
+        <nav className="hidden md:flex items-center gap-8" aria-label="Primary">
+          <a className="ff-nav-link" href="Dashboard.html">Dashboard</a>
+          <a className="ff-nav-link" href="FirmDetail.html">Firms</a>
+          <a className="ff-nav-link is-active" href="Plan.html" aria-current="page">Plan</a>
+          <a className="ff-nav-link" href="#">Audit</a>
+          <a className="ff-nav-link" href="#">Notes</a>
+        </nav>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="sr-only" htmlFor="plan-search">Search</label>
+          <input id="plan-search" type="search"
+                 placeholder="Search firms, partners, notes…"
+                 className="ff-search hidden sm:block bg-[#F8F9FA] text-[#2B2D30] border border-[#D8D9DA]"
+                 style={{ padding: "8px 12px", borderRadius: "2px", fontSize: "14px", fontFamily: "inherit" }} />
+          <button type="button" className="ff-ghost">Sign out</button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* ───────────────────────────── PAGE TITLE BLOCK ───────────────────────────── */
+
+function PageTitle({ year, onPrev, onNext }) {
+  return (
+    <section data-screen-label="Page title" style={{ marginBottom: "32px" }}>
+      <div className="flex items-baseline flex-wrap" style={{ gap: "16px" }}>
+        <h1 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "36px", fontWeight: 700,
+                     lineHeight: 1.1, margin: 0 }}>
+          Plan
+        </h1>
+
+        {/* Year selector */}
+        <div className="flex items-center" style={{ gap: "6px" }}
+             role="group" aria-label="Year">
+          <button type="button" className="ff-year-step"
+                  aria-label="Previous year" onClick={onPrev}>
+            <ChevronLeft size={14} />
+          </button>
+          <span className="tabular"
+                style={{ color: "#4A5E7C", fontSize: "16px", fontWeight: 600,
+                         lineHeight: 1, padding: "0 4px",
+                         minWidth: "44px", textAlign: "center" }}>
+            {year}
+          </span>
+          <button type="button" className="ff-year-step"
+                  aria-label="Next year" onClick={onNext}>
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+
+      <p style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                  margin: "8px 0 0" }}>
+        Quarterly value-exchange calendar · 4 of 4 quarters scheduled
+      </p>
+    </section>
+  );
+}
+
+/* ───────────────────────────── COMPACT QUARTER CARD ───────────────────────────── */
+
+function CompactQuarterCard({ q, year }) {
+  const hasTopic = Boolean(q.topic);
+
+  return (
+    <article className="ff-q-compact"
+             data-screen-label={"Q" + q.n + " card"}
+             style={{
+               background: "#FFFFFF",
+               border: "1px solid #D8D9DA",
+               borderRadius: "4px",
+               padding: "20px",
+               display: "flex",
+               flexDirection: "column",
+               gap: "16px",
+             }}>
+      {/* Header row */}
+      <header className="flex items-start justify-between" style={{ gap: "8px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                     lineHeight: 1.1, margin: 0 }}>
+          Q{q.n} {year}
+        </h2>
+        <StatusPill status={q.status} />
+      </header>
+
+      {/* Topic */}
+      <div>
+        {hasTopic ? (
+          <p style={{ color: "#4A5E7C", fontSize: "18px", fontWeight: 600,
+                      lineHeight: 1.35, margin: 0 }}>
+            {q.topic}
+          </p>
+        ) : (
+          <div>
+            <p style={{ color: "#2B2D30", fontSize: "14px", fontStyle: "italic",
+                        lineHeight: 1.4, margin: 0, opacity: 0.7 }}>
+              Not set
+            </p>
+            <button type="button" className="ff-ghost-sm" style={{ marginTop: "10px" }}>
+              Set topic
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Dates */}
+      <div style={{ marginTop: "auto" }}>
+        <div style={{ color: "#2B2D30", fontSize: "12px", lineHeight: 1.4,
+                      opacity: 0.75, marginBottom: "2px" }}>
+          Dates
+        </div>
+        <div className="tabular"
+             style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.4 }}>
+          {q.dates}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+/* ───────────────────────────── EXPANDED Q2 CARD ───────────────────────────── */
+
+function SuggestedRow({ entry }) {
+  return (
+    <li className="ff-contact-row"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto",
+          alignItems: "start",
+          columnGap: "20px",
+          rowGap: "8px",
+          padding: "16px 12px",
+          margin: "0 -12px",
+          borderRadius: "2px",
+        }}>
+      {/* Week badge */}
+      <span className="tabular"
+            style={{
+              background: "#D8D9DA",
+              color: "#4A5E7C",
+              fontSize: "12px",
+              fontWeight: 600,
+              padding: "4px 10px",
+              borderRadius: "999px",
+              lineHeight: 1,
+              whiteSpace: "nowrap",
+              letterSpacing: "0.01em",
+              marginTop: "2px",
+            }}>
+        {entry.week}
+      </span>
+
+      {/* Partner + firm + rationale */}
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: "#4A5E7C", fontSize: "16px", fontWeight: 600,
+                      lineHeight: 1.3 }}>
+          {entry.name}
+        </div>
+        <div style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.4,
+                      marginTop: "2px" }}>
+          {entry.firm}
+        </div>
+        <div style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.5,
+                      fontStyle: "italic", marginTop: "6px", maxWidth: "68ch" }}>
+          {entry.rationale}
+        </div>
+      </div>
+
+      {/* Action */}
+      <div style={{ alignSelf: "start" }}>
+        <button type="button" className="ff-ghost-sm">Log contact</button>
+      </div>
+    </li>
+  );
+}
+
+function ExpandedQuarterCard({ q, year }) {
+  return (
+    <article data-screen-label={"Q" + q.n + " card (expanded)"}
+             style={{
+               background: "#FFFFFF",
+               border: "1px solid #D8D9DA",
+               borderLeft: "3px solid #E63946",
+               borderRadius: "4px",
+               padding: "20px",
+               display: "flex",
+               flexDirection: "column",
+               gap: "16px",
+             }}>
+      {/* Header row */}
+      <header className="flex items-start justify-between" style={{ gap: "8px" }}>
+        <h2 className="font-serif-display"
+            style={{ color: "#4A5E7C", fontSize: "24px", fontWeight: 700,
+                     lineHeight: 1.1, margin: 0 }}>
+          Q{q.n} {year}
+        </h2>
+        <StatusPill status={q.status} />
+      </header>
+
+      {/* Topic + edit */}
+      <div className="flex items-start" style={{ gap: "12px", flexWrap: "wrap" }}>
+        <p style={{ color: "#4A5E7C", fontSize: "18px", fontWeight: 600,
+                    lineHeight: 1.35, margin: 0, flex: "1 1 320px",
+                    minWidth: 0 }}>
+          {q.topic}
+        </p>
+        <button type="button" className="ff-ghost-sm" style={{ marginTop: "2px" }}>
+          Edit topic
+        </button>
+      </div>
+
+      {/* Dates */}
+      <div>
+        <div style={{ color: "#2B2D30", fontSize: "12px", lineHeight: 1.4,
+                      opacity: 0.75, marginBottom: "2px" }}>
+          Dates
+        </div>
+        <div className="tabular"
+             style={{ color: "#2B2D30", fontSize: "14px", lineHeight: 1.4 }}>
+          {q.dates}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <hr style={{ border: 0, borderTop: "1px solid #D8D9DA", margin: "8px 0 0" }} />
+
+      {/* Suggested contacts */}
+      <section aria-labelledby="suggested-heading">
+        <header style={{ marginBottom: "8px" }}>
+          <h3 id="suggested-heading" className="font-serif-display"
+              style={{ color: "#4A5E7C", fontSize: "20px", fontWeight: 600,
+                       lineHeight: 1.2, margin: 0 }}>
+            Suggested contacts
+          </h3>
+          <p style={{ color: "#2B2D30", fontSize: "12px", lineHeight: 1.4,
+                      margin: "4px 0 0", opacity: 0.8 }}>
+            5 partners spaced across the remaining 7 weeks
+          </p>
+        </header>
+
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {SUGGESTED.map((entry, i) => (
+            <React.Fragment key={entry.name}>
+              <SuggestedRow entry={entry} />
+              {i < SUGGESTED.length - 1 && (
+                <li aria-hidden="true"
+                    style={{ borderTop: "1px solid #D8D9DA", margin: 0 }} />
+              )}
+            </React.Fragment>
+          ))}
+        </ol>
+      </section>
+
+      {/* Divider */}
+      <hr style={{ border: 0, borderTop: "1px solid #D8D9DA", margin: "8px 0 0" }} />
+
+      {/* Gaps */}
+      <section aria-labelledby="gaps-heading">
+        <header style={{ marginBottom: "12px" }}>
+          <h3 id="gaps-heading"
+              style={{ color: "#4A5E7C", fontSize: "14px", fontWeight: 600,
+                       lineHeight: 1.3, margin: 0 }}>
+            Gaps
+          </h3>
+          <p style={{ color: "#2B2D30", fontSize: "12px", lineHeight: 1.4,
+                      margin: "2px 0 0", opacity: 0.8 }}>
+            Firms with no contactable partner this quarter
+          </p>
+        </header>
+
+        <ul style={{ listStyle: "none", margin: 0, padding: 0,
+                     display: "flex", flexDirection: "column", gap: "10px" }}>
+          {GAPS.map((g) => (
+            <li key={g.firm}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(140px, 180px) 1fr",
+                  columnGap: "20px",
+                  rowGap: "4px",
+                  alignItems: "start",
+                }}>
+              <span style={{ color: "#4A5E7C", fontSize: "14px",
+                             fontWeight: 600, lineHeight: 1.4 }}>
+                {g.firm}
+              </span>
+              <span style={{ color: "#2B2D30", fontSize: "14px",
+                             lineHeight: 1.5 }}>
+                {g.note}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </article>
+  );
+}
+
+/* ───────────────────────────── FOOTER ───────────────────────────── */
+
+function Footer() {
+  return (
+    <footer style={{ marginTop: "64px", paddingTop: "16px",
+                     borderTop: "1px solid #D8D9DA" }}>
+      <p className="tabular"
+         style={{ margin: 0, color: "#2B2D30",
+                  fontSize: "12px", opacity: 0.85 }}>
+        Last backup: 11 May 2026 03:00 UTC · Artemide v0.1
+      </p>
+    </footer>
+  );
+}
+
+/* ───────────────────────────── APP ───────────────────────────── */
+
+function App() {
+  const [year, setYear] = useState(YEAR);
+
+  const q1 = QUARTERS.find((q) => q.n === 1);
+  const q2 = QUARTERS.find((q) => q.n === 2);
+  const q3 = QUARTERS.find((q) => q.n === 3);
+  const q4 = QUARTERS.find((q) => q.n === 4);
+
+  return (
+    <div className="min-h-screen w-full bg-[#F8F9FA]"
+         data-screen-label="Plan — 2026">
+      <Header />
+
+      <main className="max-w-[1280px] mx-auto" style={{ padding: "32px" }}>
+        <PageTitle year={year}
+                   onPrev={() => setYear((y) => y - 1)}
+                   onNext={() => setYear((y) => y + 1)} />
+
+        {/* Quarter grid: Q1 | Q2 (×2) | Q3 | Q4 — Q2 spans rows so it grows below */}
+        <div className="ff-q-grid"
+             style={{
+               display: "grid",
+               gridTemplateColumns: "1fr 2fr 1fr 1fr",
+               gridTemplateRows: "auto auto",
+               gap: "24px",
+               alignItems: "start",
+             }}>
+          <div style={{ gridColumn: "1 / span 1", gridRow: "1 / span 1" }}>
+            <CompactQuarterCard q={q1} year={year} />
+          </div>
+
+          <div style={{ gridColumn: "2 / span 2", gridRow: "1 / span 2" }}>
+            <ExpandedQuarterCard q={q2} year={year} />
+          </div>
+
+          <div style={{ gridColumn: "4 / span 1", gridRow: "1 / span 1" }}>
+            <CompactQuarterCard q={q3} year={year} />
+          </div>
+
+          <div style={{ gridColumn: "1 / span 1", gridRow: "2 / span 1" }}>
+            <CompactQuarterCard q={q4} year={year} />
+          </div>
+        </div>
+
+        <Footer />
+      </main>
+
+      <style>{`
+        @media (max-width: 1023px) {
+          .ff-q-grid {
+            grid-template-columns: 1fr 1fr !important;
+            grid-template-rows: auto !important;
+          }
+          .ff-q-grid > div {
+            grid-column: auto !important;
+            grid-row: auto !important;
+          }
+          .ff-q-grid > div:nth-child(2) {
+            grid-column: 1 / -1 !important;
+          }
+        }
+        @media (max-width: 640px) {
+          main { padding: 24px 16px !important; }
+          .ff-q-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+          }
+          .ff-q-grid > div { grid-column: auto !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
