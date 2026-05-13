@@ -1,0 +1,939 @@
+# Artemide — Technical Specification (v1.1)
+
+A private, MCP- and REST-accessible CRM with a branded web UI, hosting Francesco Federico's executive search relationship asset. Self-hosted on Francesco's VPS, exposed via Cloudflare Tunnel.
+
+---
+
+## Overview
+
+Artemide is a single-tenant relationship management system designed for one specific use case: managing the small set of executive search partners that matter over a 10-year horizon. The application has three interaction surfaces backed by a shared service layer:
+
+1. **MCP server** for Claude — read and write state via natural-language conversation.
+2. **REST API** for programmatic access — used by the web UI and reserved for future n8n integrations.
+3. **Web UI** for visual inspection — branded per Francesco's visual identity (the Milanese Futurist system), accessible from any browser.
+
+The system encapsulates business logic in a service layer so all three transports stay thin. Persistence is SQLite, with explicit migration paths to PostgreSQL preserved. ULIDs identify every primary entity, an append-only audit log captures every mutation, and soft deletes prevent data loss on firms and partners.
+
+Discretion is structural. Repo, container, subdomain, and all log strings use neutral language. The codebase calls the project `artemide`; the service runs at `artemide.francescofederico.net`.
+
+---
+
+## Tech Stack
+
+### Backend
+
+| Layer | Technology | Version | Rationale |
+|---|---|---|---|
+| Language | Python | 3.12 | Stable, matches existing VPS tooling |
+| API framework | FastAPI | ^0.115 | Auto-generates OpenAPI, hosts both REST and mounted MCP |
+| MCP framework | FastMCP | ^2.0 | Mounted as sub-app within FastAPI |
+| Models | Pydantic | ^2.0 | Shared between REST, MCP, and service layer |
+| ID generation | ulid-py | ^1.1 | Time-sortable, URL-safe primary identifiers |
+| Database | SQLite | 3.x (stdlib) | Single-file. Migration path to PostgreSQL preserved |
+| Config | python-dotenv | ^1.0 | Standard pattern |
+| HTTP server | Uvicorn | ^0.30 | Behind nothing — Cloudflare Tunnel is the edge |
+| Package manager | uv | ^0.4 | Fast, reproducible |
+| Test framework | pytest | ^8.0 | Standard |
+| Test client | httpx | ^0.27 | For API testing |
+
+### Frontend
+
+| Layer | Technology | Version | Rationale |
+|---|---|---|---|
+| Framework | Astro | ^5.0 | Matches francescofederico.com stack; ships static-first with React islands |
+| Interactive layer | React | ^19.0 | For dynamic components only (forms, tables, charts) |
+| Styling | Tailwind CSS | ^4.0 | Brand tokens mapped to utilities |
+| TypeScript | TypeScript | ^5.5 | Type safety across API boundary |
+| Charts | Recharts | ^2.12 | Sparklines, simple bar/line |
+| Date handling | date-fns | ^4.0 | Lightweight, immutable |
+| Fonts | Inter, Crimson Pro | latest (Google Fonts, self-hosted in production) | Per milanese-visual |
+
+### Infrastructure
+
+| Component | Technology | Notes |
+|---|---|---|
+| Container | Docker + docker-compose | Multi-stage Dockerfile: UI build → API runtime |
+| Tunnel | Cloudflare Tunnel (cloudflared) | No exposed ports on VPS |
+| Hostname | artemide.francescofederico.net | Single domain for UI, REST, and MCP |
+| Backups | SQLite `.backup` + tarball | Local retention 30d; optional R2 push |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────┐      ┌─────────────────────┐
+│   Claude (claude.ai)│      │     Web browser     │
+└──────────┬──────────┘      └──────────┬──────────┘
+           │                            │
+           │ MCP HTTPS                  │ HTTPS
+           │ Bearer auth                │ Bearer auth (cookie or header)
+           └──────────────┬─────────────┘
+                          │
+                          ▼
+            ┌──────────────────────────┐
+            │  Cloudflare Edge          │
+            │  artemide.francescofederico.net │
+            └─────────────┬─────────────┘
+                          │ Cloudflare Tunnel
+                          │ (no inbound ports)
+                          ▼
+┌──────────────────────────────────────────────────────────┐
+│  VPS — docker-compose                                    │
+│                                                          │
+│  ┌────────────────┐    ┌────────────────────────────┐    │
+│  │ cloudflared    │────│  artemide container        │    │
+│  │ (tunnel)       │    │                            │    │
+│  └────────────────┘    │  FastAPI app               │    │
+│                        │  ├─ /         (Astro UI)   │    │
+│                        │  ├─ /api/v1/  (REST)       │    │
+│                        │  ├─ /mcp/     (FastMCP)    │    │
+│                        │  └─ /health   (no auth)    │    │
+│                        │                            │    │
+│                        │  ↓ calls into              │    │
+│                        │                            │    │
+│                        │  Service layer             │    │
+│                        │  ├─ FirmsService           │    │
+│                        │  ├─ PartnersService        │    │
+│                        │  ├─ ContactsService        │    │
+│                        │  ├─ PlanningService        │    │
+│                        │  ├─ NotesService           │    │
+│                        │  ├─ AuditService           │    │
+│                        │  ├─ SearchService          │    │
+│                        │  ├─ ExportService          │    │
+│                        │  └─ ImportService          │    │
+│                        │                            │    │
+│                        │  ↓ uses                    │    │
+│                        │                            │    │
+│                        │  Repository layer (raw SQL)│    │
+│                        │                            │    │
+│                        │  ↓                         │    │
+│                        │  SQLite (/data/artemide.db)│    │
+│                        └────────────────────────────┘    │
+└──────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+            ┌──────────────────────────┐
+            │  Nightly backup          │
+            │  → R2 OR private git     │
+            └──────────────────────────┘
+```
+
+**Layering principle:** transports are thin. All business logic lives in services. Adding a fourth transport later (CLI tool, mobile app, Slack bot) means writing thin handlers — never touching business logic. Same applies to swapping persistence: only the repository layer changes.
+
+---
+
+## Data Model
+
+### Identifier strategy
+
+Every primary entity has two identifiers:
+- `id` INTEGER PRIMARY KEY AUTOINCREMENT — internal, dense for joins
+- `ulid` TEXT NOT NULL UNIQUE — external, used in URLs and APIs
+
+Why both: integer IDs are efficient for joins and indexing; ULIDs are stable, time-sortable, URL-safe, and don't leak count information externally. URLs always use ULIDs (`/partners/01HXY...`); internal joins use integer IDs.
+
+### Soft delete
+
+`firms` and `partners` have `deleted_at TIMESTAMP NULL`. Default queries exclude soft-deleted rows. The `audit_ledger` and `import_markdown` operations can opt to include them via flag.
+
+`contact_log`, `notes`, and `audit_log` are append-only — no soft delete.
+
+### Entity: `firms`
+
+| Field | Type | Constraint | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, AUTOINCREMENT | Internal |
+| `ulid` | TEXT | NOT NULL, UNIQUE | External ID |
+| `name` | TEXT | NOT NULL, UNIQUE (where deleted_at IS NULL) | |
+| `tier` | TEXT | NOT NULL, CHECK IN ('primary', 'specialist', 'NED') | |
+| `region` | TEXT | NOT NULL | |
+| `relationship_state` | TEXT | CHECK IN ('cold', 'warming', 'warm', 'dormant'), default 'cold' | |
+| `notes` | TEXT | nullable | Short firm-level note |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+| `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Trigger-updated |
+| `deleted_at` | TIMESTAMP | nullable | Soft delete |
+
+### Entity: `partners`
+
+| Field | Type | Constraint | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, AUTOINCREMENT | |
+| `ulid` | TEXT | NOT NULL, UNIQUE | |
+| `firm_id` | INTEGER | NOT NULL, FK → firms(id) | |
+| `name` | TEXT | NOT NULL | |
+| `practice` | TEXT | nullable | |
+| `seniority` | TEXT | nullable | |
+| `location` | TEXT | nullable | |
+| `introduced_via` | TEXT | nullable | |
+| `first_contact_date` | DATE | nullable | |
+| `last_contact_date` | DATE | nullable | |
+| `next_planned_touch_date` | DATE | nullable | |
+| `next_planned_topic` | TEXT | nullable | |
+| `follow_ups_outstanding` | TEXT | nullable | JSON array |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+| `updated_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Trigger-updated |
+| `deleted_at` | TIMESTAMP | nullable | Soft delete |
+
+UNIQUE(firm_id, name) WHERE deleted_at IS NULL.
+
+### Entity: `contact_log`
+
+Append-only.
+
+| Field | Type | Constraint | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, AUTOINCREMENT | |
+| `ulid` | TEXT | NOT NULL, UNIQUE | |
+| `partner_id` | INTEGER | NOT NULL, FK → partners(id) | |
+| `contact_date` | DATE | NOT NULL | |
+| `channel` | TEXT | CHECK IN ('email', 'call', 'coffee', 'event', 'inmail', 'message', 'other') | |
+| `initiated_by` | TEXT | CHECK IN ('FF', 'partner') | |
+| `value_given` | TEXT | nullable | |
+| `value_received` | TEXT | nullable | |
+| `summary` | TEXT | nullable | |
+| `follow_up` | TEXT | nullable | |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+
+### Entity: `notes`
+
+Long-form notes attached to firms or partners. Append-only; edits create a new note rather than overwriting.
+
+| Field | Type | Constraint | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, AUTOINCREMENT | |
+| `ulid` | TEXT | NOT NULL, UNIQUE | |
+| `entity_type` | TEXT | NOT NULL, CHECK IN ('firm', 'partner') | |
+| `entity_id` | INTEGER | NOT NULL | FK by type (firm_id if entity_type='firm', etc.) |
+| `body` | TEXT | NOT NULL | Markdown supported |
+| `created_at` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+
+INDEX on (entity_type, entity_id).
+
+### Entity: `value_calendar`
+
+| Field | Type | Constraint | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, AUTOINCREMENT | |
+| `ulid` | TEXT | NOT NULL, UNIQUE | |
+| `year` | INTEGER | NOT NULL | |
+| `quarter` | INTEGER | NOT NULL, CHECK 1–4 | |
+| `topic` | TEXT | NOT NULL | |
+| `status` | TEXT | CHECK IN ('planned', 'in_progress', 'completed'), default 'planned' | |
+| `notes` | TEXT | nullable | |
+
+UNIQUE(year, quarter).
+
+### Entity: `audit_log`
+
+Captures every mutation across the system. Append-only, never deleted.
+
+| Field | Type | Constraint | Notes |
+|---|---|---|---|
+| `id` | INTEGER | PK, AUTOINCREMENT | |
+| `ulid` | TEXT | NOT NULL, UNIQUE | |
+| `timestamp` | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | |
+| `actor` | TEXT | NOT NULL, default 'FF' | Future-proofing for multi-actor |
+| `transport` | TEXT | NOT NULL, CHECK IN ('mcp', 'rest', 'cli', 'system') | Which surface initiated |
+| `action` | TEXT | NOT NULL, CHECK IN ('INSERT', 'UPDATE', 'SOFT_DELETE', 'RESTORE') | |
+| `entity_type` | TEXT | NOT NULL | 'firm', 'partner', 'contact', 'note', 'calendar' |
+| `entity_id` | INTEGER | NOT NULL | |
+| `entity_ulid` | TEXT | NOT NULL | Stable reference |
+| `before` | TEXT | nullable | JSON snapshot pre-change (NULL for INSERT) |
+| `after` | TEXT | nullable | JSON snapshot post-change (NULL for SOFT_DELETE) |
+
+INDEX on (entity_type, entity_id), (timestamp), (actor).
+
+### Triggers
+
+```sql
+CREATE TRIGGER firms_updated_at AFTER UPDATE ON firms
+BEGIN
+  UPDATE firms SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+
+CREATE TRIGGER partners_updated_at AFTER UPDATE ON partners
+BEGIN
+  UPDATE partners SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+END;
+```
+
+Note: audit-log entries are written in the **service layer**, not via DB triggers. This is deliberate — services have the actor and transport context that DB triggers cannot easily access.
+
+### Indexes
+
+```sql
+CREATE INDEX idx_firms_tier ON firms(tier) WHERE deleted_at IS NULL;
+CREATE INDEX idx_firms_state ON firms(relationship_state) WHERE deleted_at IS NULL;
+CREATE INDEX idx_partners_firm ON partners(firm_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_partners_next_touch ON partners(next_planned_touch_date) WHERE deleted_at IS NULL;
+CREATE INDEX idx_partners_last_contact ON partners(last_contact_date) WHERE deleted_at IS NULL;
+CREATE INDEX idx_contact_log_partner ON contact_log(partner_id);
+CREATE INDEX idx_contact_log_date ON contact_log(contact_date);
+CREATE INDEX idx_notes_entity ON notes(entity_type, entity_id);
+CREATE INDEX idx_audit_entity ON audit_log(entity_type, entity_id);
+CREATE INDEX idx_audit_timestamp ON audit_log(timestamp);
+```
+
+### Full-text search
+
+SQLite FTS5 virtual tables for search across firm names, partner names, notes bodies, and contact summaries. Updated via triggers on the underlying tables.
+
+```sql
+CREATE VIRTUAL TABLE search_index USING fts5(
+  entity_type, entity_ulid, primary_text, secondary_text,
+  tokenize='unicode61 remove_diacritics 2'
+);
+```
+
+Service layer keeps `search_index` in sync on every mutation.
+
+---
+
+## Service Layer
+
+The service layer is the only place business logic lives. Transports (MCP, REST, future CLI) call services. Services call repositories. Repositories execute SQL.
+
+### Service modules
+
+Each module exposes a class with methods. All methods take an explicit `actor` and `transport` parameter for audit logging.
+
+**`FirmsService`** — list, get_by_ulid, get_by_name, update_state, set_notes, soft_delete, restore.
+
+**`PartnersService`** — list_by_firm, get_by_ulid, upsert, update_planned_touch, soft_delete, restore.
+
+**`ContactsService`** — log (the core mutation), list_by_partner, list_by_firm, list_recent.
+
+**`PlanningService`** — list_due_touches, plan_quarter, set_quarter_topic, get_quarter_topic.
+
+**`NotesService`** — create, list_by_entity, get_by_ulid.
+
+**`AuditService`** — record (called by every other service after mutations), list_recent, list_by_entity, list_by_actor, get_diff (returns before/after for a single audit entry).
+
+**`SearchService`** — search (full-text across all searchable content), rebuild_index.
+
+**`ExportService`** — export_to_markdown, export_to_csv. Markdown matches the v1 ledger template; CSV is one file per entity.
+
+**`ImportService`** — import_markdown (the v1 migration path), with idempotency.
+
+### Business rules (encoded in services)
+
+**Rule 1: Relationship state progression** — handled in ContactsService. When `advance_state=True`:
+- `cold` → `warming` on first substantive contact with value_given OR value_received populated.
+- `warming` → `warm` once 3 substantive contacts exist with at least one each of value_given and value_received in the partner's history.
+- Auto-`dormant` on `audit_ledger` runs: any partner with last_contact > 365 days flagged.
+
+**Rule 2: Cadence thresholds** — handled in PlanningService.
+- Primary: ideal 90d, overdue at 120d, dormancy at 180d.
+- Specialist: ideal 180d, overdue at 240d, dormancy at 365d.
+- NED: deferred; no overdue logic unless `tier='NED'` filter applied explicitly.
+
+**Rule 3: Reciprocity tracking** — handled in AuditService for audit reports.
+- For each partner: count contact_log rows where value_given is non-null, count where value_received is non-null.
+- Flag imbalance when value_given_count ≥ 3 AND value_received_count == 0.
+
+**Rule 4: Quarterly spacing** — handled in PlanningService.plan_quarter.
+- Iterate primary-tier firms in order of urgency.
+- Assign each to earliest unoccupied calendar week within the quarter.
+- 13 weeks per quarter (Q1: Jan–Mar). Week start = Monday.
+
+**Rule 5: Import idempotency** — handled in ImportService.
+- Firm: matched by exact name.
+- Partner: matched by (firm_name, partner_name).
+- Contact: matched by (partner_id, contact_date, channel).
+
+**Rule 6: Audit logging** — handled in AuditService, called by every other service.
+- Every INSERT, UPDATE, SOFT_DELETE, and RESTORE writes an audit_log row.
+- `before` and `after` are JSON snapshots of the full record.
+- Actor and transport passed through from the calling code.
+
+---
+
+## REST API
+
+Base path: `/api/v1/`. All endpoints require Bearer token in `Authorization` header except `/health`. All responses are JSON.
+
+### Conventions
+
+- Use ULIDs in URLs, not integer IDs.
+- Standard error shape: `{"error": "code", "message": "human-readable detail"}`.
+- Pagination: `?limit=N&cursor=ULID` style (cursor-based, ULID-anchored).
+- `404` for missing resources, `400` for validation, `401` for auth, `409` for conflicts, `422` for business-rule violations.
+- All write endpoints accept idempotency-key header: `Idempotency-Key: <client-generated-ULID>`. If the same key arrives twice within 24h, return the original response. Stored in a small `idempotency_keys` table.
+
+### Endpoints
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Liveness probe (no auth) |
+| GET | `/api/v1/firms` | List all firms; query params: `?tier=primary&state=warm&include_deleted=false` |
+| GET | `/api/v1/firms/{ulid}` | Single firm + its partners summary |
+| PATCH | `/api/v1/firms/{ulid}` | Update firm fields (state, notes) |
+| DELETE | `/api/v1/firms/{ulid}` | Soft delete |
+| POST | `/api/v1/firms/{ulid}/restore` | Restore soft-deleted firm |
+| GET | `/api/v1/partners` | List partners; query params: `?firm_ulid=...&search=...` |
+| GET | `/api/v1/partners/{ulid}` | Partner state — full payload including recent contacts, open follow-ups |
+| POST | `/api/v1/partners` | Upsert partner (idempotency-key required) |
+| PATCH | `/api/v1/partners/{ulid}` | Update partner fields |
+| DELETE | `/api/v1/partners/{ulid}` | Soft delete |
+| POST | `/api/v1/partners/{ulid}/restore` | Restore |
+| GET | `/api/v1/contacts` | List contacts; query params: `?partner_ulid=...&firm_ulid=...&from=...&to=...&limit=50` |
+| POST | `/api/v1/contacts` | Log a contact (idempotency-key required) |
+| GET | `/api/v1/contacts/{ulid}` | Single contact |
+| GET | `/api/v1/notes` | List notes; query: `?entity_type=firm&entity_ulid=...` |
+| POST | `/api/v1/notes` | Create a note |
+| GET | `/api/v1/notes/{ulid}` | Single note |
+| GET | `/api/v1/planning/due-touches` | List partners due/overdue for contact |
+| GET | `/api/v1/planning/quarter` | Generate quarterly plan; query: `?year=YYYY&quarter=N` |
+| POST | `/api/v1/planning/quarter-topic` | Set value-exchange topic for a quarter |
+| GET | `/api/v1/audit/report` | Full audit report (the `audit_ledger` payload) |
+| GET | `/api/v1/audit/log` | Recent audit-log entries; query: `?entity_ulid=...&from=...&limit=50` |
+| GET | `/api/v1/audit/log/{ulid}` | Single audit entry with full diff |
+| GET | `/api/v1/search` | Full-text search; query: `?q=...&entity_type=partner&limit=20` |
+| GET | `/api/v1/export/markdown` | Full ledger export as markdown |
+| GET | `/api/v1/export/csv?entity=firms` | CSV export for one entity type |
+| POST | `/api/v1/import/markdown` | Import v1 markdown ledger (body: `{"markdown": "..."}`) |
+
+OpenAPI specification auto-generated by FastAPI at `/api/v1/docs` (Swagger) and `/api/v1/redoc` (ReDoc). Disabled in production unless `ARTEMIDE_ENABLE_DOCS=true`.
+
+---
+
+## MCP Tools
+
+Mounted at `/mcp` via FastMCP. Each tool is a thin wrapper that calls a service method. Eight tools, identical to v1.0 in shape — the only change is they now go through services.
+
+1. `log_contact` — calls `ContactsService.log()`.
+2. `upsert_partner` — calls `PartnersService.upsert()`.
+3. `get_partner_state` — calls `PartnersService.get_by_name()` + `ContactsService.list_by_partner()`.
+4. `list_due_touches` — calls `PlanningService.list_due_touches()`.
+5. `plan_quarter` — calls `PlanningService.plan_quarter()`.
+6. `set_quarter_topic` — calls `PlanningService.set_quarter_topic()`.
+7. `audit_ledger` — calls `AuditService.generate_report()`.
+8. `import_markdown` — calls `ImportService.import_markdown()`.
+
+Input/output shapes match v1.0 spec exactly. Returns include the new `ulid` field on every entity for consistency with the REST API.
+
+---
+
+## UI / UX Specification
+
+The UI follows the Milanese Futurist visual system. Vermillion as accent (this is a relationship tool with CTAs, not a data-viz tool). Charcoal body text on Cool White backgrounds. Slate Blue headings. Inter for body, Crimson Pro for display type.
+
+### Brand Tokens (CSS Variables)
+
+```css
+:root {
+  /* Foundation */
+  --slate-blue: #4A5E7C;
+  --cool-white: #F8F9FA;
+  --charcoal: #2B2D30;
+
+  /* Accent — Vermillion only */
+  --vermillion: #E63946;
+
+  /* Utility */
+  --light-gray: #D8D9DA;
+
+  /* Functional aliases */
+  --bg-page: var(--cool-white);
+  --bg-card: #FFFFFF;
+  --text-primary: var(--charcoal);
+  --text-heading: var(--slate-blue);
+  --border-subtle: var(--light-gray);
+  --accent: var(--vermillion);
+  --accent-hover: #C92E3A;
+
+  /* Status colours (derived, not new) */
+  --status-cold: var(--light-gray);
+  --status-warming: var(--steel-blue-substitute, #B8BDC4);
+  --status-warm: var(--slate-blue);
+  --status-dormant: #9CA3AF;
+  --status-overdue: var(--vermillion);
+  --status-due-soon: var(--slate-blue);
+
+  /* Fonts */
+  --font-serif: 'Crimson Pro', 'Libre Baskerville', Georgia, serif;
+  --font-sans: 'Inter', 'Lexend', system-ui, sans-serif;
+
+  /* Spacing — 8px base */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-6: 48px;
+  --space-8: 64px;
+  --space-12: 96px;
+
+  /* Layout */
+  --container-max: 1280px;
+  --sidebar-width: 240px;
+  --header-height: 64px;
+
+  /* Components */
+  --btn-radius: 2px;
+  --btn-padding: 12px 24px;
+  --card-radius: 4px;
+  --card-padding: var(--space-3);
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+}
+```
+
+Note on Steel Blue: per milanese-visual, never mix Vermillion and Steel Blue. The `warming` state uses a desaturated Slate Blue mix instead.
+
+### Tailwind Configuration
+
+`tailwind.config.mjs` extends theme to expose brand tokens as utilities:
+
+```js
+export default {
+  theme: {
+    extend: {
+      colors: {
+        slate: { brand: '#4A5E7C' },
+        white: { cool: '#F8F9FA' },
+        charcoal: { DEFAULT: '#2B2D30' },
+        vermillion: { DEFAULT: '#E63946', hover: '#C92E3A' },
+        gray: { light: '#D8D9DA', dormant: '#9CA3AF' },
+      },
+      fontFamily: {
+        serif: ['Crimson Pro', 'Libre Baskerville', 'Georgia', 'serif'],
+        sans: ['Inter', 'Lexend', 'system-ui', 'sans-serif'],
+      },
+      spacing: {
+        // 8px multiples already in Tailwind defaults
+      },
+      borderRadius: { btn: '2px', card: '4px' },
+    }
+  }
+}
+```
+
+Body classes always: `bg-white-cool text-charcoal font-sans`. Heading classes: `font-serif text-slate-brand`.
+
+### Page Routes
+
+| Route | Purpose | Auth |
+|---|---|---|
+| `/login` | Token entry form; sets HttpOnly cookie | Public |
+| `/` | Dashboard | Required |
+| `/firms` | List of all firms grouped by tier | Required |
+| `/firms/[ulid]` | Single firm detail | Required |
+| `/partners/[ulid]` | Single partner detail | Required |
+| `/plan` | Quarterly plan view | Required |
+| `/audit` | Audit report view | Required |
+| `/audit/log` | Raw audit-log explorer | Required |
+| `/search` | Global search results page (powered by `?q=`) | Required |
+| `/notes` | Notes inbox/explorer | Required |
+| `/settings` | Token rotation, backup status, schema version | Required |
+
+### Component Architecture
+
+Two layers:
+
+**Layer 1 — Atomic UI components** (`web/src/components/ui/`):
+- `Button.tsx` — Primary (Vermillion bg, Cool White text), Secondary (Slate Blue outline), Ghost (text-only).
+- `Card.tsx` — White background, 4px radius, subtle Light Gray border, 24px padding.
+- `Badge.tsx` — Small pill for tier/region labels.
+- `StatusPill.tsx` — Coloured pill for relationship state. Cold = Light Gray, Warming = Slate Blue tinted, Warm = Slate Blue solid, Dormant = Dormant Gray, Overdue = Vermillion.
+- `Timeline.tsx` — Vertical timeline for contact history.
+- `DataTable.tsx` — Sortable, sticky-header table.
+- `Sparkline.tsx` — Mini chart for contact activity (Recharts).
+- `Input.tsx`, `Textarea.tsx`, `Select.tsx` — Form atoms.
+- `Dialog.tsx` — Modal for create/edit forms.
+- `EmptyState.tsx` — Illustration + message + CTA when no data.
+
+**Layer 2 — Feature components** (`web/src/components/{dashboard,firm,partner,plan,audit}/`):
+- `PipelineOverview.tsx` — Dashboard widget showing the 5 primary firms with sparklines.
+- `UpcomingTouches.tsx` — Dashboard widget listing due/overdue contacts.
+- `AuditHighlights.tsx` — Dashboard widget showing top audit actions.
+- `FirmHeader.tsx`, `PartnerCard.tsx`, `ContactTimeline.tsx`, `FollowUpsList.tsx`.
+- `LogContactForm.tsx` — The most-used form. Triggered from partner page; submits to `POST /api/v1/contacts`.
+- `QuarterlyPlanGrid.tsx` — 4-card year view with current quarter expanded.
+
+### Layout
+
+App shell: top header (logo + nav + search box), no sidebar (kept clean per milanese-visual minimalism). Main content area centred at 1280px max width. Footer with small "Artemide v0.1" identifier and last-backup timestamp.
+
+Header structure:
+```
+[FF logo]   Dashboard  Firms  Plan  Audit  Notes        [⌕ search]   [logout]
+```
+
+Logo: "FF" monogram in Crimson Pro Bold Slate Blue, with Vermillion 3px underline (per milanese-visual logo spec). Clicking goes to dashboard.
+
+### Dashboard
+
+Three-column on desktop, single-column on mobile. Cards:
+
+1. **Pipeline overview** — 5 primary firms as cards in a row. Each shows firm name, current state pill, sparkline of last-12-months contact frequency, and a "view" link. Below: collapsible specialist tier.
+2. **Upcoming touches** — Next 14 days. List rows with partner name, firm, days until/overdue, planned topic. Overdue rows have Vermillion left-border accent.
+3. **Audit highlights** — Top 3 actions from the latest audit_ledger run. Each with a "do this" CTA leading to the relevant partner page.
+
+Empty-state messaging is dignified — no jokes, no exclamation marks. Example: "No contacts logged in the last 30 days. Plan your next outreach." with a Plan-Quarter button.
+
+### Firm Detail Page
+
+Header (Slate Blue): firm name (Crimson Pro 36px), tier badge, region, current state pill.
+Below header (white card): firm-level notes, edit-in-place.
+Partner section: cards in a grid, each showing partner name, practice, last contact, status pill. Click for partner page.
+Contact timeline section (full-width below partners): chronological list of all contacts across all partners at this firm, with channel icons.
+
+### Partner Detail Page
+
+Header: partner name (Crimson Pro 36px), firm + practice, status pill, "Log contact" primary button (Vermillion).
+Body grid (2 columns desktop, 1 column mobile):
+- Left: partner facts panel (seniority, location, introduced-via, first contact, last contact, next planned touch, next planned topic — all inline-editable).
+- Right: follow-ups outstanding list with check-off buttons.
+Full-width below: contact timeline (vertical), most recent first. Each contact entry expands to show full value-given/value-received/summary/follow-up.
+Bottom: notes section (chronological list, "Add note" button).
+
+### Plan Page
+
+Year selector (default: current year).
+Four-card grid for Q1–Q4. Current quarter card is expanded:
+- Topic field (editable inline).
+- Suggested contacts list (from `plan_quarter` API).
+- Each row has a "Log contact" inline button.
+
+### Audit Page
+
+Calls `GET /api/v1/audit/report` on load.
+Sections rendered as cards: Coverage Gaps, Dormant Relationships, Open Follow-Ups, Reciprocity Imbalances, Summary Actions.
+Summary Actions presented as a numbered checklist with strikethrough on completion (state stored client-side only — these are recommendations, not tasks).
+
+### Audit Log Page (`/audit/log`)
+
+Power-user view. Filterable list of every mutation. Each row clickable to expand into a before/after diff (JSON, syntax highlighted).
+Default view: last 50 entries, newest first.
+Filters: entity type, entity ULID, date range, action type.
+
+### Search Page
+
+Single input at top. Results grouped by entity type (firms, partners, notes, contacts). Each result shows snippet with highlighted match. Click navigates to the entity page.
+
+### Settings Page
+
+Three sections:
+1. **API token** — view masked token, "rotate" button (generates new token, displays once, instructs to update Claude MCP config and any other clients).
+2. **Backup status** — last backup timestamp, last backup size, "trigger now" button.
+3. **System** — schema version, container build hash, dependency versions. Plain text for diagnostics.
+
+### Empty / Loading / Error states
+
+Every page handles three states. Components use a `<Skeleton />` placeholder during fetch, an `<EmptyState />` when no data, and an `<ErrorBoundary />` for fetch failures with a "retry" button and the error code.
+
+---
+
+## File Structure
+
+```
+artemide/
+├── README.md                         # Setup, ops, troubleshooting
+├── CLAUDE.md                         # Claude Code conventions (project root)
+├── docker-compose.yml                # ledger + cloudflared services
+├── Dockerfile                        # Multi-stage: build UI, install API
+├── .env.example
+├── .gitignore
+├── pyproject.toml                    # Python deps via uv
+├── migrations/
+│   ├── 001_initial_schema.sql        # Tables + triggers + indexes
+│   ├── 002_audit_log.sql             # Audit log table
+│   ├── 003_notes.sql                 # Notes table
+│   ├── 004_search_index.sql          # FTS5 virtual table + sync triggers
+│   └── 005_idempotency_keys.sql      # Idempotency table
+├── src/
+│   ├── __init__.py
+│   ├── app.py                        # FastAPI app + mounted FastMCP + static UI
+│   ├── auth.py                       # Bearer token middleware
+│   ├── db.py                         # Connection management + migration runner
+│   ├── ulid_helpers.py               # ULID generation
+│   ├── models.py                     # All Pydantic models
+│   ├── repository/
+│   │   ├── __init__.py
+│   │   ├── firms.py
+│   │   ├── partners.py
+│   │   ├── contacts.py
+│   │   ├── notes.py
+│   │   ├── calendar.py
+│   │   ├── audit_log.py
+│   │   └── search_index.py
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── firms_service.py
+│   │   ├── partners_service.py
+│   │   ├── contacts_service.py
+│   │   ├── planning_service.py
+│   │   ├── notes_service.py
+│   │   ├── audit_service.py
+│   │   ├── search_service.py
+│   │   ├── export_service.py
+│   │   └── import_service.py
+│   ├── api/                          # REST endpoints
+│   │   ├── __init__.py
+│   │   ├── deps.py                   # Shared dependencies (auth, DB, idempotency)
+│   │   ├── routes_firms.py
+│   │   ├── routes_partners.py
+│   │   ├── routes_contacts.py
+│   │   ├── routes_notes.py
+│   │   ├── routes_planning.py
+│   │   ├── routes_audit.py
+│   │   ├── routes_search.py
+│   │   ├── routes_export.py
+│   │   ├── routes_import.py
+│   │   └── error_handlers.py
+│   └── mcp/                          # MCP tools (thin wrappers)
+│       ├── __init__.py
+│       ├── server.py                 # FastMCP server registration
+│       └── tools/
+│           ├── log_contact.py
+│           ├── upsert_partner.py
+│           ├── get_partner_state.py
+│           ├── list_due_touches.py
+│           ├── plan_quarter.py
+│           ├── set_quarter_topic.py
+│           ├── audit_ledger.py
+│           └── import_markdown.py
+├── web/                              # Astro frontend
+│   ├── package.json
+│   ├── astro.config.mjs
+│   ├── tailwind.config.mjs
+│   ├── tsconfig.json
+│   ├── src/
+│   │   ├── styles/
+│   │   │   ├── tokens.css            # Brand CSS variables (full set above)
+│   │   │   └── global.css            # Resets + base styles
+│   │   ├── components/
+│   │   │   ├── ui/                   # Atomic components
+│   │   │   ├── layout/               # Header, AppShell
+│   │   │   ├── dashboard/
+│   │   │   ├── firm/
+│   │   │   ├── partner/
+│   │   │   ├── plan/
+│   │   │   ├── audit/
+│   │   │   ├── search/
+│   │   │   └── settings/
+│   │   ├── lib/
+│   │   │   ├── api.ts                # Fetch wrapper with auth header injection
+│   │   │   ├── types.ts              # TypeScript types matching Pydantic
+│   │   │   ├── formatting.ts         # Date, number formatters
+│   │   │   └── auth.ts               # Token storage (HttpOnly cookie pattern)
+│   │   └── pages/
+│   │       ├── index.astro           # Dashboard (SSR)
+│   │       ├── login.astro
+│   │       ├── firms/
+│   │       │   ├── index.astro
+│   │       │   └── [ulid].astro
+│   │       ├── partners/
+│   │       │   └── [ulid].astro
+│   │       ├── plan.astro
+│   │       ├── audit/
+│   │       │   ├── index.astro
+│   │       │   └── log.astro
+│   │       ├── search.astro
+│   │       ├── notes.astro
+│   │       └── settings.astro
+│   └── public/
+│       └── favicon.svg               # FF monogram, Slate Blue
+├── scripts/
+│   ├── seed_firms.py
+│   ├── backup.sh
+│   └── restore.sh
+├── tests/
+│   ├── conftest.py                   # In-memory SQLite fixture
+│   ├── test_repository.py
+│   ├── test_services.py
+│   ├── test_api.py                   # httpx async client tests
+│   └── test_mcp_tools.py
+└── data/
+    └── .gitkeep                      # SQLite DB lives here at runtime
+```
+
+---
+
+## Business Logic
+
+See **Service Layer → Business rules** above. All rules are encoded in service methods, never in transports or repositories. Migration to PostgreSQL would not require any rule changes.
+
+---
+
+## External Integrations
+
+### Cloudflare Tunnel
+
+`cloudflared` sidecar container. Token from Cloudflare Zero Trust dashboard. Routes `artemide.francescofederico.net` → `http://artemide:8000`. No exposed ports on host.
+
+Optional: Cloudflare Access policy on the hostname requiring email auth. Bearer token remains primary auth.
+
+### Reserved for v1.x (not in v1.1 scope, but architecturally supported)
+
+- **n8n** can call `/api/v1/contacts` POST to auto-log activity from Gmail. The idempotency-key header prevents duplicates. Auth via same Bearer token (separate token recommended for n8n with rotation).
+- **Webhook outbox** pattern: a future `webhook_subscriptions` table + worker would let Artemide push events out (contact logged, audit issue surfaced) to Zapier, n8n, or a personal Slack. Not built in v1.1, but the audit-log entries are the natural event source when subscribers exist.
+
+---
+
+## Configuration & Environment
+
+`.env.example`:
+
+```
+# Required
+ARTEMIDE_API_TOKEN=replace-with-openssl-rand-hex-32
+TUNNEL_TOKEN=paste-from-cloudflare
+
+# Paths
+ARTEMIDE_DB_PATH=/data/artemide.db
+
+# Server
+ARTEMIDE_BIND_HOST=0.0.0.0
+ARTEMIDE_BIND_PORT=8000
+ARTEMIDE_LOG_LEVEL=INFO
+
+# Features
+ARTEMIDE_ENABLE_DOCS=false           # OpenAPI UI at /api/v1/docs
+ARTEMIDE_UI_BUILD_PATH=/app/web/dist # Where Astro static build lives in container
+
+# Cookie auth (UI)
+ARTEMIDE_COOKIE_SECRET=replace-with-openssl-rand-hex-32
+ARTEMIDE_COOKIE_DOMAIN=artemide.francescofederico.net
+ARTEMIDE_COOKIE_SECURE=true
+```
+
+---
+
+## Authentication
+
+Two auth modes, single token:
+
+**Bearer token (for MCP, REST, programmatic):**
+- `Authorization: Bearer <ARTEMIDE_API_TOKEN>` on every request.
+- Validated by middleware in `src/auth.py`.
+
+**Cookie-based session (for UI):**
+- `/login` page accepts the token, validates, sets HttpOnly Secure SameSite=Strict cookie.
+- UI requests to `/api/v1/*` send cookie automatically (same origin).
+- Cookie lifetime 7 days, refreshed on activity.
+- Logout clears the cookie.
+
+The cookie value is a signed token (HMAC-SHA256 with `ARTEMIDE_COOKIE_SECRET`), not the API token itself. Rotation of the API token does NOT invalidate existing cookies; rotation of the cookie secret does.
+
+Token rotation procedure documented under Settings. Generates new token, displays once, updates `.env`, restarts container. UI cookies remain valid until they expire naturally.
+
+---
+
+## Deployment Sequence
+
+1. Generate `ARTEMIDE_API_TOKEN` and `ARTEMIDE_COOKIE_SECRET` locally; store both in password manager.
+2. Create Cloudflare Tunnel; obtain `TUNNEL_TOKEN`; configure route `artemide.francescofederico.net` → `http://artemide:8000`. Optional: add Cloudflare Access policy requiring Francesco's email for additional verification.
+3. SSH to VPS; clone repo into `/opt/artemide/`.
+4. Populate `.env` with all secrets.
+5. `docker compose up -d` — multi-stage build runs (UI build, then API runtime), both services come up.
+6. Verify health: `curl https://artemide.francescofederico.net/health` → 200 OK.
+7. Seed: `docker compose exec artemide python scripts/seed_firms.py`.
+8. Visit `https://artemide.francescofederico.net/login` in browser; enter token; verify dashboard loads.
+9. Add MCP server in Claude.ai: URL `https://artemide.francescofederico.net/mcp`, header `Authorization: Bearer <token>`.
+10. Test from Claude: "Show me my ledger state" → triggers audit_ledger, returns 11 seeded firms.
+11. Configure cron on VPS for nightly backups.
+
+---
+
+## Backup Strategy
+
+Nightly `.backup` via host cron. SQLite handles concurrent reads during backup. Local retention 30 days. Off-site to R2 or private git highly recommended.
+
+`scripts/backup.sh` script identical to v1.0 spec. `scripts/restore.sh` for rollback.
+
+A "trigger now" button in the Settings UI calls a `POST /api/v1/admin/backup` endpoint that runs the same script synchronously and returns the resulting filename. Useful before any risky operation.
+
+---
+
+## Future-Proofing
+
+Architectural decisions made now to avoid painful rewrites later:
+
+### Migration to PostgreSQL
+
+When SQLite outgrows its comfort zone (>50k contact log rows, or concurrent-write contention):
+
+1. All SQL is parametrised and uses standard syntax. The only SQLite-specific features are: `INTEGER PRIMARY KEY AUTOINCREMENT`, FTS5 virtual tables, and the `pragma foreign_keys` setup. The audit log triggers and updated_at triggers translate directly.
+2. Replace `src/db.py` connection layer with a PostgreSQL adapter (psycopg or asyncpg). Repository layer queries change in three places: `AUTOINCREMENT` → `GENERATED ALWAYS AS IDENTITY`, FTS5 → tsvector + GIN index, parameter style `?` → `$1` (or use a query builder).
+3. Migration files become PostgreSQL DDL.
+4. Service and transport layers unchanged.
+
+Estimated effort: one focused day.
+
+### Multi-actor
+
+All mutations capture an `actor` field. Currently always `'FF'`. To add actors (e.g., a delegated assistant or n8n bot):
+1. Issue separate API tokens per actor (table `api_tokens` with actor mapping).
+2. Auth middleware sets `request.state.actor` from token.
+3. All service methods already accept `actor` parameter.
+4. UI shows actor on audit-log entries.
+
+Estimated effort: half a day.
+
+### OAuth2 / OIDC
+
+If access ever needs to be granted to a third party (e.g., an advisor):
+1. Add OAuth2 provider (Cloudflare Access can be used as IdP).
+2. New auth middleware path alongside Bearer token.
+3. UI cookie flow stays the same.
+
+Estimated effort: one day.
+
+### Mobile / native client
+
+ULIDs are URL-safe and portable; the REST API is the same surface a native app would consume. iOS or web-PWA client implementation is purely additional. No backend changes required.
+
+### Slack / Teams notifications
+
+Add a `webhook_subscriptions` table and a small worker that polls `audit_log` for new entries matching subscriber filters, then POSTs to the subscriber URL. Out of scope for v1.1 but the audit log makes this trivial later.
+
+### Search scale
+
+SQLite FTS5 handles low-millions of rows comfortably. Beyond that: Postgres + tsvector. Beyond that: external search (Meilisearch, Typesense) — service layer absorbs the change.
+
+---
+
+## Constraints & Non-Goals
+
+**In scope for v1.1:**
+- All v1.0 features (MCP server, 8 tools).
+- REST API surface.
+- Branded web UI (dashboard, firm/partner detail, plan, audit, search, notes, settings).
+- Audit log of all mutations.
+- ULIDs on all primary entities.
+- Soft delete on firms and partners.
+- Full-text search.
+- Notes attached to firms or partners.
+- Export to markdown and CSV.
+- Idempotency keys on write endpoints.
+- Cookie-based UI auth alongside Bearer token.
+
+**Reserved for v1.x (architecturally supported, not built yet):**
+- n8n webhook integrations.
+- Attachments (linking documents stored in R2 to firms/partners/contacts).
+- Tags for flexible categorisation.
+- Webhook outbox for outbound notifications.
+- API key management UI (currently rotation is via `.env` edit).
+- Mobile-specific UI optimisations beyond basic responsive design.
+
+**Explicit non-goals (do not build):**
+- Multi-tenant — single user, period.
+- Public API access beyond Francesco's own credentials.
+- Email parsing in-application — n8n handles that out-of-band.
+- Real-time push between clients — request-response only.
+- Analytics or telemetry of any kind — zero outbound traffic except backups and the tunnel.
+
+**Performance budgets:**
+- API endpoints: p95 < 200ms against 5,000-row contact_log.
+- UI dashboard initial load: p95 < 1.5s on cable connection.
+- Search query: p95 < 100ms.
+
+**Non-negotiable constraints:**
+- No inbound ports on VPS — all ingress via Cloudflare Tunnel.
+- Token rotation procedure documented; cadence 90 days.
+- No language in code, logs, or UI signalling job-search activity.
+- Repository, container, and subdomain names are neutral.
+- Audit-log entries are append-only and never deleted, even on soft-delete of the underlying entity.
+- All write endpoints accept idempotency-key headers; the database stores them for 24h.
