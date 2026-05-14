@@ -1,0 +1,75 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import LoginForm from '../components/LoginForm';
+---
+<BaseLayout title="Sign in · Artemide">
+  <div class="login-page">
+    <div class="login-card">
+      <header class="login-brand">
+        <span class="login-monogram">FF</span>
+        <span class="login-rule" aria-hidden="true"></span>
+      </header>
+      <p class="login-tagline">Sign in to continue.</p>
+      <LoginForm client:load />
+      <footer class="login-footer">Artemide v0.1</footer>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3);
+    background: var(--cool-white);
+  }
+  .login-card {
+    background: var(--pure-white);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-6);
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+  .login-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    margin-bottom: var(--space-1);
+  }
+  .login-monogram {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 1;
+    color: var(--slate-blue);
+  }
+  .login-rule {
+    display: block;
+    width: 24px;
+    height: var(--accent-line-width);
+    background: var(--vermillion);
+  }
+  .login-tagline {
+    text-align: center;
+    color: var(--charcoal);
+    font-size: var(--text-base);
+  }
+  .login-footer {
+    text-align: center;
+    color: var(--charcoal-muted);
+    font-size: var(--text-xs);
+    margin-top: var(--space-2);
+  }
+  @media (max-width: 480px) {
+    .login-card { padding: var(--space-4); }
+    .login-monogram { font-size: 48px; }
+  }
+</style>

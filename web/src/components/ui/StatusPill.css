@@ -1,0 +1,19 @@
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-xs);
+  padding: var(--pad-pill-y) var(--pad-pill-x);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.status-pill--warm     { background: var(--state-warm-bg);     color: var(--state-warm-fg); }
+.status-pill--warming  { background: var(--state-warming-bg);  color: var(--state-warming-fg); }
+.status-pill--cold     { background: var(--state-cold-bg);     color: var(--state-cold-fg); }
+.status-pill--dormant  { background: var(--state-dormant-bg);  color: var(--state-dormant-fg); }
+.status-pill--overdue  { background: var(--state-overdue-bg);  color: var(--state-overdue-fg); }
+.status-pill--due_soon { background: var(--state-due-soon-bg); color: var(--state-due-soon-fg); }

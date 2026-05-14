@@ -1,0 +1,14 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  padding: var(--pad-pill-y) var(--pad-pill-x);
+  border-radius: var(--radius-full);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.badge--neutral { background: var(--light-gray); color: var(--charcoal); }
+.badge--info    { background: var(--slate-blue); color: var(--cool-white); }
+.badge--accent  { background: var(--vermillion); color: var(--cool-white); }

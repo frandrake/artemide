@@ -1,0 +1,11 @@
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-3);
+}
+.empty__title { color: var(--slate-blue); font-size: var(--text-xl); }
+.empty__description { color: var(--charcoal); max-width: 36ch; }
+.empty__cta { margin-top: var(--space-2); }

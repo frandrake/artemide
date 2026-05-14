@@ -1,0 +1,97 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600&display=swap');
+
+/* Tailwind 4 CSS-first theme bridge — exposes our tokens as Tailwind
+   utilities, so classes like text-slate-brand / bg-vermillion work. */
+@theme {
+  --color-slate-brand: var(--slate-blue);
+  --color-slate-brand-hover: var(--slate-blue-hover);
+  --color-cool-white: var(--cool-white);
+  --color-charcoal: var(--charcoal);
+  --color-charcoal-muted: var(--charcoal-muted);
+  --color-vermillion: var(--vermillion);
+  --color-vermillion-hover: var(--vermillion-hover);
+  --color-light-gray: var(--light-gray);
+  --color-medium-gray: var(--medium-gray);
+
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Crimson Pro', 'Times New Roman', serif;
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+}
+
+/* ----- reset ----- */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--fg-default);
+  background-color: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ----- base typography ----- */
+h1, h2 {
+  font-family: var(--font-serif);
+  color: var(--fg-heading);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+h3, h4, h5, h6 {
+  font-family: var(--font-sans);
+  color: var(--fg-heading);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--leading-tight);
+  margin: 0;
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-2xl); }
+h3 { font-size: var(--text-xl); }
+h4 { font-size: var(--text-lg); }
+h5 { font-size: var(--text-base); }
+h6 { font-size: var(--text-sm); }
+
+p { margin: 0; }
+
+a {
+  color: var(--slate-blue);
+  text-decoration: none;
+  transition: color var(--duration-quick) var(--easing);
+}
+a:hover { color: var(--slate-blue-hover); }
+a:focus-visible { outline: 2px solid var(--slate-blue); outline-offset: 2px; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, textarea, select {
+  font-family: inherit;
+  font-size: var(--text-base);
+  color: var(--fg-default);
+}
+
+/* selection */
+::selection {
+  background: var(--slate-blue);
+  color: var(--cool-white);
+}

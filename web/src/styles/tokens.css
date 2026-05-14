@@ -1,0 +1,106 @@
+/* Brand tokens — Milanese Futurist.
+   Every visual decision in the app traces back to one of these vars. */
+
+:root {
+  /* ----- colour palette ----- */
+  --slate-blue: #4A5E7C;
+  --slate-blue-hover: #3F506B;
+  --slate-blue-40: rgba(74, 94, 124, 0.40);
+  --slate-blue-05: rgba(74, 94, 124, 0.05);
+
+  --cool-white: #F8F9FA;
+  --pure-white: #FFFFFF;
+
+  --charcoal: #2B2D30;
+  --charcoal-muted: #6B6E72;
+
+  --vermillion: #E63946;
+  --vermillion-hover: #C82F3B;
+
+  --light-gray: #E5E7EB;
+  --medium-gray: #9CA3AF;
+  --border-subtle: #E5E7EB;
+
+  /* relationship-state pill colours */
+  --state-warm-bg: var(--slate-blue);
+  --state-warm-fg: var(--cool-white);
+  --state-warming-bg: var(--slate-blue-40);
+  --state-warming-fg: var(--slate-blue);
+  --state-cold-bg: var(--light-gray);
+  --state-cold-fg: var(--charcoal);
+  --state-dormant-bg: var(--medium-gray);
+  --state-dormant-fg: var(--cool-white);
+  --state-overdue-bg: var(--vermillion);
+  --state-overdue-fg: var(--cool-white);
+  --state-due-soon-bg: #FBE7C6;
+  --state-due-soon-fg: var(--charcoal);
+
+  /* semantic surfaces */
+  --bg-page: var(--cool-white);
+  --bg-surface: var(--pure-white);
+  --bg-elevated: var(--pure-white);
+  --fg-default: var(--charcoal);
+  --fg-muted: var(--charcoal-muted);
+  --fg-on-primary: var(--cool-white);
+  --fg-heading: var(--slate-blue);
+
+  /* ----- typography ----- */
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Crimson Pro', 'Times New Roman', serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 18px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+  --text-4xl: 40px;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.7;
+
+  /* ----- spacing (8px multiples) ----- */
+  --space-0: 0;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+  --space-7: 56px;
+  --space-8: 64px;
+
+  /* fine-grained inset for chips and pills */
+  --pad-pill-y: 4px;
+  --pad-pill-x: 12px;
+
+  /* ----- layout ----- */
+  --header-height: 64px;
+  --container-max: 1280px;
+  --content-max: 960px;
+
+  /* ----- component tokens ----- */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-full: 9999px;
+  --border-width: 1px;
+  --accent-line-width: 3px;
+
+  --focus-ring: 0 0 0 2px var(--slate-blue);
+  --duration-quick: 120ms;
+  --duration-normal: 200ms;
+  --easing: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  /* z-index scale */
+  --z-header: 50;
+  --z-overlay: 100;
+  --z-dialog: 110;
+  --z-toast: 200;
+}
