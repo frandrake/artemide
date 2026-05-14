@@ -104,6 +104,7 @@ class PartnerRecord(_Base):
     next_touch_date: date | None = None
     next_touch_topic: str | None = None
     notes_summary: str | None = None
+    follow_ups_outstanding: str | None = None
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None

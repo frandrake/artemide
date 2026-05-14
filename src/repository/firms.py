@@ -22,18 +22,23 @@ def insert_firm(
     conn: sqlite3.Connection,
     *,
     name: str,
-    tier: FirmTier,
+    tier: FirmTier | str,
     region: str | None = None,
-    relationship_state: RelationshipState = RelationshipState.cold,
+    relationship_state: RelationshipState | str = RelationshipState.cold,
     primary_focus: str | None = None,
     notes_summary: str | None = None,
     ulid: str | None = None,
 ) -> FirmRecord:
     ulid_value = ulid or new_ulid()
+    tier_value = tier.value if isinstance(tier, FirmTier) else FirmTier(tier).value
+    state_value = (
+        relationship_state.value if isinstance(relationship_state, RelationshipState)
+        else RelationshipState(relationship_state).value
+    )
     cur = conn.execute(
         "INSERT INTO firms (ulid, name, tier, region, relationship_state, primary_focus, notes_summary) "
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
-        (ulid_value, name, tier.value, region, relationship_state.value, primary_focus, notes_summary),
+        (ulid_value, name, tier_value, region, state_value, primary_focus, notes_summary),
     )
     return get_firm_by_id(conn, cur.lastrowid)  # type: ignore[arg-type]
 
