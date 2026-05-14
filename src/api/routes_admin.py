@@ -21,7 +21,9 @@ def _backup_dir() -> Path:
 
 @router.post("/backup")
 def trigger_backup(ctx: ServiceContext = Depends(get_context)):
-    script = Path(os.environ.get("ARTEMIDE_BACKUP_SCRIPT", "/app/scripts/backup.sh"))
+    # admin-backup.sh runs *inside* the container; scripts/backup.sh is
+    # the host-side counterpart used by cron / restore.sh.
+    script = Path(os.environ.get("ARTEMIDE_BACKUP_SCRIPT", "/app/scripts/admin-backup.sh"))
     if not script.exists():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
