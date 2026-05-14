@@ -32,6 +32,7 @@ from .auth import (
     verify_bearer,
 )
 from .db import init_db
+from .mcp.server import get_mcp_app
 
 
 log = logging.getLogger("artemide")
@@ -42,11 +43,16 @@ def _truthy(v: str | None) -> bool:
     return (v or "").lower() in {"1", "true", "yes", "on"}
 
 
+_mcp_app = get_mcp_app()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     log.info("artemide ready")
-    yield
+    # Nest FastMCP's lifespan so its session manager starts/stops with us.
+    async with _mcp_app.router.lifespan_context(app):
+        yield
 
 
 _enable_docs = _truthy(os.environ.get("ARTEMIDE_ENABLE_DOCS"))
@@ -139,19 +145,10 @@ if _enable_docs:
         return get_redoc_html(openapi_url=app.openapi_url, title="Artemide API — ReDoc")
 
 
-# ---------- FastMCP placeholder (Phase 4) ----------
-
-try:
-    from fastmcp import FastMCP
-
-    _mcp = FastMCP("Artemide")
-    try:
-        _mcp_app = _mcp.http_app(path="/")
-        app.mount("/mcp", _mcp_app)
-    except Exception as mount_err:  # pragma: no cover — exercised in Phase 4
-        log.warning("FastMCP mount deferred to Phase 4: %s", mount_err)
-except Exception as import_err:  # pragma: no cover
-    log.warning("FastMCP unavailable: %s", import_err)
+# ---------- FastMCP ----------
+# The ASGI sub-app was created earlier so its lifespan can be nested in
+# the FastAPI lifespan.
+app.mount("/mcp", _mcp_app)
 
 
 # ---------- static UI (Phase 5+) ----------

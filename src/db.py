@@ -5,12 +5,20 @@ import os
 import sqlite3
 from pathlib import Path
 
-DB_PATH = os.environ.get("ARTEMIDE_DB_PATH", "./data/artemide.db")
 MIGRATIONS_DIR = Path(__file__).resolve().parent.parent / "migrations"
 
 
+def _default_db_path() -> str:
+    return os.environ.get("ARTEMIDE_DB_PATH", "./data/artemide.db")
+
+
+# Kept for backwards compatibility (e.g. log messages); always prefer
+# `_default_db_path()` for fresh reads at call time.
+DB_PATH = _default_db_path()
+
+
 def get_connection(db_path: str | None = None) -> sqlite3.Connection:
-    path = db_path or DB_PATH
+    path = db_path or _default_db_path()
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path, isolation_level=None, detect_types=sqlite3.PARSE_DECLTYPES)
     conn.row_factory = sqlite3.Row
@@ -51,4 +59,4 @@ def init_db(db_path: str | None = None, migrations_dir: Path | None = None) -> N
 
 if __name__ == "__main__":
     init_db()
-    print(f"Migrations applied to {DB_PATH}")
+    print(f"Migrations applied to {_default_db_path()}")
