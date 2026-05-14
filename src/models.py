@@ -63,6 +63,7 @@ class AuditAction(str, Enum):
 
 class AuditTransport(str, Enum):
     api = "api"
+    rest = "rest"
     mcp = "mcp"
     web = "web"
     cli = "cli"
