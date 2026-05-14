@@ -25,6 +25,7 @@ from .api.routes_notes import router as notes_router
 from .api.routes_partners import router as partners_router
 from .api.routes_planning import router as planning_router
 from .api.routes_search import router as search_router
+from .api.routes_system import router as system_router
 from .auth import (
     COOKIE_NAME,
     SESSION_TTL_SECONDS,
@@ -79,6 +80,7 @@ for router in (
     export_router,
     import_router,
     admin_router,
+    system_router,
 ):
     app.include_router(router)
 

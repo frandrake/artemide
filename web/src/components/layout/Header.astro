@@ -1,13 +1,21 @@
 ---
-interface Props { current?: 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes'; }
+interface Props {
+  current?: 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings';
+}
 const { current } = Astro.props;
 
-const links = [
+const primary = [
   { id: 'dashboard', href: '/', label: 'Dashboard' },
   { id: 'firms', href: '/firms', label: 'Firms' },
   { id: 'plan', href: '/plan', label: 'Plan' },
   { id: 'audit', href: '/audit', label: 'Audit' },
+] as const;
+
+const more = [
+  { id: 'search', href: '/search', label: 'Search' },
   { id: 'notes', href: '/notes', label: 'Notes' },
+  { id: 'audit-log', href: '/audit/log', label: 'Audit log' },
+  { id: 'settings', href: '/settings', label: 'Settings' },
 ] as const;
 ---
 <header class="header">
@@ -18,20 +26,31 @@ const links = [
     </a>
 
     <nav class="nav" aria-label="Primary">
-      {links.map(({ id, href, label }) => (
+      {primary.map(({ id, href, label }) => (
         <a
           href={href}
           class:list={['nav-link', current === id && 'is-current']}
           aria-current={current === id ? 'page' : undefined}
         >{label}</a>
       ))}
+
+      <details class="nav-more">
+        <summary>More ▾</summary>
+        <ul>
+          {more.map(({ id, href, label }) => (
+            <li>
+              <a href={href} class:list={['nav-link', current === id && 'is-current']}>{label}</a>
+            </li>
+          ))}
+        </ul>
+      </details>
     </nav>
 
     <div class="header-actions">
-      <label class="search">
-        <span class="visually-hidden">Search</span>
-        <input type="search" placeholder="Search" aria-label="Search" />
-      </label>
+      <form class="search" action="/search" method="get" role="search">
+        <label class="visually-hidden" for="header-search">Search</label>
+        <input id="header-search" type="search" name="q" placeholder="Search" aria-label="Search" />
+      </form>
       <form method="post" action="/logout" class="logout-form">
         <button type="submit" class="logout">Sign out</button>
       </form>
@@ -85,6 +104,7 @@ const links = [
     gap: var(--space-3);
     justify-content: center;
     flex-wrap: wrap;
+    align-items: center;
   }
   .nav-link {
     font-size: var(--text-sm);
@@ -97,11 +117,47 @@ const links = [
   .nav-link:hover { border-bottom-color: var(--slate-blue-40); }
   .nav-link.is-current { border-bottom-color: var(--slate-blue); }
 
+  .nav-more { position: relative; }
+  .nav-more > summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--slate-blue);
+    padding: var(--space-1) 0;
+    min-height: 32px;
+  }
+  .nav-more > summary::-webkit-details-marker { display: none; }
+  .nav-more > ul {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 180px;
+    list-style: none;
+    margin: var(--space-1) 0 0;
+    padding: var(--space-1);
+    background: var(--pure-white);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    z-index: var(--z-overlay);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .nav-more a {
+    display: block;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border-bottom: none;
+  }
+  .nav-more a:hover { background: var(--light-gray); }
+
   .header-actions {
     display: flex;
     gap: var(--space-2);
     align-items: center;
   }
+  .search { margin: 0; }
   .search input {
     width: 180px;
     padding: 6px 12px;

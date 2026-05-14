@@ -1,0 +1,62 @@
+.audit-log { display: flex; flex-direction: column; gap: var(--space-3); }
+.audit-log__head h1 { font-family: var(--font-serif); color: var(--slate-blue); font-size: 36px; }
+.audit-log__sub { color: var(--charcoal-muted); font-size: var(--text-sm); }
+
+.audit-log__filters {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+  background: var(--pure-white);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+}
+@media (max-width: 1000px) { .audit-log__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px)  { .audit-log__filters { grid-template-columns: 1fr; } }
+
+.audit-log__table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--pure-white);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: var(--text-sm);
+}
+.audit-log__table th, .audit-log__table td {
+  padding: 8px 12px;
+  text-align: left;
+}
+.audit-log__table th {
+  background: var(--light-gray);
+  color: var(--slate-blue);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.audit-log__row { cursor: pointer; border-top: 1px solid var(--border-subtle); }
+.audit-log__row:hover { background: var(--slate-blue-05); }
+.audit-log__diff-row td { background: var(--cool-white); padding: var(--space-2); }
+
+.audit-log__copy {
+  font-family: ui-monospace, monospace;
+  font-size: var(--text-xs);
+  color: var(--slate-blue);
+  background: transparent;
+  border: 1px solid var(--light-gray);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.audit-log__pager {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--charcoal-muted);
+  font-size: var(--text-sm);
+}
+.audit-log__empty { color: var(--charcoal-muted); }
+.audit-log__error { color: var(--vermillion); }

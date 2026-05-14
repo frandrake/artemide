@@ -155,3 +155,38 @@ export interface ReciprocityEntry {
   given: number;
   received: number;
 }
+
+export interface AuditLogRecord {
+  ulid: string;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  actor: string;
+  transport: string;
+  payload: string | null;
+  timestamp: string;
+}
+
+export interface SearchHit {
+  entity_type: 'firm' | 'partner' | 'note' | 'contact';
+  entity_ulid: string;
+  primary_text: string;
+  secondary_text: string;
+  rank: number;
+  entity: Record<string, unknown> | null;
+}
+
+export interface BackupEntry {
+  filename: string;
+  size_bytes: number;
+  modified_at: string;
+}
+
+export interface SystemInfo {
+  schema_version: string | null;
+  schema_applied_at: string | null;
+  build_hash: string;
+  token_source: 'database' | 'environment';
+  counts: { firms: number; partners: number; contacts: number; notes: number; audit_entries: number };
+  dependencies: Record<string, string>;
+}

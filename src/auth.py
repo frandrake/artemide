@@ -27,7 +27,12 @@ def _cookie_signer() -> TimestampSigner:
 
 
 def verify_bearer(token: str) -> bool:
-    expected = _api_token()
+    # The DB-stored token (set by /api/v1/admin/rotate-token) takes
+    # precedence over the env var so a rotated token works without a
+    # process restart, and the old env value is no longer accepted.
+    from .services.system_service import get_active_api_token
+
+    expected = get_active_api_token(_api_token())
     if not expected or not token:
         return False
     return hmac.compare_digest(token.strip(), expected)

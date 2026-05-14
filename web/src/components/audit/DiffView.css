@@ -1,0 +1,37 @@
+.diff {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: var(--text-sm);
+}
+.diff__head, .diff__row {
+  display: contents;
+}
+.diff__head > div {
+  background: var(--light-gray);
+  padding: 8px 12px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--slate-blue);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.diff__row > div {
+  padding: 6px 12px;
+  border-top: 1px solid var(--border-subtle);
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, monospace;
+}
+.diff__row.is-changed > div {
+  background: rgba(230, 57, 70, 0.08);
+  color: var(--charcoal);
+}
+.diff__row.is-unchanged > div {
+  color: var(--charcoal-muted);
+  background: var(--pure-white);
+}
+.diff__key { font-weight: var(--font-weight-semibold); color: var(--slate-blue); font-family: var(--font-sans); }
+
+.diff__empty { color: var(--charcoal-muted); }

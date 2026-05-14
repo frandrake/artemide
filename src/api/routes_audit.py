@@ -33,16 +33,39 @@ def list_log(
     entity_type: str | None = Query(default=None),
     entity_id: str | None = Query(default=None),
     actor: str | None = Query(default=None),
-    limit: int = Query(default=100, ge=1, le=500),
+    action: str | None = Query(default=None),
+    transport: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
     ctx: ServiceContext = Depends(get_context),
 ):
-    if entity_type and entity_id:
-        return to_response_list(
-            AuditService.list_by_entity(ctx, entity_type, entity_id, limit=limit)
-        )
+    # Lightweight filtered list directly via SQL — keeps the audit
+    # repository focused while still serving the explorer UI.
+    where: list[str] = []
+    params: list[object] = []
+    if entity_type:
+        where.append("entity_type = ?")
+        params.append(entity_type)
+    if entity_id:
+        where.append("entity_id = ?")
+        params.append(entity_id)
     if actor:
-        return to_response_list(AuditService.list_by_actor(ctx, actor, limit=limit))
-    return to_response_list(AuditService.list_recent(ctx, limit=limit))
+        where.append("actor = ?")
+        params.append(actor)
+    if action:
+        where.append("action = ?")
+        params.append(action)
+    if transport:
+        where.append("transport = ?")
+        params.append(transport)
+    clause = f"WHERE {' AND '.join(where)}" if where else ""
+    rows = ctx.conn.execute(
+        "SELECT id, ulid, entity_type, entity_id, action, actor, transport, payload, timestamp "
+        f"FROM audit_log {clause} ORDER BY timestamp DESC, id DESC LIMIT ? OFFSET ?",
+        (*params, int(limit), int(offset)),
+    ).fetchall()
+    from ..models import AuditLogRecord
+    return to_response_list([AuditLogRecord.model_validate(dict(r)) for r in rows])
 
 
 @router.get("/log/{ulid}")
