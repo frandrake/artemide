@@ -1,0 +1,9 @@
+---
+// Shell page served by FastAPI at /partners/{ulid}. The React island
+// reads the ulid from window.location.pathname.
+import AppShell from '../components/layout/AppShell.astro';
+import PartnerDetail from '../components/partner/PartnerDetail';
+---
+<AppShell title="Partner · Artemide" current="firms">
+  <PartnerDetail client:load />
+</AppShell>

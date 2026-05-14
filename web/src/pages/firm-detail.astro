@@ -1,0 +1,9 @@
+---
+// Shell page served by FastAPI at /firms/{ulid}. The React island reads
+// the ulid from window.location.pathname and fetches its own data.
+import AppShell from '../components/layout/AppShell.astro';
+import FirmDetail from '../components/firm/FirmDetail';
+---
+<AppShell title="Firm · Artemide" current="firms">
+  <FirmDetail client:load />
+</AppShell>

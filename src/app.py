@@ -151,9 +151,39 @@ if _enable_docs:
 app.mount("/mcp", _mcp_app)
 
 
-# ---------- static UI (Phase 5+) ----------
+# ---------- SPA fallback routes for dynamic detail pages ----------
+# Astro builds /firm-detail/index.html and /partner-detail/index.html as
+# shell pages. We don't know firm/partner ULIDs at build time, so we
+# serve those shells in response to /firms/{ulid} and /partners/{ulid}.
+# Each shell's React island reads the ULID from window.location.pathname.
+
+from fastapi.responses import FileResponse  # noqa: E402
 
 _ui_path = Path(os.environ.get("ARTEMIDE_UI_BUILD_PATH", "/app/web/dist"))
+
+
+def _serve_detail_shell(name: str) -> FileResponse:
+    p = _ui_path / name / "index.html"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="ui shell missing")
+    return FileResponse(str(p), media_type="text/html")
+
+
+@app.get("/firms/{ulid}", include_in_schema=False)
+def _firm_detail_shell(ulid: str):
+    if not ulid or ulid == "index" or "/" in ulid:
+        raise HTTPException(status_code=404)
+    return _serve_detail_shell("firm-detail")
+
+
+@app.get("/partners/{ulid}", include_in_schema=False)
+def _partner_detail_shell(ulid: str):
+    if not ulid or ulid == "index" or "/" in ulid:
+        raise HTTPException(status_code=404)
+    return _serve_detail_shell("partner-detail")
+
+
+# ---------- static UI (Phase 5+) ----------
 if _ui_path.exists() and _ui_path.is_dir():
     app.mount("/", StaticFiles(directory=str(_ui_path), html=True), name="ui")
 else:

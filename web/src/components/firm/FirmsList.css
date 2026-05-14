@@ -1,0 +1,57 @@
+.firms-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.firms-list__filters {
+  display: grid;
+  grid-template-columns: 200px 200px auto;
+  gap: var(--space-2);
+  align-items: end;
+}
+.firms-list__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--charcoal);
+  min-height: 44px;
+}
+.firms-list__toggle input { width: 16px; height: 16px; accent-color: var(--slate-blue); }
+
+.firms-list__sections { display: flex; flex-direction: column; gap: var(--space-4); }
+.firms-list__tier {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  color: var(--slate-blue);
+  margin-bottom: var(--space-2);
+}
+
+.firms-list__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+@media (max-width: 900px) { .firms-list__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .firms-list__grid { grid-template-columns: 1fr; } }
+
+.firms-list__card-skeleton {
+  background: var(--pure-white);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.firms-list__error { color: var(--vermillion); }
+.firms-list__error button { background: transparent; border: 1px solid var(--slate-blue); color: var(--slate-blue); padding: 4px 12px; margin-top: var(--space-1); border-radius: var(--radius-sm); }
+
+.firms-list__seed-cmd {
+  font-family: ui-monospace, monospace;
+  background: var(--light-gray);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .firms-list__filters { grid-template-columns: 1fr; }
+}

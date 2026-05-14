@@ -40,6 +40,9 @@ export interface Partner {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  // Populated by GET /api/v1/partners/{ulid} only.
+  firm_ulid?: string;
+  firm_name?: string;
 }
 
 export interface ContactLog {

@@ -1,0 +1,47 @@
+.log-contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.log-contact-form__subject {
+  font-size: var(--text-sm);
+  color: var(--charcoal-muted);
+}
+.log-contact-form__subject strong { color: var(--slate-blue); font-weight: var(--font-weight-semibold); }
+
+.log-contact-form__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+@media (max-width: 480px) {
+  .log-contact-form__row { grid-template-columns: 1fr; }
+}
+
+.log-contact-form__checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--charcoal);
+  cursor: pointer;
+  user-select: none;
+}
+.log-contact-form__checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--slate-blue);
+}
+
+.log-contact-form__error {
+  color: var(--vermillion);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.log-contact-form__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

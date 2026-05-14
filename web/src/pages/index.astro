@@ -1,42 +1,25 @@
 ---
 import AppShell from '../components/layout/AppShell.astro';
-import Skeleton from '../components/ui/Skeleton';
+import PipelineOverview from '../components/dashboard/PipelineOverview';
+import UpcomingTouches from '../components/dashboard/UpcomingTouches';
+import AuditHighlights from '../components/dashboard/AuditHighlights';
 ---
 <AppShell title="Dashboard · Artemide" current="dashboard">
   <header class="page-head">
     <h1>Dashboard</h1>
-    <p class="page-subhead">Pipeline state, upcoming touches, and audit highlights.</p>
+    <p class="page-subhead">Pipeline state, upcoming touches, audit highlights.</p>
   </header>
 
-  <div class="grid">
-    <section class="card">
-      <h2 class="card-title">Pipeline overview</h2>
-      <div class="card-rows">
-        <Skeleton client:load width="80%" height={18} />
-        <Skeleton client:load width="60%" height={14} />
-        <Skeleton client:load width="70%" height={14} />
-        <Skeleton client:load width="55%" height={14} />
-      </div>
-    </section>
-
-    <section class="card">
-      <h2 class="card-title">Upcoming touches</h2>
-      <div class="card-rows">
-        <Skeleton client:load width="90%" height={18} />
-        <Skeleton client:load width="80%" height={14} />
-        <Skeleton client:load width="75%" height={14} />
-        <Skeleton client:load width="65%" height={14} />
-      </div>
-    </section>
-
-    <section class="card">
-      <h2 class="card-title">Audit highlights</h2>
-      <div class="card-rows">
-        <Skeleton client:load width="85%" height={18} />
-        <Skeleton client:load width="70%" height={14} />
-        <Skeleton client:load width="60%" height={14} />
-      </div>
-    </section>
+  <div class="dashboard-grid">
+    <div class="dashboard-grid__pipeline">
+      <PipelineOverview client:load />
+    </div>
+    <div class="dashboard-grid__upcoming">
+      <UpcomingTouches client:load />
+    </div>
+    <div class="dashboard-grid__audit">
+      <AuditHighlights client:load />
+    </div>
   </div>
 </AppShell>
 
@@ -49,31 +32,25 @@ import Skeleton from '../components/ui/Skeleton';
   }
   .page-subhead { color: var(--charcoal-muted); }
 
-  .grid {
+  .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: var(--space-3);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-areas:
+      "pipeline pipeline"
+      "upcoming audit";
+    gap: var(--space-4);
   }
-  .card {
-    background: var(--pure-white);
-    border: 1px solid var(--border-subtle);
-    border-radius: var(--radius-md);
-    padding: var(--space-3);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-  }
-  .card-title {
-    font-family: var(--font-serif);
-    font-size: var(--text-2xl);
-    color: var(--slate-blue);
-  }
-  .card-rows {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
-  }
+  .dashboard-grid__pipeline { grid-area: pipeline; }
+  .dashboard-grid__upcoming { grid-area: upcoming; }
+  .dashboard-grid__audit { grid-area: audit; }
+
   @media (max-width: 900px) {
-    .grid { grid-template-columns: 1fr; }
+    .dashboard-grid {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "pipeline"
+        "upcoming"
+        "audit";
+    }
   }
 </style>

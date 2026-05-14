@@ -1,0 +1,21 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import FirmsList from '../../components/firm/FirmsList';
+---
+<AppShell title="Firms · Artemide" current="firms">
+  <header class="page-head">
+    <h1>Firms</h1>
+    <p class="page-subhead">Directory of executive-search firms in the relationship asset.</p>
+  </header>
+  <FirmsList client:load />
+</AppShell>
+
+<style>
+  .page-head {
+    margin-bottom: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+  .page-subhead { color: var(--charcoal-muted); }
+</style>

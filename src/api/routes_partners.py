@@ -58,7 +58,11 @@ def list_partners(
 
 @router.get("/{ulid}")
 def get_partner(ulid: str, ctx: ServiceContext = Depends(get_context)):
-    return to_response(PartnersService.get_by_ulid(ctx, ulid).partner)
+    pwf = PartnersService.get_by_ulid(ctx, ulid)
+    partner = to_response(pwf.partner)
+    partner["firm_ulid"] = pwf.firm.ulid
+    partner["firm_name"] = pwf.firm.name
+    return partner
 
 
 @router.post("")
