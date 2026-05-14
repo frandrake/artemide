@@ -1,0 +1,24 @@
+services:
+  artemide:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - artemide-data:/data
+    networks:
+      - internal
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    depends_on:
+      - artemide
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  artemide-data:

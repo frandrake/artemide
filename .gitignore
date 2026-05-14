@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+data/*
+!data/.gitkeep
+backups/
+*.db
+*.db-journal
+.pytest_cache/
+.coverage
+web/node_modules/
+web/dist/
+web/.astro/
