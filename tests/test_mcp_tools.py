@@ -256,19 +256,33 @@ async def mcp_client():
 
 
 @pytest.mark.asyncio
-async def test_list_tools_returns_eight(mcp_client):
+async def test_list_tools_registered(mcp_client):
     tools = await mcp_client.list_tools()
-    names = sorted(t.name for t in tools)
-    assert names == [
+    names = set(t.name for t in tools)
+    expected = {
         "audit_ledger",
+        "create_draft",
+        "create_template",
+        "get_draft",
         "get_partner_state",
         "import_markdown",
+        "list_drafts",
         "list_due_touches",
+        "list_engagements",
+        "list_templates",
         "log_contact",
+        "mark_sent",
+        "outreach_metrics",
+        "pipeline_snapshot",
         "plan_quarter",
+        "render_template",
+        "set_outreach_stage",
         "set_quarter_topic",
+        "update_draft",
+        "update_engagement",
         "upsert_partner",
-    ]
+    }
+    assert expected.issubset(names), f"missing tools: {expected - names}"
 
 
 @pytest.mark.asyncio

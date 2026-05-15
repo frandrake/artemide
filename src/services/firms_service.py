@@ -152,7 +152,12 @@ class FirmsService:
                         )
             if "notes" in raw:
                 raw["notes_summary"] = raw.pop("notes")
-            allowed_columns = {"tier", "region", "relationship_state", "notes_summary"}
+            allowed_columns = {
+                "tier", "region", "relationship_state", "notes_summary",
+                "market_tier", "strategic_fit", "ned_practice_strength", "hq_address",
+                "sectors", "cmo_practice_depth", "comp_transparency",
+                "candidate_reputation", "b2b_fs_reputation",
+            }
             fields = {
                 k: v.value if hasattr(v, "value") else v
                 for k, v in raw.items() if k in allowed_columns

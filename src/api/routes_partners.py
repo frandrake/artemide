@@ -7,7 +7,8 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 
-from ..models import PartnerUpdateInput, RelationshipState
+from ..models import OutreachStage, PartnerUpdateInput, RelationshipState
+from pydantic import BaseModel as _BaseModel
 from ..repository import firms as firms_repo
 from ..repository import partners as partners_repo
 from ..services import ServiceContext
@@ -97,3 +98,15 @@ def delete_partner(ulid: str, ctx: ServiceContext = Depends(get_context)) -> Non
 @router.post("/{ulid}/restore")
 def restore_partner(ulid: str, ctx: ServiceContext = Depends(get_context)):
     return to_response(PartnersService.restore(ctx, ulid))
+
+
+class _OutreachStageInput(_BaseModel):
+    stage: OutreachStage
+
+
+@router.post("/{ulid}/outreach-stage")
+def set_outreach_stage(
+    ulid: str, body: _OutreachStageInput, ctx: ServiceContext = Depends(get_context)
+):
+    from ..services.outreach_service import OutreachService
+    return to_response(OutreachService.set_stage(ctx, ulid, body.stage))

@@ -108,3 +108,42 @@ def is_duplicate_contact(
         (partner_id, contact_date, channel.value),
     ).fetchone()
     return row is not None
+
+
+def count_contacts_in_window(
+    conn: sqlite3.Connection,
+    *,
+    initiated_by: InitiatedBy | str | None = None,
+    since: date | str,
+    until: date | str,
+) -> int:
+    clauses = ["contact_date >= ?", "contact_date <= ?"]
+    params: list = [str(since), str(until)]
+    if initiated_by is not None:
+        clauses.append("initiated_by = ?")
+        params.append(initiated_by.value if hasattr(initiated_by, "value") else initiated_by)
+    row = conn.execute(
+        f"SELECT COUNT(*) AS n FROM contact_log WHERE {' AND '.join(clauses)}",
+        params,
+    ).fetchone()
+    return int(row["n"] or 0)
+
+
+def count_contacts_by_day(
+    conn: sqlite3.Connection,
+    *,
+    initiated_by: InitiatedBy | str | None = None,
+    since: date | str,
+    until: date | str,
+) -> list[tuple[str, int]]:
+    clauses = ["contact_date >= ?", "contact_date <= ?"]
+    params: list = [str(since), str(until)]
+    if initiated_by is not None:
+        clauses.append("initiated_by = ?")
+        params.append(initiated_by.value if hasattr(initiated_by, "value") else initiated_by)
+    rows = conn.execute(
+        f"SELECT contact_date AS d, COUNT(*) AS n FROM contact_log "
+        f"WHERE {' AND '.join(clauses)} GROUP BY contact_date ORDER BY contact_date",
+        params,
+    ).fetchall()
+    return [(str(r["d"]), int(r["n"])) for r in rows]

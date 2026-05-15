@@ -13,7 +13,8 @@ _COLUMNS = (
     "id, ulid, firm_id, name, title, practice, seniority, location, introduced_via, email, linkedin_url, "
     "relationship_state, last_contact_date, next_touch_date, next_touch_topic, "
     "notes_summary, follow_ups_outstanding, created_at, updated_at, deleted_at, "
-    "practice_focus, strategic_relevance, warm_intro_angle, thought_leadership, prior_career, ned_gateway"
+    "practice_focus, strategic_relevance, warm_intro_angle, thought_leadership, prior_career, ned_gateway, "
+    "outreach_stage"
 )
 
 
@@ -87,6 +88,7 @@ _ALLOWED_PARTNER_FIELDS = {
     "next_touch_date", "next_touch_topic", "notes_summary", "follow_ups_outstanding",
     "practice_focus", "strategic_relevance", "warm_intro_angle",
     "thought_leadership", "prior_career", "ned_gateway",
+    "outreach_stage",
 }
 
 

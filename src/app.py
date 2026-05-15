@@ -16,16 +16,21 @@ from pydantic import BaseModel
 from .api.deps import get_db
 from .api.error_handlers import register_error_handlers
 from .api.routes_admin import router as admin_router
+from .api.routes_analytics import router as analytics_router
 from .api.routes_audit import router as audit_router
 from .api.routes_contacts import router as contacts_router
+from .api.routes_engagement import router as engagement_router
 from .api.routes_export import router as export_router
 from .api.routes_firms import router as firms_router
 from .api.routes_import import router as import_router
 from .api.routes_notes import router as notes_router
+from .api.routes_outreach import router as outreach_router
 from .api.routes_partners import router as partners_router
+from .api.routes_pipeline import router as pipeline_router
 from .api.routes_planning import router as planning_router
 from .api.routes_search import router as search_router
 from .api.routes_system import router as system_router
+from .api.routes_templates import router as templates_router
 from .auth import (
     COOKIE_NAME,
     SESSION_TTL_SECONDS,
@@ -75,6 +80,11 @@ for router in (
     contacts_router,
     notes_router,
     planning_router,
+    engagement_router,
+    templates_router,
+    outreach_router,
+    pipeline_router,
+    analytics_router,
     audit_router,
     search_router,
     export_router,

@@ -33,6 +33,8 @@ def _partner_search_text(partner: PartnerRecord, firm_name: str) -> tuple[str, s
         partner.practice,
         partner.seniority,
         partner.notes_summary,
+        partner.practice_focus,
+        partner.warm_intro_angle,
     ]
     return partner.name, " ".join(p for p in secondary_parts if p)
 
@@ -202,6 +204,9 @@ class PartnersService:
             "name", "practice", "seniority", "location", "introduced_via",
             "last_contact_date", "next_touch_date", "next_touch_topic",
             "follow_ups_outstanding",
+            "practice_focus", "strategic_relevance", "warm_intro_angle",
+            "thought_leadership", "prior_career", "ned_gateway",
+            "outreach_stage",
         }
         with transaction(ctx.conn):
             pwf = PartnersService.get_by_ulid(ctx, ulid)
