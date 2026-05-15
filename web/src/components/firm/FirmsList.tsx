@@ -7,7 +7,6 @@ import Skeleton from '../ui/Skeleton';
 import Select from '../ui/Select';
 import FirmCard from './FirmCard';
 import RestoreConfirmModal from '../shared/RestoreConfirmModal';
-import Toast from '../shared/Toast';
 import { formatRelativeDate } from '../../lib/formatting';
 import './FirmsList.css';
 
@@ -34,7 +33,6 @@ export default function FirmsList() {
   const [restoreFirm, setRestoreFirm] = useState<Firm | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreError, setRestoreError] = useState<string | undefined>(undefined);
-  const [toast, setToast] = useState<string | null>(null);
 
   const { active, deleted } = useMemo(() => {
     const all = data ?? [];
@@ -178,8 +176,6 @@ export default function FirmsList() {
         onConfirm={handleRestoreConfirm}
         onCancel={() => { setRestoreFirm(null); setRestoreError(undefined); }}
       />
-
-      {toast && <Toast message={toast} tone="error" onDismiss={() => setToast(null)} />}
     </div>
   );
 }

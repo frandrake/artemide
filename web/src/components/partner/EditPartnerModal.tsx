@@ -92,6 +92,8 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
 
   const isDirty = Object.keys(changedFields).length > 0;
   const nameChanged = form.name !== original.current.name;
+  const nameInvalid = !form.name.trim();
+  const canSubmit = isDirty && !nameInvalid && !submitting;
 
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -113,7 +115,7 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!isDirty || submitting) return;
+    if (!canSubmit) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -152,7 +154,12 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
             />
-            {nameChanged && (
+            {nameInvalid && (
+              <div className="edit-partner-modal__error" role="alert">
+                Name is required.
+              </div>
+            )}
+            {nameChanged && !nameInvalid && (
               <div className="edit-partner-modal__name-warning">
                 Renaming this partner may break voice lookups. Update any Claude references to their name.
               </div>
@@ -296,7 +303,7 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
             variant="primary"
             type="submit"
             form="edit-partner-form"
-            disabled={!isDirty || submitting}
+            disabled={!canSubmit}
             loading={submitting}
           >
             Save changes

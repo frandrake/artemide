@@ -88,6 +88,16 @@ class FirmRecord(_Base):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+    # Headhunter intelligence fields (migration 010)
+    market_tier: str | None = None
+    strategic_fit: str | None = None
+    ned_practice_strength: str | None = None
+    hq_address: str | None = None
+    sectors: str | None = None
+    cmo_practice_depth: str | None = None
+    comp_transparency: str | None = None
+    candidate_reputation: str | None = None
+    b2b_fs_reputation: str | None = None
 
 
 class PartnerRecord(_Base):
@@ -111,6 +121,13 @@ class PartnerRecord(_Base):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+    # Headhunter intelligence fields (migration 010)
+    practice_focus: str | None = None
+    strategic_relevance: str | None = None
+    warm_intro_angle: str | None = None
+    thought_leadership: str | None = None
+    prior_career: str | None = None
+    ned_gateway: int = 0
 
 
 class ContactLogRecord(_Base):

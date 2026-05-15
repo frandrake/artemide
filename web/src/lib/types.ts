@@ -21,6 +21,16 @@ export interface Firm {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  // Headhunter intelligence fields (migration 010)
+  market_tier?: string | null;
+  strategic_fit?: string | null;
+  ned_practice_strength?: string | null;
+  hq_address?: string | null;
+  sectors?: string | null;
+  cmo_practice_depth?: string | null;
+  comp_transparency?: string | null;
+  candidate_reputation?: string | null;
+  b2b_fs_reputation?: string | null;
 }
 
 export interface Partner {
@@ -45,6 +55,13 @@ export interface Partner {
   // Populated by GET /api/v1/partners/{ulid} only.
   firm_ulid?: string;
   firm_name?: string;
+  // Headhunter intelligence fields (migration 010)
+  practice_focus?: string | null;
+  strategic_relevance?: string | null;
+  warm_intro_angle?: string | null;
+  thought_leadership?: string | null;
+  prior_career?: string | null;
+  ned_gateway?: number;
 }
 
 export interface ContactLog {

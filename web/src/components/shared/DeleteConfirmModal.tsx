@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Dialog from '../ui/Dialog';
 import Button from '../ui/Button';
 import './DeleteConfirmModal.css';
@@ -24,8 +24,8 @@ export function DeleteConfirmModal({
 }: DeleteConfirmModalProps) {
   const [checked, setChecked] = useState(false);
 
-  // Reset checkbox when modal closes.
-  if (!isOpen && checked) setChecked(false);
+  // Reset checkbox each time the modal opens, never during render.
+  useEffect(() => { if (isOpen) setChecked(false); }, [isOpen]);
 
   function body(): string {
     if (entityType === 'partner') {

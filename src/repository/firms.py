@@ -10,7 +10,9 @@ from ..ulid_helpers import new_ulid
 
 _COLUMNS = (
     "id, ulid, name, tier, region, relationship_state, primary_focus, "
-    "notes_summary, created_at, updated_at, deleted_at"
+    "notes_summary, created_at, updated_at, deleted_at, "
+    "market_tier, strategic_fit, ned_practice_strength, hq_address, sectors, "
+    "cmo_practice_depth, comp_transparency, candidate_reputation, b2b_fs_reputation"
 )
 
 
@@ -84,6 +86,8 @@ def list_firms(
 
 _ALLOWED_FIRM_FIELDS = {
     "name", "tier", "region", "relationship_state", "primary_focus", "notes_summary",
+    "market_tier", "strategic_fit", "ned_practice_strength", "hq_address", "sectors",
+    "cmo_practice_depth", "comp_transparency", "candidate_reputation", "b2b_fs_reputation",
 }
 
 

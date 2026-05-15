@@ -40,6 +40,20 @@ def _insert_audit(conn: sqlite3.Connection, entity_type: str, entity_id: int,
     )
 
 
+def _upsert_search(conn: sqlite3.Connection, entity_type: str, entity_ulid: str,
+                   primary_text: str, secondary_text: str = "") -> None:
+    """Idempotent upsert into the FTS5 search_index."""
+    conn.execute(
+        "DELETE FROM search_index WHERE entity_type = ? AND entity_ulid = ?",
+        (entity_type, entity_ulid),
+    )
+    conn.execute(
+        "INSERT INTO search_index (entity_type, entity_ulid, primary_text, secondary_text) "
+        "VALUES (?, ?, ?, ?)",
+        (entity_type, entity_ulid, primary_text, secondary_text),
+    )
+
+
 def _day(start: date, offset: int) -> str:
     return (start + timedelta(days=offset)).isoformat()
 
@@ -664,7 +678,10 @@ def seed(conn: sqlite3.Connection, start: date) -> None:
     for (name, tier_col, region, market_tier, strategic_fit, ned_practice_strength,
          hq_address, sectors, cmo_depth, comp_transp, cand_rep, b2b_fs) in FIRMS:
 
-        row = conn.execute("SELECT id FROM firms WHERE name = ?", (name,)).fetchone()
+        row = conn.execute("SELECT id, ulid FROM firms WHERE name = ?", (name,)).fetchone()
+
+        # Secondary text for search: region + sectors + practice depth
+        secondary = " ".join(filter(None, [region, sectors, cmo_depth]))
 
         if row:
             firm_id_map[name] = row[0]
@@ -675,6 +692,7 @@ def seed(conn: sqlite3.Connection, start: date) -> None:
                 (market_tier, strategic_fit, ned_practice_strength, hq_address, sectors,
                  cmo_depth, comp_transp, cand_rep, b2b_fs, row[0]),
             )
+            _upsert_search(conn, "firm", row[1], name, secondary)
             print(f"  [updated] {name}")
         else:
             ulid = new_ulid()
@@ -688,6 +706,7 @@ def seed(conn: sqlite3.Connection, start: date) -> None:
                  comp_transp, cand_rep, b2b_fs),
             )
             firm_id_map[name] = cur.lastrowid
+            _upsert_search(conn, "firm", ulid, name, secondary)
             _insert_audit(conn, "firm", cur.lastrowid, name)
             print(f"  [created] {name}")
 
@@ -705,9 +724,12 @@ def seed(conn: sqlite3.Connection, start: date) -> None:
             continue
 
         row = conn.execute(
-            "SELECT id FROM partners WHERE firm_id = ? AND name = ?",
+            "SELECT id, ulid FROM partners WHERE firm_id = ? AND name = ?",
             (firm_id, pname),
         ).fetchone()
+
+        # Secondary text: firm name + title + practice + practice_focus
+        secondary = " ".join(filter(None, [firm_name, title, practice, practice_focus]))
 
         if row:
             partner_id_map[pname] = row[0]
@@ -718,6 +740,7 @@ def seed(conn: sqlite3.Connection, start: date) -> None:
                 (title, practice, seniority, linkedin_url, ned_gw, strategic_rel,
                  practice_focus, warm_intro, thought_lead, prior_career, row[0]),
             )
+            _upsert_search(conn, "partner", row[1], pname, secondary)
             print(f"  [updated] {pname} @ {firm_name}")
         else:
             ulid = new_ulid()
@@ -730,6 +753,7 @@ def seed(conn: sqlite3.Connection, start: date) -> None:
                  ned_gw, strategic_rel, practice_focus, warm_intro, thought_lead, prior_career),
             )
             partner_id_map[pname] = cur.lastrowid
+            _upsert_search(conn, "partner", ulid, pname, secondary)
             _insert_audit(conn, "partner", cur.lastrowid, pname)
             print(f"  [created] {pname} @ {firm_name}")
 
