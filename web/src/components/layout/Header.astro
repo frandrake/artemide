@@ -1,17 +1,23 @@
 ---
 interface Props {
-  current?: 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings';
+  current?:
+    | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
+    | 'engagement' | 'drafts' | 'templates' | 'pipeline';
 }
 const { current } = Astro.props;
 
 const primary = [
   { id: 'dashboard', href: '/', label: 'Dashboard' },
   { id: 'firms', href: '/firms', label: 'Firms' },
+  { id: 'pipeline', href: '/pipeline', label: 'Pipeline' },
+  { id: 'engagement', href: '/engagement', label: 'Engagement' },
+  { id: 'drafts', href: '/drafts', label: 'Drafts' },
   { id: 'plan', href: '/plan', label: 'Plan' },
   { id: 'audit', href: '/audit', label: 'Audit' },
 ] as const;
 
 const more = [
+  { id: 'templates', href: '/templates', label: 'Templates' },
   { id: 'search', href: '/search', label: 'Search' },
   { id: 'notes', href: '/notes', label: 'Notes' },
   { id: 'audit-log', href: '/audit/log', label: 'Audit log' },

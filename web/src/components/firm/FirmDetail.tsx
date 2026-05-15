@@ -124,6 +124,7 @@ export default function FirmDetail() {
             {firm.data.notes_summary && (
               <p className="firm-detail__notes">{firm.data.notes_summary}</p>
             )}
+            <FirmIntelligencePanel firm={firm.data} />
           </>
         )}
       </section>
@@ -228,6 +229,48 @@ export default function FirmDetail() {
       />
 
       {toast && <Toast message={toast} tone="error" onDismiss={() => setToast(null)} />}
+    </div>
+  );
+}
+
+function FirmIntelligencePanel({ firm }: { firm: Firm }) {
+  const fields: { label: string; value: string | null | undefined }[] = [
+    { label: 'Market tier', value: firm.market_tier },
+    { label: 'Strategic fit', value: firm.strategic_fit },
+    { label: 'NED practice', value: firm.ned_practice_strength },
+    { label: 'HQ', value: firm.hq_address },
+    { label: 'Sectors', value: firm.sectors },
+  ];
+  const visible = fields.filter(f => f.value);
+  const prose: { label: string; value: string | null | undefined }[] = [
+    { label: 'CMO practice depth', value: firm.cmo_practice_depth },
+    { label: 'Comp transparency', value: firm.comp_transparency },
+    { label: 'Candidate reputation', value: firm.candidate_reputation },
+    { label: 'B2B / FS reputation', value: firm.b2b_fs_reputation },
+  ].filter(p => p.value);
+  if (visible.length === 0 && prose.length === 0) return null;
+  return (
+    <div className="firm-detail__intel">
+      {visible.length > 0 && (
+        <dl className="firm-detail__intel-grid">
+          {visible.map(f => (
+            <div key={f.label}>
+              <dt>{f.label}</dt>
+              <dd>{f.value}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {prose.length > 0 && (
+        <details className="firm-detail__intel-prose">
+          <summary>More intelligence</summary>
+          {prose.map(p => (
+            <div key={p.label} className="firm-detail__intel-prose-row">
+              <strong>{p.label}:</strong> {p.value}
+            </div>
+          ))}
+        </details>
+      )}
     </div>
   );
 }

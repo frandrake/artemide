@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useFetch } from '../../lib/useFetch';
 import { apiPatch, apiDelete, ApiError } from '../../lib/api';
-import type { ContactLog, Note, Partner } from '../../lib/types';
+import type { ContactLog, Note, OutreachDraftRecord, Partner } from '../../lib/types';
+import DraftEditor from '../outreach/DraftEditor';
 import StatusPill from '../ui/StatusPill';
 import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
@@ -97,6 +98,7 @@ export default function PartnerDetail() {
         <div className="partner-detail__facts">
           <h2 className="partner-detail__h2">Profile</h2>
           {partner.data && <PartnerFacts partner={partner.data} />}
+          {partner.data && <PartnerIntelligencePanel partner={partner.data} />}
         </div>
 
         <aside className="partner-detail__followups">
@@ -107,6 +109,11 @@ export default function PartnerDetail() {
             onSaved={partner.refresh}
           />
         </aside>
+      </section>
+
+      <section className="partner-detail__drafts">
+        <h2 className="partner-detail__h2">Drafts</h2>
+        {partner.data && <PartnerDrafts partner={partner.data} />}
       </section>
 
       <section className="partner-detail__timeline">
@@ -195,6 +202,98 @@ function PartnerFacts({ partner }: { partner: Partner }) {
       <Fact label="Next planned topic" value={partner.next_touch_topic} />
       <Fact label="Notes summary" value={partner.notes_summary} />
     </dl>
+  );
+}
+
+function PartnerIntelligencePanel({ partner }: { partner: Partner }) {
+  const chips: { label: string; value: string | null | undefined }[] = [
+    { label: 'Strategic relevance', value: partner.strategic_relevance },
+    { label: 'Outreach stage', value: partner.outreach_stage },
+  ];
+  const visibleChips = chips.filter(c => c.value);
+  if (partner.ned_gateway) visibleChips.push({ label: 'NED gateway', value: 'Yes' });
+
+  const prose: { label: string; value: string | null | undefined }[] = [
+    { label: 'Practice focus', value: partner.practice_focus },
+    { label: 'Warm intro angle', value: partner.warm_intro_angle },
+    { label: 'Thought leadership', value: partner.thought_leadership },
+    { label: 'Prior career', value: partner.prior_career },
+  ].filter(p => p.value);
+
+  if (visibleChips.length === 0 && prose.length === 0) return null;
+
+  return (
+    <div className="partner-detail__intel">
+      {visibleChips.length > 0 && (
+        <div className="partner-detail__intel-chips">
+          {visibleChips.map(c => (
+            <span key={c.label} className="partner-detail__intel-chip">
+              <strong>{c.label}:</strong> {c.value}
+            </span>
+          ))}
+        </div>
+      )}
+      {prose.map(p => (
+        <div key={p.label} className="partner-detail__intel-prose-row">
+          <span className="partner-detail__intel-label">{p.label}</span>
+          <span className="partner-detail__intel-value">{p.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PartnerDrafts({ partner }: { partner: Partner }) {
+  const drafts = useFetch<OutreachDraftRecord[]>(`/api/v1/outreach/drafts?partner_ulid=${partner.ulid}`);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingUlid, setEditingUlid] = useState<string | null>(null);
+
+  function openNew() {
+    setEditingUlid(null);
+    setEditorOpen(true);
+  }
+  function openExisting(ulid: string) {
+    setEditingUlid(ulid);
+    setEditorOpen(true);
+  }
+
+  return (
+    <div className="partner-drafts">
+      <div className="partner-drafts__header">
+        <Button variant="secondary" size="sm" onClick={openNew}>+ New draft</Button>
+      </div>
+      {drafts.loading && <Skeleton width="100%" height={48} />}
+      {drafts.data && drafts.data.length === 0 && (
+        <p className="partner-drafts__empty">No drafts yet.</p>
+      )}
+      {drafts.data && drafts.data.length > 0 && (
+        <ul className="partner-drafts__list">
+          {drafts.data.map(d => (
+            <li key={d.ulid} className="partner-drafts__row">
+              <button
+                type="button"
+                className="partner-drafts__row-button"
+                onClick={() => openExisting(d.ulid)}
+              >
+                <span className={`partner-drafts__status partner-drafts__status--${d.status}`}>{d.status}</span>
+                <span className="partner-drafts__channel">{d.channel}</span>
+                <span className="partner-drafts__subject">{d.subject || '(no subject)'}</span>
+                <span className="partner-drafts__version">v{d.version}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {editorOpen && (
+        <DraftEditor
+          partnerUlid={partner.ulid}
+          draftUlid={editingUlid}
+          isOpen={editorOpen}
+          onClose={() => setEditorOpen(false)}
+          onSaved={() => { setEditorOpen(false); drafts.refresh(); }}
+        />
+      )}
+    </div>
   );
 }
 

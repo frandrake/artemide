@@ -1,0 +1,23 @@
+.send-draft-dialog { max-width: 480px; }
+.send-draft__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.send-draft__note {
+  font-size: var(--text-sm);
+  color: var(--charcoal-muted);
+  line-height: var(--leading-normal);
+}
+.send-draft__row {
+  display: grid;
+  grid-template-columns: 1fr 160px;
+  gap: var(--space-1);
+}
+.send-draft__error {
+  background: #FEE2E2;
+  color: var(--charcoal);
+  font-size: var(--text-sm);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+}

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { apiPatch, ApiError } from '../../lib/api';
-import type { Partner } from '../../lib/types';
+import type { OutreachStage, Partner } from '../../lib/types';
 import Dialog from '../ui/Dialog';
 import Input from '../ui/Input';
+import Select from '../ui/Select';
+import Textarea from '../ui/Textarea';
 import Button from '../ui/Button';
 import './EditPartnerModal.css';
 
@@ -32,6 +34,13 @@ interface FormState {
   first_contact_date: string;
   next_planned_touch_date: string;
   next_planned_topic: string;
+  practice_focus: string;
+  strategic_relevance: string;
+  warm_intro_angle: string;
+  thought_leadership: string;
+  prior_career: string;
+  ned_gateway: boolean;
+  outreach_stage: OutreachStage;
 }
 
 function fromPartner(p: Partner): FormState {
@@ -44,6 +53,13 @@ function fromPartner(p: Partner): FormState {
     first_contact_date: p.last_contact_date ?? '',
     next_planned_touch_date: p.next_touch_date ?? '',
     next_planned_topic: p.next_touch_topic ?? '',
+    practice_focus: p.practice_focus ?? '',
+    strategic_relevance: p.strategic_relevance ?? '',
+    warm_intro_angle: p.warm_intro_angle ?? '',
+    thought_leadership: p.thought_leadership ?? '',
+    prior_career: p.prior_career ?? '',
+    ned_gateway: (p.ned_gateway ?? 0) === 1,
+    outreach_stage: (p.outreach_stage ?? 'researched') as OutreachStage,
   };
 }
 
@@ -87,6 +103,22 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
     if ((form.next_planned_touch_date || '') !== (o.next_planned_touch_date || '')) changes.next_planned_touch_date = form.next_planned_touch_date || null;
     if ((form.next_planned_topic || '') !== (o.next_planned_topic || '')) changes.next_planned_topic = form.next_planned_topic || null;
     if (followUpsTouched) changes.follow_ups_outstanding = followUps;
+    // Intelligence fields
+    const intelStrFields: (keyof FormState)[] = [
+      'practice_focus', 'strategic_relevance', 'warm_intro_angle',
+      'thought_leadership', 'prior_career',
+    ];
+    for (const k of intelStrFields) {
+      if ((form[k] as string || '') !== (o[k] as string || '')) {
+        changes[k] = form[k] || null;
+      }
+    }
+    if (form.ned_gateway !== o.ned_gateway) {
+      changes.ned_gateway = form.ned_gateway ? 1 : 0;
+    }
+    if (form.outreach_stage !== o.outreach_stage) {
+      changes.outreach_stage = form.outreach_stage;
+    }
     return changes;
   }, [form, followUps, followUpsTouched]);
 
@@ -225,6 +257,73 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
             value={form.next_planned_topic}
             onChange={(e) => set('next_planned_topic', e.target.value)}
           />
+
+          <details className="edit-partner-modal__intel-section">
+            <summary>Headhunter intelligence</summary>
+            <div className="edit-partner-modal__intel-grid">
+              <Select
+                label="Strategic relevance"
+                name="strategic_relevance"
+                value={form.strategic_relevance}
+                onChange={(e) => set('strategic_relevance', e.target.value)}
+              >
+                <option value="">—</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="LOW">LOW</option>
+              </Select>
+              <Select
+                label="Outreach stage"
+                name="outreach_stage"
+                value={form.outreach_stage}
+                onChange={(e) => set('outreach_stage', e.target.value as OutreachStage)}
+              >
+                <option value="researched">Researched</option>
+                <option value="drafted">Drafted</option>
+                <option value="sent">Sent</option>
+                <option value="replied">Replied</option>
+                <option value="met">Met</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="paused">Paused</option>
+                <option value="dropped">Dropped</option>
+              </Select>
+              <label className="edit-partner-modal__checkbox">
+                <input
+                  type="checkbox"
+                  checked={form.ned_gateway}
+                  onChange={(e) => set('ned_gateway', e.target.checked)}
+                />
+                NED gateway
+              </label>
+              <Input
+                label="Practice focus"
+                name="practice_focus"
+                value={form.practice_focus}
+                onChange={(e) => set('practice_focus', e.target.value)}
+              />
+              <Textarea
+                label="Warm intro angle"
+                name="warm_intro_angle"
+                rows={3}
+                value={form.warm_intro_angle}
+                onChange={(e) => set('warm_intro_angle', e.target.value)}
+              />
+              <Textarea
+                label="Thought leadership (comma-separated)"
+                name="thought_leadership"
+                rows={2}
+                value={form.thought_leadership}
+                onChange={(e) => set('thought_leadership', e.target.value)}
+              />
+              <Textarea
+                label="Prior career"
+                name="prior_career"
+                rows={2}
+                value={form.prior_career}
+                onChange={(e) => set('prior_career', e.target.value)}
+              />
+            </div>
+          </details>
 
           {/* Follow-ups tag editor */}
           <div className="edit-partner-modal__field">

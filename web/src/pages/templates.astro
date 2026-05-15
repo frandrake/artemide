@@ -1,0 +1,16 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import TemplatesPage from '../components/templates/TemplatesPage';
+---
+<AppShell title="Templates · Artemide" current="templates">
+  <header class="page-head">
+    <h1>Templates</h1>
+    <p class="page-subhead">Reusable outreach scaffolds with Mustache-lite variables.</p>
+  </header>
+  <TemplatesPage client:load />
+</AppShell>
+
+<style>
+  .page-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .page-subhead { color: var(--charcoal-muted); }
+</style>

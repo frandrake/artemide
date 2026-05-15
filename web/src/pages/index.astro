@@ -3,12 +3,15 @@ import AppShell from '../components/layout/AppShell.astro';
 import PipelineOverview from '../components/dashboard/PipelineOverview';
 import UpcomingTouches from '../components/dashboard/UpcomingTouches';
 import AuditHighlights from '../components/dashboard/AuditHighlights';
+import OutreachMetricsTiles from '../components/dashboard/OutreachMetricsTiles';
 ---
 <AppShell title="Dashboard · Artemide" current="dashboard">
   <header class="page-head">
     <h1>Dashboard</h1>
     <p class="page-subhead">Pipeline state, upcoming touches, audit highlights.</p>
   </header>
+
+  <OutreachMetricsTiles client:load />
 
   <div class="dashboard-grid">
     <div class="dashboard-grid__pipeline">

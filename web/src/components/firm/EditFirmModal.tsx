@@ -21,6 +21,15 @@ interface FormState {
   region: string;
   relationship_state: RelationshipState;
   notes: string;
+  market_tier: string;
+  strategic_fit: string;
+  ned_practice_strength: string;
+  hq_address: string;
+  sectors: string;
+  cmo_practice_depth: string;
+  comp_transparency: string;
+  candidate_reputation: string;
+  b2b_fs_reputation: string;
 }
 
 function fromFirm(firm: Firm): FormState {
@@ -29,6 +38,15 @@ function fromFirm(firm: Firm): FormState {
     region: firm.region ?? '',
     relationship_state: firm.relationship_state,
     notes: firm.notes_summary ?? '',
+    market_tier: firm.market_tier ?? '',
+    strategic_fit: firm.strategic_fit ?? '',
+    ned_practice_strength: firm.ned_practice_strength ?? '',
+    hq_address: firm.hq_address ?? '',
+    sectors: firm.sectors ?? '',
+    cmo_practice_depth: firm.cmo_practice_depth ?? '',
+    comp_transparency: firm.comp_transparency ?? '',
+    candidate_reputation: firm.candidate_reputation ?? '',
+    b2b_fs_reputation: firm.b2b_fs_reputation ?? '',
   };
 }
 
@@ -56,6 +74,16 @@ export function EditFirmModal({ firm, isOpen, onClose, onSaved, onDeleteRequest 
     if ((form.region || '') !== (o.region || '')) changes.region = form.region || null;
     if (form.relationship_state !== o.relationship_state) changes.relationship_state = form.relationship_state;
     if ((form.notes || '') !== (o.notes || '')) changes.notes = form.notes || null;
+    const intelFields: (keyof FormState)[] = [
+      'market_tier', 'strategic_fit', 'ned_practice_strength', 'hq_address',
+      'sectors', 'cmo_practice_depth', 'comp_transparency',
+      'candidate_reputation', 'b2b_fs_reputation',
+    ];
+    for (const k of intelFields) {
+      if ((form[k] || '') !== (o[k] || '')) {
+        changes[k] = form[k] || null;
+      }
+    }
     return changes;
   }, [form]);
 
@@ -140,6 +168,86 @@ export function EditFirmModal({ firm, isOpen, onClose, onSaved, onDeleteRequest 
             value={form.notes}
             onChange={(e) => set('notes', e.target.value)}
           />
+
+          <details className="edit-firm-modal__intel-section">
+            <summary>Headhunter intelligence</summary>
+            <div className="edit-firm-modal__intel-grid">
+              <Select
+                label="Market tier"
+                name="market_tier"
+                value={form.market_tier}
+                onChange={(e) => set('market_tier', e.target.value)}
+              >
+                <option value="">—</option>
+                <option value="tier-1-global">Tier-1 global</option>
+                <option value="specialist-boutique">Specialist boutique</option>
+                <option value="honourable-mention">Honourable mention</option>
+              </Select>
+              <Select
+                label="Strategic fit"
+                name="strategic_fit"
+                value={form.strategic_fit}
+                onChange={(e) => set('strategic_fit', e.target.value)}
+              >
+                <option value="">—</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="LOW">LOW</option>
+              </Select>
+              <Select
+                label="NED practice strength"
+                name="ned_practice_strength"
+                value={form.ned_practice_strength}
+                onChange={(e) => set('ned_practice_strength', e.target.value)}
+              >
+                <option value="">—</option>
+                <option value="HIGH">HIGH</option>
+                <option value="MEDIUM">MEDIUM</option>
+                <option value="LOW">LOW</option>
+                <option value="N/A">N/A</option>
+              </Select>
+              <Input
+                label="HQ address"
+                name="hq_address"
+                value={form.hq_address}
+                onChange={(e) => set('hq_address', e.target.value)}
+              />
+              <Input
+                label="Sectors (comma-separated)"
+                name="sectors"
+                value={form.sectors}
+                onChange={(e) => set('sectors', e.target.value)}
+              />
+              <Textarea
+                label="CMO practice depth"
+                name="cmo_practice_depth"
+                rows={3}
+                value={form.cmo_practice_depth}
+                onChange={(e) => set('cmo_practice_depth', e.target.value)}
+              />
+              <Textarea
+                label="Comp transparency"
+                name="comp_transparency"
+                rows={2}
+                value={form.comp_transparency}
+                onChange={(e) => set('comp_transparency', e.target.value)}
+              />
+              <Textarea
+                label="Candidate reputation"
+                name="candidate_reputation"
+                rows={2}
+                value={form.candidate_reputation}
+                onChange={(e) => set('candidate_reputation', e.target.value)}
+              />
+              <Textarea
+                label="B2B / FS reputation"
+                name="b2b_fs_reputation"
+                rows={2}
+                value={form.b2b_fs_reputation}
+                onChange={(e) => set('b2b_fs_reputation', e.target.value)}
+              />
+            </div>
+          </details>
 
           {error && (
             <div className="edit-firm-modal__error" role="alert">

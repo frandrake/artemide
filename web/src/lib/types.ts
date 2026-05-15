@@ -62,6 +62,131 @@ export interface Partner {
   thought_leadership?: string | null;
   prior_career?: string | null;
   ned_gateway?: number;
+  // Outreach pipeline stage (migration 011)
+  outreach_stage?: OutreachStage;
+}
+
+// ---------- Phase 11: outreach workspace ----------
+
+export type OutreachChannel = 'email' | 'linkedin' | 'message' | 'other';
+export type DraftStatus = 'draft' | 'ready' | 'sent' | 'archived';
+export type OutreachStage =
+  | 'researched' | 'drafted' | 'sent' | 'replied'
+  | 'met' | 'ongoing' | 'paused' | 'dropped';
+export type EngagementStatus = 'not_set' | 'planned' | 'in_progress' | 'complete';
+
+export interface EngagementCalendarRecord {
+  ulid: string;
+  firm_id?: number | null;
+  partner_id?: number | null;
+  due_date: string;
+  title: string;
+  description: string | null;
+  status: EngagementStatus;
+  track: string | null;
+  created_at: string;
+}
+
+export interface TemplateRecord {
+  ulid: string;
+  name: string;
+  category: string | null;
+  channel: OutreachChannel;
+  subject_template: string | null;
+  body_template: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface OutreachDraftRecord {
+  ulid: string;
+  partner_id: number;
+  template_id: number | null;
+  channel: OutreachChannel;
+  subject: string | null;
+  body: string;
+  status: DraftStatus;
+  version: number;
+  sent_message_id: number | null;
+  created_at: string;
+  updated_at: string;
+  archived_at: string | null;
+}
+
+export interface OutreachMessageRecord {
+  ulid: string;
+  draft_id: number;
+  partner_id: number;
+  contact_log_id: number;
+  sent_at: string;
+  sent_via: OutreachChannel;
+  recipient_handle: string | null;
+  subject_snapshot: string | null;
+  body_snapshot: string;
+  version_sent: number;
+}
+
+export interface OutreachDraftVersionRecord {
+  ulid: string;
+  draft_id: number;
+  version: number;
+  subject: string | null;
+  body: string;
+  author_actor: string;
+  created_at: string;
+}
+
+export interface PipelineSnapshot {
+  stages: Record<OutreachStage, PipelineCard[]>;
+  counts: Record<OutreachStage, number>;
+}
+
+export interface PipelineCard {
+  partner_ulid: string;
+  partner_name: string;
+  firm_ulid: string;
+  firm_name: string;
+  firm_tier: FirmTier;
+  strategic_relevance: string | null;
+  ned_gateway: boolean;
+  last_contact_date: string | null;
+  next_touch_date: string | null;
+  open_draft_ulid: string | null;
+  sent_count: number;
+  outreach_stage: OutreachStage;
+}
+
+export interface OutreachVolumePoint {
+  bucket: string;
+  count: number;
+}
+
+export interface ResponseRate {
+  since: string;
+  until: string;
+  sent: number;
+  incoming: number;
+  rate: number;
+}
+
+export interface ReciprocityPartner {
+  partner_ulid: string;
+  partner_name: string;
+  firm_name: string;
+  given: number;
+  received: number;
+  balance: number;
+}
+
+export interface PlanExecution {
+  since: string;
+  until: string;
+  complete: number;
+  total: number;
+  percent: number;
+  by_status: Record<EngagementStatus, number>;
 }
 
 export interface ContactLog {
