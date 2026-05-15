@@ -1,0 +1,20 @@
+.restore-confirm-dialog { max-width: 400px; }
+
+.restore-confirm__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.restore-confirm__text {
+  font-size: var(--text-base);
+  color: var(--charcoal);
+  line-height: var(--leading-normal);
+}
+.restore-confirm__error {
+  background: #FEE2E2;
+  color: var(--charcoal);
+  font-size: var(--text-sm);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  line-height: var(--leading-normal);
+}

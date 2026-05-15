@@ -1,0 +1,60 @@
+.delete-confirm-dialog { max-width: 440px; }
+
+.delete-confirm__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.delete-confirm__text {
+  font-size: var(--text-base);
+  color: var(--charcoal);
+  line-height: var(--leading-normal);
+}
+.delete-confirm__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--charcoal);
+  cursor: pointer;
+}
+.delete-confirm__check input {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--slate-blue);
+  accent-color: var(--slate-blue);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* Vermillion primary button — not using Button component to avoid Slate Blue variant */
+.delete-confirm__delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: var(--vermillion);
+  color: var(--cool-white);
+  cursor: pointer;
+  min-height: 44px;
+  transition: background-color var(--duration-quick) var(--easing);
+}
+.delete-confirm__delete-btn:hover:not(:disabled) { background: var(--vermillion-hover); }
+.delete-confirm__delete-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.delete-confirm__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--cool-white);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: dc-spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes dc-spin { to { transform: rotate(360deg); } }

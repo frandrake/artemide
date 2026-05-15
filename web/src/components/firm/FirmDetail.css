@@ -72,3 +72,71 @@
   flex-direction: column;
   gap: var(--space-2);
 }
+
+.firm-detail__partners-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+.firm-detail__deleted-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--slate-blue);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  text-decoration: underline;
+}
+.firm-detail__deleted-toggle.is-active { color: var(--charcoal-muted); }
+.firm-detail__deleted-partners { margin-top: var(--space-2); }
+.firm-detail__deleted-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--medium-gray);
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-1);
+}
+.firm-detail__deleted-empty {
+  font-size: var(--text-sm);
+  color: var(--charcoal-muted);
+  font-style: italic;
+}
+
+/* Deleted partner card overrides */
+.partner-card--deleted {
+  opacity: 0.7;
+  cursor: default;
+  text-decoration: none;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.partner-card--deleted:hover { border-color: var(--border-subtle); }
+.partner-card__name--deleted { color: var(--charcoal); }
+.partner-card__deleted-note {
+  font-size: var(--text-xs);
+  color: var(--charcoal-muted);
+  font-style: italic;
+}
+.partner-card__restore-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid var(--slate-blue);
+  color: var(--slate-blue);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: var(--font-weight-semibold);
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  margin-top: auto;
+  transition: background-color var(--duration-quick) var(--easing);
+}
+.partner-card__restore-btn:hover { background: var(--slate-blue-05); }

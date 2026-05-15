@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useFetch } from '../../lib/useFetch';
-import { apiPatch, ApiError } from '../../lib/api';
+import { apiPatch, apiDelete, ApiError } from '../../lib/api';
 import type { ContactLog, Note, Partner } from '../../lib/types';
 import StatusPill from '../ui/StatusPill';
 import Button from '../ui/Button';
@@ -10,6 +10,8 @@ import Textarea from '../ui/Textarea';
 import Timeline from '../firm/Timeline';
 import LogContactForm from './LogContactForm';
 import EditPartnerModal from './EditPartnerModal';
+import DeleteConfirmModal from '../shared/DeleteConfirmModal';
+import Toast from '../shared/Toast';
 import {
   formatAbsoluteDate, formatRelativeDate,
 } from '../../lib/formatting';
@@ -39,6 +41,9 @@ export default function PartnerDetail() {
 
   const [logOpen, setLogOpen] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const followUps = useMemo(() => parseFollowUps(partner.data?.follow_ups_outstanding ?? null), [partner.data]);
 
@@ -140,9 +145,35 @@ export default function PartnerDetail() {
           isOpen={showEditModal}
           onClose={() => setShowEditModal(false)}
           onSaved={() => { setShowEditModal(false); partner.refresh(); }}
-          onDeleteRequest={() => { /* Phase 3: wire DeleteConfirmModal */ }}
+          onDeleteRequest={() => { setShowEditModal(false); setShowDeleteModal(true); }}
         />
       )}
+
+      <DeleteConfirmModal
+        entityType="partner"
+        entityName={partner.data?.name ?? ''}
+        isOpen={showDeleteModal}
+        isDeleting={isDeleting}
+        onConfirm={async () => {
+          if (!ulid) return;
+          setIsDeleting(true);
+          try {
+            await apiDelete(`/api/v1/partners/${ulid}`);
+            if (firmUlid) {
+              window.location.assign(`/firms/${firmUlid}`);
+            } else {
+              window.location.assign('/firms');
+            }
+          } catch (e) {
+            setIsDeleting(false);
+            setShowDeleteModal(false);
+            setToast(e instanceof ApiError ? e.message : 'Delete failed.');
+          }
+        }}
+        onCancel={() => setShowDeleteModal(false)}
+      />
+
+      {toast && <Toast message={toast} tone="error" onDismiss={() => setToast(null)} />}
     </div>
   );
 }

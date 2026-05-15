@@ -1,10 +1,14 @@
 import { useMemo, useState } from 'react';
 import { useFetch } from '../../lib/useFetch';
+import { apiPost, ApiError } from '../../lib/api';
 import type { Firm, FirmTier, RelationshipState } from '../../lib/types';
 import EmptyState from '../ui/EmptyState';
 import Skeleton from '../ui/Skeleton';
 import Select from '../ui/Select';
 import FirmCard from './FirmCard';
+import RestoreConfirmModal from '../shared/RestoreConfirmModal';
+import Toast from '../shared/Toast';
+import { formatRelativeDate } from '../../lib/formatting';
 import './FirmsList.css';
 
 const TIER_ORDER: FirmTier[] = ['primary', 'specialist', 'ned'];
@@ -26,11 +30,47 @@ export default function FirmsList() {
   const path = buildPath({ tier, state, includeDeleted });
   const { data, loading, error, refresh } = useFetch<Firm[]>(path);
 
-  const grouped = useMemo(() => {
-    const out: Record<FirmTier, Firm[]> = { primary: [], specialist: [], ned: [] };
-    (data ?? []).forEach((f) => { out[f.tier].push(f); });
-    return out;
+  // Restore modal state
+  const [restoreFirm, setRestoreFirm] = useState<Firm | null>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | undefined>(undefined);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const { active, deleted } = useMemo(() => {
+    const all = data ?? [];
+    return {
+      active: all.filter((f) => !f.deleted_at),
+      deleted: all.filter((f) => !!f.deleted_at),
+    };
   }, [data]);
+
+  const groupedActive = useMemo(() => {
+    const out: Record<FirmTier, Firm[]> = { primary: [], specialist: [], ned: [] };
+    active.forEach((f) => { out[f.tier].push(f); });
+    return out;
+  }, [active]);
+
+  const groupedDeleted = useMemo(() => {
+    const out: Record<FirmTier, Firm[]> = { primary: [], specialist: [], ned: [] };
+    deleted.forEach((f) => { out[f.tier].push(f); });
+    return out;
+  }, [deleted]);
+
+  async function handleRestoreConfirm() {
+    if (!restoreFirm) return;
+    setIsRestoring(true);
+    setRestoreError(undefined);
+    try {
+      await apiPost(`/api/v1/firms/${restoreFirm.ulid}/restore`);
+      setRestoreFirm(null);
+      await refresh();
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Restore failed.';
+      setRestoreError(msg);
+    } finally {
+      setIsRestoring(false);
+    }
+  }
 
   return (
     <div className="firms-list">
@@ -98,19 +138,66 @@ export default function FirmsList() {
       {data && data.length > 0 && (
         <div className="firms-list__sections">
           {TIER_ORDER.map((t) => {
-            const items = grouped[t];
-            if (items.length === 0) return null;
+            const activeItems = groupedActive[t];
+            const deletedItems = includeDeleted ? groupedDeleted[t] : [];
+            if (activeItems.length === 0 && deletedItems.length === 0) return null;
             return (
               <section key={t}>
-                <h2 className="firms-list__tier">{titleCase(t)} tier · {items.length}</h2>
-                <div className="firms-list__grid">
-                  {items.map((f) => <FirmCard key={f.ulid} firm={f} />)}
-                </div>
+                <h2 className="firms-list__tier">{titleCase(t)} tier · {activeItems.length}</h2>
+                {activeItems.length > 0 && (
+                  <div className="firms-list__grid">
+                    {activeItems.map((f) => <FirmCard key={f.ulid} firm={f} />)}
+                  </div>
+                )}
+                {deletedItems.length > 0 && (
+                  <div className="firms-list__deleted-section">
+                    <p className="firms-list__deleted-label">DELETED</p>
+                    <div className="firms-list__grid">
+                      {deletedItems.map((f) => (
+                        <DeletedFirmCard
+                          key={f.ulid}
+                          firm={f}
+                          onRestore={() => { setRestoreError(undefined); setRestoreFirm(f); }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </section>
             );
           })}
         </div>
       )}
+
+      <RestoreConfirmModal
+        entityType="firm"
+        entityName={restoreFirm?.name ?? ''}
+        isOpen={!!restoreFirm}
+        isRestoring={isRestoring}
+        error={restoreError}
+        onConfirm={handleRestoreConfirm}
+        onCancel={() => { setRestoreFirm(null); setRestoreError(undefined); }}
+      />
+
+      {toast && <Toast message={toast} tone="error" onDismiss={() => setToast(null)} />}
+    </div>
+  );
+}
+
+function DeletedFirmCard({ firm, onRestore }: { firm: Firm; onRestore: () => void }) {
+  const deletedAgo = firm.deleted_at ? formatRelativeDate(firm.deleted_at) : '';
+  return (
+    <div className="firm-card firm-card--deleted">
+      <h3 className="firm-card__name firm-card__name--deleted">{firm.name}</h3>
+      <div className="firm-card__meta">
+        <span className="firm-card__badge-muted">{firm.tier}</span>
+        {firm.region && <span className="firm-card__badge-muted">{firm.region}</span>}
+        <span className="firm-card__badge-muted">{firm.relationship_state}</span>
+      </div>
+      <p className="firm-card__deleted-note">deleted {deletedAgo}</p>
+      <button type="button" className="firm-card__restore-btn" onClick={onRestore}>
+        Restore
+      </button>
     </div>
   );
 }
