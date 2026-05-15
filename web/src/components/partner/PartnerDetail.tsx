@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useFetch } from '../../lib/useFetch';
-import { apiPatch, apiPost, ApiError } from '../../lib/api';
+import { apiPatch, ApiError } from '../../lib/api';
 import type { ContactLog, Note, Partner } from '../../lib/types';
 import StatusPill from '../ui/StatusPill';
 import Button from '../ui/Button';
@@ -9,6 +9,7 @@ import Skeleton from '../ui/Skeleton';
 import Textarea from '../ui/Textarea';
 import Timeline from '../firm/Timeline';
 import LogContactForm from './LogContactForm';
+import EditPartnerModal from './EditPartnerModal';
 import {
   formatAbsoluteDate, formatRelativeDate,
 } from '../../lib/formatting';
@@ -20,19 +21,24 @@ function ulidFromPath(): string | null {
   return match ? match[1].toUpperCase() : null;
 }
 
+function parseFollowUps(raw: string | null): string[] {
+  if (!raw) return [];
+  try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed.map(String) : []; } catch { return []; }
+}
+
 export default function PartnerDetail() {
   const [ulid, setUlid] = useState<string | null>(() => ulidFromPath());
   useEffect(() => { setUlid(ulidFromPath()); }, []);
 
   const partner = useFetch<Partner>(ulid ? `/api/v1/partners/${ulid}` : null);
 
-  // Firm name + ulid arrive inlined with the partner GET response.
   const firmName = partner.data?.firm_name ?? null;
   const firmUlid = partner.data?.firm_ulid ?? null;
   const contacts = useFetch<ContactLog[]>(ulid ? `/api/v1/contacts?partner_ulid=${ulid}&limit=100` : null);
   const notes = useFetch<Note[]>(ulid ? `/api/v1/notes?entity_type=partner&entity_ulid=${ulid}` : null);
 
   const [logOpen, setLogOpen] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const followUps = useMemo(() => parseFollowUps(partner.data?.follow_ups_outstanding ?? null), [partner.data]);
 
@@ -62,11 +68,20 @@ export default function PartnerDetail() {
               <div className="partner-detail__title-actions">
                 <StatusPill state={partner.data.relationship_state} />
                 <Button
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setShowEditModal(true)}
+                >
+                  Edit partner
+                </Button>
+                <Button
                   variant="primary"
                   size="md"
                   onClick={() => setLogOpen(true)}
                   disabled={!firmName}
-                >Log contact</Button>
+                >
+                  Log contact
+                </Button>
               </div>
             </div>
           </>
@@ -76,7 +91,7 @@ export default function PartnerDetail() {
       <section className="partner-detail__body">
         <div className="partner-detail__facts">
           <h2 className="partner-detail__h2">Profile</h2>
-          {partner.data && <PartnerFacts partner={partner.data} onSaved={partner.refresh} />}
+          {partner.data && <PartnerFacts partner={partner.data} />}
         </div>
 
         <aside className="partner-detail__followups">
@@ -117,131 +132,60 @@ export default function PartnerDetail() {
           onLogged={() => { contacts.refresh(); partner.refresh(); }}
         />
       )}
+
+      {partner.data && firmName && (
+        <EditPartnerModal
+          partner={partner.data}
+          firmName={firmName}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSaved={() => { setShowEditModal(false); partner.refresh(); }}
+          onDeleteRequest={() => { /* Phase 3: wire DeleteConfirmModal */ }}
+        />
+      )}
     </div>
   );
 }
 
-function parseFollowUps(raw: string | null): string[] {
-  if (!raw) return [];
-  try { const parsed = JSON.parse(raw); return Array.isArray(parsed) ? parsed.map(String) : []; } catch { return []; }
-}
+// ---------- read-only facts panel ----------
 
-// ---------- inline-editable facts panel ----------
-
-function PartnerFacts({ partner, onSaved }: { partner: Partner; onSaved: () => Promise<void> }) {
+function PartnerFacts({ partner }: { partner: Partner }) {
   return (
     <dl className="partner-detail__fact-list">
-      <Row label="Title" partner={partner} field="title" onSaved={onSaved} />
-      <Row label="Practice" partner={partner} field="practice" onSaved={onSaved} />
-      <Row label="Seniority" partner={partner} field="seniority" onSaved={onSaved} />
-      <Row label="Email" partner={partner} field="email" onSaved={onSaved} type="email" />
-      <Row label="LinkedIn" partner={partner} field="linkedin_url" onSaved={onSaved} type="url" />
-      <Row label="Last contact" partner={partner} field="last_contact_date" readOnly />
-      <Row label="Next planned touch" partner={partner} field="next_touch_date" onSaved={onSaved} type="date" />
-      <Row label="Next planned topic" partner={partner} field="next_touch_topic" onSaved={onSaved} />
-      <Row label="Notes summary" partner={partner} field="notes_summary" onSaved={onSaved} />
-      <Row label="State" partner={partner} field="relationship_state" onSaved={onSaved} kind="state" />
+      <Fact label="Title" value={partner.title} />
+      <Fact label="Practice" value={partner.practice} />
+      <Fact label="Seniority" value={partner.seniority} />
+      <Fact label="Location" value={partner.location} />
+      <Fact label="Introduced via" value={partner.introduced_via} />
+      <Fact label="Email" value={partner.email} />
+      <Fact label="LinkedIn" value={partner.linkedin_url} />
+      <Fact label="Last contact" value={formatDateField(partner.last_contact_date)} />
+      <Fact label="Next planned touch" value={formatDateField(partner.next_touch_date)} />
+      <Fact label="Next planned topic" value={partner.next_touch_topic} />
+      <Fact label="Notes summary" value={partner.notes_summary} />
     </dl>
   );
 }
 
-interface RowProps {
-  label: string;
-  partner: Partner;
-  field: keyof Partner;
-  type?: 'text' | 'date' | 'email' | 'url';
-  kind?: 'state';
-  readOnly?: boolean;
-  onSaved?: () => Promise<void>;
-}
-
-function Row({ label, partner, field, type = 'text', kind, readOnly, onSaved }: RowProps) {
-  const value = partner[field];
-  const display = formatValue(field, value);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState<string>(value == null ? '' : String(value));
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function save() {
-    if (!onSaved) return;
-    setBusy(true);
-    setError(null);
-    try {
-      // Only PATCH the field. For follow_ups/state we go through dedicated endpoints if needed.
-      const body: Record<string, unknown> = {};
-      if (field === 'relationship_state') {
-        // Use PATCH /api/v1/firms/{ulid} is for firms only; partner state
-        // is part of upsert. Use the partners PATCH endpoint for date+topic only;
-        // relationship_state requires upsert via POST. Skip for now.
-        setError('Edit state via Log contact (advance) or upsert.');
-        setBusy(false);
-        return;
-      } else if (field === 'next_touch_date' || field === 'next_touch_topic') {
-        body[field] = draft || null;
-      } else {
-        setError('Inline edit not supported for this field yet.');
-        setBusy(false);
-        return;
-      }
-      await apiPatch(`/api/v1/partners/${partner.ulid}`, body);
-      await onSaved?.();
-      setEditing(false);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : (e instanceof Error ? e.message : 'Save failed.'));
-    } finally {
-      setBusy(false);
-    }
-  }
-
+function Fact({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <>
       <dt>{label}</dt>
       <dd>
-        {!editing && (
-          <span
-            className={`partner-detail__value${readOnly ? '' : ' is-editable'}`}
-            onClick={() => !readOnly && onSaved && setEditing(true)}
-            onKeyDown={(e) => { if (!readOnly && onSaved && e.key === 'Enter') setEditing(true); }}
-            tabIndex={readOnly ? -1 : 0}
-            role={readOnly ? undefined : 'button'}
-            aria-label={readOnly ? undefined : `Edit ${label}`}
-          >
-            {display || <em className="partner-detail__placeholder">add</em>}
-          </span>
-        )}
-        {editing && (
-          <span className="partner-detail__edit">
-            <input
-              type={type}
-              autoFocus
-              value={draft}
-              disabled={busy}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={save}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') { e.preventDefault(); save(); }
-                if (e.key === 'Escape') { setEditing(false); setDraft(value == null ? '' : String(value)); }
-              }}
-            />
-            {error && <span className="partner-detail__edit-error">{error}</span>}
-          </span>
-        )}
+        {value
+          ? <span className="partner-detail__value">{value}</span>
+          : <em className="partner-detail__placeholder">—</em>}
       </dd>
     </>
   );
 }
 
-function formatValue(field: keyof Partner, value: Partner[keyof Partner]): string {
-  if (value == null || value === '') return '';
-  if (field === 'last_contact_date' || field === 'next_touch_date') {
-    const s = String(value);
-    return `${formatAbsoluteDate(s)} (${formatRelativeDate(s)})`;
-  }
-  return String(value);
+function formatDateField(d: string | null | undefined): string | null {
+  if (!d) return null;
+  return `${formatAbsoluteDate(d)} (${formatRelativeDate(d)})`;
 }
 
-// ---------- follow-ups list ----------
+// ---------- follow-ups list (with optimistic check-off) ----------
 
 interface FollowUpsProps {
   partner: Partner | null;
@@ -250,16 +194,20 @@ interface FollowUpsProps {
 }
 
 function FollowUps({ partner, items, onSaved }: FollowUpsProps) {
+  const [localItems, setLocalItems] = useState<string[]>(items);
   const [draft, setDraft] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync from parent when partner data reloads.
+  useEffect(() => { setLocalItems(items); }, [items]);
 
   async function save(next: string[]) {
     if (!partner) return;
     setSubmitting(true);
     setError(null);
     try {
-      await apiPatch(`/api/v1/partners/${partner.ulid}`, { follow_ups: next });
+      await apiPatch(`/api/v1/partners/${partner.ulid}`, { follow_ups_outstanding: next });
       await onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Save failed.');
@@ -270,19 +218,35 @@ function FollowUps({ partner, items, onSaved }: FollowUpsProps) {
 
   async function add() {
     if (!draft.trim()) return;
-    await save([...items, draft.trim()]);
+    await save([...localItems, draft.trim()]);
     setDraft('');
   }
+
   async function removeAt(i: number) {
-    await save(items.filter((_, idx) => idx !== i));
+    const remaining = localItems.filter((_, idx) => idx !== i);
+    // Optimistic: update display immediately.
+    setLocalItems(remaining);
+    try {
+      if (!partner) return;
+      setSubmitting(true);
+      setError(null);
+      await apiPatch<Partner>(`/api/v1/partners/${partner.ulid}`, { follow_ups_outstanding: remaining });
+      await onSaved();
+    } catch (e) {
+      // Restore on failure.
+      setLocalItems(items);
+      setError(e instanceof Error ? e.message : 'Save failed.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (!partner) return <Skeleton width="100%" height={80} />;
   return (
     <div className="follow-ups">
-      {items.length === 0 && <p className="follow-ups__empty">No outstanding follow-ups.</p>}
+      {localItems.length === 0 && <p className="follow-ups__empty">No outstanding follow-ups.</p>}
       <ul className="follow-ups__list">
-        {items.map((item, i) => (
+        {localItems.map((item, i) => (
           <li key={i} className="follow-ups__row">
             <span>{item}</span>
             <button
@@ -332,11 +296,9 @@ function NotesPanel({ entityType, entityUlid, notes, loading, onSaved }: NotesPa
     setSubmitting(true);
     setError(null);
     try {
-      await apiPost('/api/v1/notes', {
-        entity_type: entityType,
-        entity_ulid: entityUlid,
-        body: body.trim(),
-      });
+      await import('../../lib/api').then(({ apiPost }) =>
+        apiPost('/api/v1/notes', { entity_type: entityType, entity_ulid: entityUlid, body: body.trim() })
+      );
       await onSaved();
       setBody('');
     } catch (e) {

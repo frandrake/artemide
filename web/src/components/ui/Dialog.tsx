@@ -10,9 +10,10 @@ export interface DialogProps {
   children?: ReactNode;
   footer?: ReactNode;
   ariaLabel?: string;
+  className?: string;
 }
 
-export function Dialog({ open, onClose, title, description, children, footer, ariaLabel }: DialogProps) {
+export function Dialog({ open, onClose, title, description, children, footer, ariaLabel, className }: DialogProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function Dialog({ open, onClose, title, description, children, footer, ar
         aria-modal="true"
         aria-label={ariaLabel}
         tabIndex={-1}
-        className={clsx('dialog')}
+        className={clsx('dialog', className)}
         onClick={(e) => e.stopPropagation()}
       >
         {title && <h2 className="dialog__title">{title}</h2>}

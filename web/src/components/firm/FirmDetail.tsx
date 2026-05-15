@@ -3,10 +3,12 @@ import { useFetch } from '../../lib/useFetch';
 import type { ContactLog, Firm, Partner } from '../../lib/types';
 import StatusPill from '../ui/StatusPill';
 import Badge from '../ui/Badge';
+import Button from '../ui/Button';
 import EmptyState from '../ui/EmptyState';
 import Skeleton from '../ui/Skeleton';
 import PartnerCard from '../partner/PartnerCard';
 import Timeline from './Timeline';
+import EditFirmModal from './EditFirmModal';
 import { formatAbsoluteDate } from '../../lib/formatting';
 import './FirmDetail.css';
 
@@ -23,6 +25,8 @@ export default function FirmDetail() {
   const firm = useFetch<Firm>(ulid ? `/api/v1/firms/${ulid}` : null);
   const partners = useFetch<Partner[]>(ulid ? `/api/v1/partners?firm_ulid=${ulid}` : null);
   const contacts = useFetch<ContactLog[]>(ulid ? `/api/v1/contacts?firm_ulid=${ulid}&limit=50` : null);
+
+  const [showEditModal, setShowEditModal] = useState(false);
 
   if (!ulid) {
     return <EmptyState title="Not found" description="No firm ULID in URL." />;
@@ -43,7 +47,16 @@ export default function FirmDetail() {
           </>
         ) : (
           <>
-            <h1 className="firm-detail__name">{firm.data.name}</h1>
+            <div className="firm-detail__header-top">
+              <h1 className="firm-detail__name">{firm.data.name}</h1>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowEditModal(true)}
+              >
+                Edit firm
+              </Button>
+            </div>
             <div className="firm-detail__meta">
               <Badge tone="neutral">{firm.data.tier}</Badge>
               {firm.data.region && <Badge tone="neutral">{firm.data.region}</Badge>}
@@ -88,6 +101,16 @@ export default function FirmDetail() {
         {contacts.loading && <Skeleton width="100%" height={120} />}
         {contacts.data && <Timeline contacts={contacts.data} />}
       </section>
+
+      {firm.data && (
+        <EditFirmModal
+          firm={firm.data}
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSaved={() => { setShowEditModal(false); firm.refresh(); }}
+          onDeleteRequest={() => { /* Phase 3: wire DeleteConfirmModal */ }}
+        />
+      )}
     </div>
   );
 }

@@ -29,6 +29,8 @@ export interface Partner {
   title: string | null;
   practice: string | null;
   seniority: string | null;
+  location: string | null;
+  introduced_via: string | null;
   email: string | null;
   linkedin_url: string | null;
   relationship_state: RelationshipState;

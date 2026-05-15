@@ -8,6 +8,12 @@
   border-radius: var(--radius-md);
   padding: var(--space-4);
 }
+.firm-detail__header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
 .firm-detail__name {
   font-family: var(--font-serif);
   color: var(--slate-blue);
