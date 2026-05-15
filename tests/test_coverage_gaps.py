@@ -215,8 +215,9 @@ def test_partner_patch_and_lifecycle_via_rest(db_file):
             ulid = created["ulid"]
 
             patched = c.patch(f"/api/v1/partners/{ulid}",
-                              json={"next_touch_date": "2026-07-01", "next_touch_topic": "NED track",
-                                    "follow_ups": ["resend deck"]}, headers=h)
+                              json={"next_planned_touch_date": "2026-07-01",
+                                    "next_planned_topic": "NED track",
+                                    "follow_ups_outstanding": ["resend deck"]}, headers=h)
             assert patched.status_code == 200, patched.text
             body = patched.json()
             assert body["next_touch_topic"] == "NED track"
@@ -243,7 +244,7 @@ def test_firm_patch_state_via_rest(db_file):
 
             # legal transition: cold → warming
             r = c.patch(f"/api/v1/firms/{ulid}",
-                        json={"relationship_state": "warming", "notes_summary": "Updated"}, headers=h)
+                        json={"relationship_state": "warming", "notes": "Updated"}, headers=h)
             assert r.status_code == 200
             body = r.json()
             assert body["relationship_state"] == "warming"

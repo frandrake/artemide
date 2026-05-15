@@ -7,13 +7,15 @@ from ..models import (
     AuditAction,
     FirmRecord,
     FirmTier,
+    FirmUpdateInput,
     RelationshipState,
 )
 from ..repository import firms as firms_repo
+from ..repository import partners as partners_repo
 from ..repository import search_index as search_repo
 from . import ServiceContext, transaction
 from .audit_service import AuditService
-from .exceptions import InvalidStateTransitionError, NotFoundError
+from .exceptions import ConflictError, InvalidStateTransitionError, NotFoundError, ValidationError
 
 
 # Legal manual transitions. Auto-aging to dormant happens elsewhere.
@@ -132,13 +134,74 @@ class FirmsService:
             return updated
 
     @staticmethod
+    def update_fields(ctx: ServiceContext, ulid: str, data: FirmUpdateInput) -> FirmRecord:
+        with transaction(ctx.conn):
+            firm = FirmsService.get_by_ulid(ctx, ulid)
+            if firm.deleted_at is not None:
+                raise NotFoundError(f"firm not found: {ulid}")
+            raw = data.model_dump(exclude_none=True)
+            if not raw:
+                raise ValidationError("no fields supplied")
+            if "relationship_state" in raw:
+                new_state = raw["relationship_state"]
+                if firm.relationship_state != new_state:
+                    allowed = _LEGAL_TRANSITIONS.get(firm.relationship_state, set())
+                    if new_state not in allowed:
+                        raise InvalidStateTransitionError(
+                            f"illegal transition {firm.relationship_state.value} → {new_state.value}"
+                        )
+            if "notes" in raw:
+                raw["notes_summary"] = raw.pop("notes")
+            allowed_columns = {"tier", "region", "relationship_state", "notes_summary"}
+            fields = {
+                k: v.value if hasattr(v, "value") else v
+                for k, v in raw.items() if k in allowed_columns
+            }
+            before = _record_to_dict(firm)
+            updated = firms_repo.update_firm_fields(ctx.conn, firm.id, fields)
+            assert updated is not None
+            primary, secondary = _firm_search_text(updated)
+            search_repo.upsert_search_row(
+                ctx.conn,
+                entity_type="firm",
+                entity_ulid=updated.ulid,
+                primary_text=primary,
+                secondary_text=secondary,
+            )
+            AuditService.record(
+                ctx,
+                action=AuditAction.update,
+                entity_type="firm",
+                entity_id=firm.id,
+                entity_ulid=firm.ulid,
+                before=before,
+                after=_record_to_dict(updated),
+            )
+            return updated
+
+    @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:
         with transaction(ctx.conn):
             firm = FirmsService.get_by_ulid(ctx, ulid)
             if firm.deleted_at is not None:
-                return
+                raise ConflictError("firm already deleted")
             before = _record_to_dict(firm)
             firms_repo.soft_delete_firm(ctx.conn, firm.id)
+            # Cascade: soft-delete all active partners atomically.
+            active_partners = partners_repo.list_partners_by_firm(ctx.conn, firm.id, include_deleted=False)
+            for p in active_partners:
+                partners_repo.soft_delete_partner(ctx.conn, p.id)
+                p_before = p.model_dump(mode="json")
+                p_before = {k: v for k, v in p_before.items() if k not in ("created_at", "updated_at")}
+                AuditService.record(
+                    ctx,
+                    action=AuditAction.delete,
+                    entity_type="partner",
+                    entity_id=p.id,
+                    entity_ulid=p.ulid,
+                    before=p_before,
+                    after=None,
+                )
             search_repo.delete_search_row(
                 ctx.conn, entity_type="firm", entity_ulid=firm.ulid
             )

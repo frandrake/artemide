@@ -7,8 +7,9 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 
-from ..models import RelationshipState
+from ..models import PartnerUpdateInput, RelationshipState
 from ..repository import firms as firms_repo
+from ..repository import partners as partners_repo
 from ..services import ServiceContext
 from ..services.partners_service import PartnersService
 from ._serde import to_response, to_response_list
@@ -37,22 +38,23 @@ class PartnerUpsert(BaseModel):
     notes_summary: str | None = None
 
 
-class PartnerPatch(BaseModel):
-    next_touch_date: date | None = None
-    next_touch_topic: str | None = None
-    follow_ups: list[str] | None = None
-
-
 @router.get("")
 def list_partners(
     firm_ulid: str | None = Query(default=None),
+    include_deleted: bool = Query(default=False),
     ctx: ServiceContext = Depends(get_context),
 ):
     if firm_ulid:
-        return to_response_list(PartnersService.list_by_firm(ctx, firm_ulid))
+        firm = firms_repo.get_firm_by_ulid(ctx.conn, firm_ulid)
+        if firm is None:
+            from ..services.exceptions import NotFoundError
+            raise NotFoundError(f"firm not found: {firm_ulid}")
+        return to_response_list(
+            partners_repo.list_partners_by_firm(ctx.conn, firm.id, include_deleted=include_deleted)
+        )
     out = []
     for firm in firms_repo.list_firms(ctx.conn):
-        out.extend(PartnersService.list_by_firm(ctx, firm.ulid))
+        out.extend(partners_repo.list_partners_by_firm(ctx.conn, firm.id, include_deleted=include_deleted))
     return to_response_list(out)
 
 
@@ -83,17 +85,8 @@ def upsert_partner(
 
 
 @router.patch("/{ulid}")
-def patch_partner(
-    ulid: str, patch: PartnerPatch, ctx: ServiceContext = Depends(get_context)
-):
-    partner = PartnersService.get_by_ulid(ctx, ulid).partner
-    if patch.next_touch_date is not None or patch.next_touch_topic is not None:
-        partner = PartnersService.update_planned_touch(
-            ctx, ulid, patch.next_touch_date, patch.next_touch_topic
-        )
-    if patch.follow_ups is not None:
-        partner = PartnersService.update_follow_ups(ctx, ulid, patch.follow_ups)
-    return to_response(partner)
+def patch_partner(ulid: str, body: PartnerUpdateInput, ctx: ServiceContext = Depends(get_context)):
+    return to_response(PartnersService.update_fields(ctx, ulid, body))
 
 
 @router.delete("/{ulid}", status_code=status.HTTP_204_NO_CONTENT)

@@ -10,7 +10,7 @@ from ..ulid_helpers import new_ulid
 
 
 _COLUMNS = (
-    "id, ulid, firm_id, name, title, practice, seniority, email, linkedin_url, "
+    "id, ulid, firm_id, name, title, practice, seniority, location, introduced_via, email, linkedin_url, "
     "relationship_state, last_contact_date, next_touch_date, next_touch_topic, "
     "notes_summary, follow_ups_outstanding, created_at, updated_at, deleted_at"
 )
@@ -81,9 +81,9 @@ def list_partners_by_firm(
 
 
 _ALLOWED_PARTNER_FIELDS = {
-    "name", "title", "practice", "seniority", "email", "linkedin_url",
-    "relationship_state", "last_contact_date", "next_touch_date",
-    "next_touch_topic", "notes_summary", "follow_ups_outstanding",
+    "name", "title", "practice", "seniority", "location", "introduced_via",
+    "email", "linkedin_url", "relationship_state", "last_contact_date",
+    "next_touch_date", "next_touch_topic", "notes_summary", "follow_ups_outstanding",
 }
 
 

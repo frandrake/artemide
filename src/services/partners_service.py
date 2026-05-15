@@ -6,13 +6,13 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from ..models import AuditAction, FirmRecord, PartnerRecord, RelationshipState
+from ..models import AuditAction, FirmRecord, PartnerRecord, PartnerUpdateInput, RelationshipState
 from ..repository import firms as firms_repo
 from ..repository import partners as partners_repo
 from ..repository import search_index as search_repo
 from . import ServiceContext, transaction
 from .audit_service import AuditService
-from .exceptions import NotFoundError
+from .exceptions import ConflictError, InvalidStateTransitionError, NotFoundError, ValidationError
 
 
 @dataclass
@@ -192,11 +192,74 @@ class PartnersService:
             return updated
 
     @staticmethod
+    def update_fields(ctx: ServiceContext, ulid: str, data: PartnerUpdateInput) -> PartnerRecord:
+        _FIELD_MAP = {
+            "first_contact_date": "last_contact_date",
+            "next_planned_touch_date": "next_touch_date",
+            "next_planned_topic": "next_touch_topic",
+        }
+        _ALLOWED_COLUMNS = {
+            "name", "practice", "seniority", "location", "introduced_via",
+            "last_contact_date", "next_touch_date", "next_touch_topic",
+            "follow_ups_outstanding",
+        }
+        with transaction(ctx.conn):
+            pwf = PartnersService.get_by_ulid(ctx, ulid)
+            partner = pwf.partner
+            if partner.deleted_at is not None:
+                raise NotFoundError(f"partner not found: {ulid}")
+            raw = data.model_dump(exclude_none=True)
+            if not raw:
+                raise ValidationError("no fields supplied")
+            # Rule P3: date ordering using merged new+existing values.
+            fcd = raw.get("first_contact_date", partner.last_contact_date)
+            npt = raw.get("next_planned_touch_date", partner.next_touch_date)
+            if fcd and npt and npt <= fcd:
+                raise ValidationError("next_planned_touch_date must be after first_contact_date")
+            # Name collision check.
+            new_name = raw.get("name")
+            if new_name is not None and new_name != partner.name:
+                collision = partners_repo.get_partner_by_name(ctx.conn, partner.firm_id, new_name)
+                if collision is not None and collision.deleted_at is None:
+                    raise ConflictError(f"a partner named '{new_name}' already exists at this firm")
+            # Map spec field names → DB column names, filter to allowed set.
+            mapped: dict = {}
+            for k, v in raw.items():
+                db_key = _FIELD_MAP.get(k, k)
+                if db_key in _ALLOWED_COLUMNS:
+                    mapped[db_key] = v
+            # Serialise compound types.
+            if "follow_ups_outstanding" in mapped:
+                mapped["follow_ups_outstanding"] = json.dumps(mapped["follow_ups_outstanding"])
+            fields = {k: str(v) if isinstance(v, date) else v for k, v in mapped.items()}
+            before = _record_to_dict(partner)
+            updated = partners_repo.update_partner_fields(ctx.conn, partner.id, fields)
+            assert updated is not None
+            primary, secondary = _partner_search_text(updated, pwf.firm.name)
+            search_repo.upsert_search_row(
+                ctx.conn,
+                entity_type="partner",
+                entity_ulid=updated.ulid,
+                primary_text=primary,
+                secondary_text=secondary,
+            )
+            AuditService.record(
+                ctx,
+                action=AuditAction.update,
+                entity_type="partner",
+                entity_id=partner.id,
+                entity_ulid=partner.ulid,
+                before=before,
+                after=_record_to_dict(updated),
+            )
+            return updated
+
+    @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:
         with transaction(ctx.conn):
             pwf = PartnersService.get_by_ulid(ctx, ulid)
             if pwf.partner.deleted_at is not None:
-                return
+                raise ConflictError("partner already deleted")
             before = _record_to_dict(pwf.partner)
             partners_repo.soft_delete_partner(ctx.conn, pwf.partner.id)
             search_repo.delete_search_row(
@@ -220,11 +283,14 @@ class PartnersService:
                 raise NotFoundError(f"partner not found: {ulid}")
             if partner.deleted_at is None:
                 return partner
+            # Rule P5: parent firm must be active.
+            firm = firms_repo.get_firm_by_id(ctx.conn, partner.firm_id)
+            assert firm is not None
+            if firm.deleted_at is not None:
+                raise InvalidStateTransitionError("restore the parent firm before restoring this partner")
             partners_repo.restore_partner(ctx.conn, partner.id)
             restored = partners_repo.get_partner_by_ulid(ctx.conn, ulid)
             assert restored is not None
-            firm = firms_repo.get_firm_by_id(ctx.conn, restored.firm_id)
-            assert firm is not None
             primary, secondary = _partner_search_text(restored, firm.name)
             search_repo.upsert_search_row(
                 ctx.conn,

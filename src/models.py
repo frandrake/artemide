@@ -98,6 +98,8 @@ class PartnerRecord(_Base):
     title: str | None = None
     practice: str | None = None
     seniority: str | None = None
+    location: str | None = None
+    introduced_via: str | None = None
     email: str | None = None
     linkedin_url: str | None = None
     relationship_state: RelationshipState = RelationshipState.cold
@@ -220,3 +222,24 @@ class SearchInput(BaseModel):
     query: str
     entity_type: str | None = None
     limit: int = Field(default=20, ge=1, le=200)
+
+
+class FirmUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    tier: FirmTier | None = None
+    region: str | None = None
+    relationship_state: RelationshipState | None = None
+    notes: str | None = None
+
+
+class PartnerUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str | None = None
+    practice: str | None = None
+    seniority: str | None = None
+    location: str | None = None
+    introduced_via: str | None = None
+    first_contact_date: date | None = None
+    next_planned_touch_date: date | None = None
+    next_planned_topic: str | None = None
+    follow_ups_outstanding: list[str] | None = None
