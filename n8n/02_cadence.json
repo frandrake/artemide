@@ -1,6 +1,6 @@
 {
   "id": "artemide-cadence",
-  "versionId": "artemide-cadence-v1",
+  "versionId": "artemide-cadence-v2",
   "name": "Artemide \u00b7 Cadence",
   "nodes": [
     {
@@ -8,15 +8,19 @@
         "rule": {
           "interval": [
             {
-              "field": "weeks"
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 8
             }
           ]
         }
       },
-      "id": "weekly",
-      "name": "Weekly",
+      "id": "cad-schedule",
+      "name": "Weekly Mon 08:00",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -24,92 +28,147 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/planning/due-touches",
         "method": "GET",
+        "url": "https://artemide.francescofederico.net/api/v1/planning/due-touches",
         "authentication": "genericCredentialType",
+        "options": {},
         "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "window_days",
+              "value": "14"
+            }
+          ]
+        }
       },
-      "id": "due-touches",
-      "name": "Due touches",
+      "id": "cad-due",
+      "name": "Get due touches",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
         240,
-        -40
+        0
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
           "name": "Artemide Bot Token"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/messages",
         "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 400,\n  \"system\": \"You are drafting a brief, warm professional check-in email in the owner\\u0027s voice to an executive-search partner. One short paragraph, specific, no filler, end with a light question. Return only the email body text.\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": {{ JSON.stringify(\"Partner: \" + $json.partner_name + \" at \" + $json.firm_name + \". Planned topic: \" + ($json.next_touch_topic || \"general check-in\") + \". Days since last contact: \" + $json.days_since_last_contact + \". Draft the check-in.\") }} }\n  ]\n}"
+      },
+      "id": "cad-claude",
+      "name": "Draft with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://artemide.francescofederico.net/api/v1/messages",
+        "authentication": "genericCredentialType",
+        "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'cadence-' + $('Get due touches').item.json.partner_ulid + '-' + $now.toFormat('kkkk-WW') }}"
             }
           ]
-        }
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"kind\": \"cadence_touch\",\n  \"channel\": \"email\",\n  \"partner_ulid\": {{ JSON.stringify($('Get due touches').item.json.partner_ulid) }},\n  \"recipient_hint\": {{ JSON.stringify($('Get due touches').item.json.partner_name) }},\n  \"body\": {{ JSON.stringify($json.content[0].text) }},\n  \"rationale\": {{ JSON.stringify(\"cadence touch \u00b7 \" + $('Get due touches').item.json.status) }}\n}"
       },
-      "id": "propose-cadence-touch",
-      "name": "Propose cadence touch",
+      "id": "cad-propose",
+      "name": "Propose message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
-        -40
+        720,
+        0
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
           "name": "Artemide Bot Token"
         }
       }
     },
     {
       "parameters": {
-        "content": "CADENCE (weekly + due dates)\n\nGET /planning/due-touches; Claude drafts each warm check-in in voice;\nPOST /messages (proposed, kind=cadence_touch).\nOwner approves in /messages \u2014 then the Sender workflow sends.\nNever calls /approve (owner-only).",
-        "height": 220,
-        "width": 420
+        "content": "CADENCE (weekly)\n\nWeekly Mon 08:00 -> GET /planning/due-touches (14d window) ->\nClaude drafts each warm check-in in voice -> POST /messages (proposed,\nkind=cadence_touch). Owner approves in /messages; the Sender workflow then\nsends. This workflow NEVER calls /approve.\n\nCredentials to bind: 'Artemide Bot Token' (Header Auth, bot role) on the two\nArtemide nodes; 'Anthropic API' (Header Auth: x-api-key) on the Claude node.\nIdempotency-Key = cadence-<partner>-<ISO week>, so a re-run within the week\nreturns the same proposed message.",
+        "height": 320,
+        "width": 460
       },
-      "id": "note-56384",
+      "id": "cad-note",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
-        0
+        -520,
+        -40
       ]
     }
   ],
   "connections": {
-    "Weekly": {
+    "Weekly Mon 08:00": {
       "main": [
         [
           {
-            "node": "Due touches",
+            "node": "Get due touches",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Due touches": {
+    "Get due touches": {
       "main": [
         [
           {
-            "node": "Propose cadence touch",
+            "node": "Draft with Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft with Claude": {
+      "main": [
+        [
+          {
+            "node": "Propose message",
             "type": "main",
             "index": 0
           }
