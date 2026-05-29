@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 # ---------- enums ----------
@@ -40,6 +41,8 @@ class InitiatedBy(str, Enum):
 class NoteEntityType(str, Enum):
     firm = "firm"
     partner = "partner"
+    org = "org"
+    engagement = "engagement"
 
 
 class CalendarStatus(str, Enum):
@@ -63,6 +66,10 @@ class AuditAction(str, Enum):
     send = "send"
     template = "template"
     stage = "stage"
+    # v1.2 — engagement & programme extension
+    approve = "approve"
+    ack = "ack"
+    denied = "denied"
 
 
 class OutreachChannel(str, Enum):
@@ -465,3 +472,404 @@ class PipelineFilterInput(BaseModel):
     strategic_relevance: str | None = None
     ned_gateway: bool | None = None
     track: str | None = None
+
+
+# ============================================================================
+# v1.2 — engagement & programme extension
+# ============================================================================
+
+# ---------- v1.2 enums ----------
+
+class ScaleBand(str, Enum):
+    fortune_500 = "fortune_500"
+    global_equivalent = "global_equivalent"
+    pe_backed = "pe_backed"
+    other = "other"
+
+
+class WatchState(str, Enum):
+    watch = "watch"
+    target = "target"
+    active = "active"
+    parked = "parked"
+    excluded = "excluded"
+
+
+class RoleType(str, Enum):
+    cmo = "cmo"
+    cmgo = "cmgo"
+    cco = "cco"
+    transformation = "transformation"
+    ned = "ned"
+    other = "other"
+
+
+class EngagementSource(str, Enum):
+    inbound_partner = "inbound_partner"
+    radar = "radar"
+    referral = "referral"
+    direct = "direct"
+    flywheel = "flywheel"
+    other = "other"
+
+
+class EngagementStage(str, Enum):
+    surfaced = "surfaced"
+    exploratory = "exploratory"
+    formal = "formal"
+    final = "final"
+    offer = "offer"
+    decision = "decision"
+    closed = "closed"
+
+
+class EngagementInterest(str, Enum):
+    pass_ = "pass"
+    exploratory = "exploratory"
+    active = "active"
+    preferred = "preferred"
+
+
+class ClosedReason(str, Enum):
+    withdrew = "withdrew"
+    rejected = "rejected"
+    declined_offer = "declined_offer"
+    accepted = "accepted"
+    lapsed = "lapsed"
+
+
+class EngagementEventType(str, Enum):
+    stage_change = "stage_change"
+    interview = "interview"
+    reference = "reference"
+    offer = "offer"
+    note = "note"
+    withdrawal = "withdrawal"
+
+
+class MessageKind(str, Enum):
+    inbound_reply = "inbound_reply"
+    cadence_touch = "cadence_touch"
+    cold_outreach = "cold_outreach"
+    thank_you = "thank_you"
+    custom = "custom"
+
+
+class MessageChannel(str, Enum):
+    email = "email"
+    inmail = "inmail"
+    message = "message"
+
+
+class MessageStatus(str, Enum):
+    proposed = "proposed"
+    approved = "approved"
+    edited = "edited"
+    sent = "sent"
+    discarded = "discarded"
+
+
+class MilestonePhase(str, Enum):
+    build = "build"
+    seed = "seed"
+    run = "run"
+    close = "close"
+    exit = "exit"
+
+
+class MilestoneStatus(str, Enum):
+    pending = "pending"
+    on_track = "on_track"
+    at_risk = "at_risk"
+    done = "done"
+
+
+class TokenRole(str, Enum):
+    owner = "owner"
+    bot = "bot"
+
+
+class RagStatus(str, Enum):
+    green = "green"
+    amber = "amber"
+    red = "red"
+
+
+# Stage progression order (Rule 14). 'closed' is reachable from any stage.
+ENGAGEMENT_STAGE_ORDER: list[str] = [
+    "surfaced", "exploratory", "formal", "final", "offer", "decision",
+]
+
+
+# ---------- v1.2 record models ----------
+
+class OrganisationRecord(_Base):
+    id: int
+    ulid: str
+    name: str
+    sector: str | None = None
+    scale_band: ScaleBand | None = None
+    hq_region: str | None = None
+    pertinence_note: str | None = None
+    watch_state: WatchState = WatchState.watch
+    source: str | None = None
+    external_refs: str | None = None  # JSON: {capiq_id, website, linkedin}
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
+class EngagementRecord(_Base):
+    id: int
+    ulid: str
+    org_id: int
+    role_title: str
+    role_type: RoleType | None = None
+    source: EngagementSource | None = None
+    source_partner_id: int | None = None
+    stage: EngagementStage = EngagementStage.surfaced
+    interest: EngagementInterest = EngagementInterest.exploratory
+    comp_base_gbp: int | None = None
+    comp_total_gbp: int | None = None
+    comp_equity_note: str | None = None
+    fit_score: int | None = None
+    fit_breakdown: str | None = None  # JSON per-dimension scores + hard-filter result
+    next_step: str | None = None
+    next_step_date: date | None = None
+    closed_reason: ClosedReason | None = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
+class EngagementLogRecord(_Base):
+    id: int
+    ulid: str
+    engagement_id: int
+    event_date: date
+    event_type: EngagementEventType
+    from_stage: str | None = None
+    to_stage: str | None = None
+    summary: str | None = None
+    created_at: datetime
+
+
+class EngagementProfileRecord(_Base):
+    id: int
+    ulid: str
+    version: int
+    active: int = 0
+    comp_base_floor_gbp: int
+    comp_total_target_gbp: int
+    accepted_role_types: list[str]
+    accepted_scale_bands: list[str]
+    hard_exclusions: list[str]
+    weights: dict[str, int]
+    created_at: datetime
+
+    @field_validator("accepted_role_types", "accepted_scale_bands", "hard_exclusions", "weights", mode="before")
+    @classmethod
+    def _parse_json(cls, v: Any) -> Any:
+        if isinstance(v, str):
+            import json
+            return json.loads(v)
+        return v
+
+
+class MessageRecord(_Base):
+    id: int
+    ulid: str
+    kind: MessageKind | None = None
+    partner_id: int | None = None
+    engagement_id: int | None = None
+    channel: MessageChannel | None = None
+    recipient_hint: str | None = None
+    subject: str | None = None
+    body: str
+    rationale: str | None = None
+    status: MessageStatus = MessageStatus.proposed
+    source_ref: str | None = None
+    created_by_transport: str | None = None
+    approved_at: datetime | None = None
+    sent_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class EventOutboxRecord(_Base):
+    id: int
+    ulid: str
+    event_type: str
+    entity_type: str
+    entity_ulid: str
+    payload: str | None = None
+    created_at: datetime
+    delivered_at: datetime | None = None
+    delivery_attempts: int = 0
+
+
+class ProgrammeMilestoneRecord(_Base):
+    id: int
+    ulid: str
+    phase: MilestonePhase | None = None
+    label: str
+    target_date: date
+    status: MilestoneStatus = MilestoneStatus.pending
+    metric_note: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ApiTokenRecord(_Base):
+    id: int
+    ulid: str
+    token_hash: str
+    actor: str
+    role: TokenRole
+    active: int = 1
+    created_at: datetime
+    rotated_at: datetime | None = None
+
+
+# ---------- v1.2 input models ----------
+
+class UpsertOrgInput(BaseModel):
+    ulid: str | None = None
+    name: str
+    sector: str | None = None
+    scale_band: ScaleBand | None = None
+    hq_region: str | None = None
+    pertinence_note: str | None = None
+    watch_state: WatchState | None = None
+    source: str | None = None
+    external_refs: dict[str, Any] | None = None
+
+
+class OrgUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str | None = None
+    sector: str | None = None
+    scale_band: ScaleBand | None = None
+    hq_region: str | None = None
+    pertinence_note: str | None = None
+    watch_state: WatchState | None = None
+    source: str | None = None
+    external_refs: dict[str, Any] | None = None
+
+
+class UpsertEngagementInput(BaseModel):
+    ulid: str | None = None
+    org_ulid: str
+    role_title: str
+    role_type: RoleType | None = None
+    source: EngagementSource | None = None
+    source_partner_ulid: str | None = None
+    stage: EngagementStage | None = None
+    interest: EngagementInterest | None = None
+    comp_base_gbp: int | None = None
+    comp_total_gbp: int | None = None
+    comp_equity_note: str | None = None
+    next_step: str | None = None
+    next_step_date: date | None = None
+    # tags used by the fit hard-filter (not persisted as a column; folded into
+    # fit_breakdown evaluation). Optional free-form list.
+    tags: list[str] | None = None
+
+
+class EngagementUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    role_title: str | None = None
+    role_type: RoleType | None = None
+    source: EngagementSource | None = None
+    interest: EngagementInterest | None = None
+    comp_base_gbp: int | None = None
+    comp_total_gbp: int | None = None
+    comp_equity_note: str | None = None
+    next_step: str | None = None
+    next_step_date: date | None = None
+
+
+class AdvanceStageInput(BaseModel):
+    to_stage: EngagementStage
+    summary: str | None = None
+
+
+class CloseEngagementInput(BaseModel):
+    closed_reason: ClosedReason
+    summary: str | None = None
+
+
+class SetInterestInput(BaseModel):
+    interest: EngagementInterest
+
+
+class FitProfileInput(BaseModel):
+    comp_base_floor_gbp: int
+    comp_total_target_gbp: int
+    accepted_role_types: list[str]
+    accepted_scale_bands: list[str]
+    hard_exclusions: list[str]
+    weights: dict[str, int]
+
+
+class ProposeMessageInput(BaseModel):
+    kind: MessageKind | None = None
+    partner_ulid: str | None = None
+    engagement_ulid: str | None = None
+    channel: MessageChannel | None = None
+    recipient_hint: str | None = None
+    subject: str | None = None
+    body: str
+    rationale: str | None = None
+    source_ref: str | None = None
+
+
+class MessageEditInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    subject: str | None = None
+    body: str | None = None
+
+
+class UpsertMilestoneInput(BaseModel):
+    ulid: str | None = None
+    phase: MilestonePhase
+    label: str
+    target_date: date
+    status: MilestoneStatus | None = None
+    metric_note: str | None = None
+
+
+class MilestoneUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    label: str | None = None
+    target_date: date | None = None
+    status: MilestoneStatus | None = None
+    metric_note: str | None = None
+
+
+# ---------- v1.2 response / computed models ----------
+
+class FitResult(BaseModel):
+    score: int
+    hard_fail: bool
+    breakdown: dict[str, Any]
+
+
+class ProgrammePhaseStatus(BaseModel):
+    phase: str
+    rag: RagStatus
+    detail: str
+
+
+class ProgrammeStatusResponse(BaseModel):
+    days_to_target: int
+    target_date: date
+    overall_rag: RagStatus
+    target_at_risk: bool
+    phases: list[ProgrammePhaseStatus]
+
+
+class OutboxHealth(BaseModel):
+    undelivered: int
+    oldest_undelivered_age_seconds: int | None = None
+    past_attempt_cap: int
