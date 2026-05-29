@@ -8,7 +8,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..services import ServiceContext, transaction
+from ..services import ServiceContext, assert_owner, transaction
 from ..services.system_service import SystemService
 from .deps import get_context
 
@@ -68,6 +68,7 @@ def rotate_token(ctx: ServiceContext = Depends(get_context)):
     The response includes the new plaintext token *once*; subsequent
     reads only see it via the live auth check.
     """
+    assert_owner(ctx, operation="rotate api token")
     with transaction(ctx.conn):
         new_token = SystemService.rotate_api_token(ctx)
     return {
@@ -76,4 +77,21 @@ def rotate_token(ctx: ServiceContext = Depends(get_context)):
             "Token rotated. Update your Claude MCP server header and any "
             "external tool configs now — the previous token is invalid."
         ),
+    }
+
+
+@router.post("/issue-bot-token")
+def issue_bot_token(ctx: ServiceContext = Depends(get_context)):
+    """Issue a fresh bot-role token for n8n (Settings → Automation).
+
+    Owner-only. The plaintext is returned *once*; only its hash is stored.
+    Any prior bot token is retired.
+    """
+    assert_owner(ctx, operation="issue bot token")
+    with transaction(ctx.conn):
+        new_token = SystemService.issue_bot_token(ctx)
+    return {
+        "new_token": new_token,
+        "role": "bot",
+        "message": "Bot token issued. Paste into the n8n Artemide credential; the previous bot token is invalid.",
     }
