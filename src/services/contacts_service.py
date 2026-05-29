@@ -97,6 +97,7 @@ class ContactsService:
         value_received: str | None = None,
         summary: str | None = None,
         follow_up: str | None = None,
+        engagement_ulid: str | None = None,
         advance_state: bool = False,
     ) -> LogContactResponse:
         with transaction(ctx.conn):
@@ -106,6 +107,16 @@ class ContactsService:
             partner = partners_repo.get_partner_by_name(ctx.conn, firm.id, partner_name)
             if partner is None:
                 raise NotFoundError(f"partner not found: {firm_name} / {partner_name}")
+
+            # v1.2: optionally link the contact to the engagement it concerned.
+            engagement_id: int | None = None
+            if engagement_ulid:
+                from ..repository import engagements as engagements_repo
+
+                engagement = engagements_repo.get_engagement_by_ulid(ctx.conn, engagement_ulid)
+                if engagement is None:
+                    raise NotFoundError(f"engagement not found: {engagement_ulid}")
+                engagement_id = engagement.id
 
             contact = contacts_repo.insert_contact(
                 ctx.conn,
@@ -117,6 +128,7 @@ class ContactsService:
                 value_given=value_given,
                 value_received=value_received,
                 follow_up=follow_up,
+                engagement_id=engagement_id,
             )
 
             partners_repo.update_last_contact_date(ctx.conn, partner.id, contact_date)

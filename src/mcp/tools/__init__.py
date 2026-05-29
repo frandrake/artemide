@@ -21,4 +21,13 @@ from . import (  # noqa: F401
     update_draft,
     update_engagement,
     upsert_partner,
+    # v1.2 — engagement & programme extension
+    advance_engagement,
+    approve_message,
+    list_messages,
+    list_pipeline,
+    programme_status,
+    queue_message,
+    upsert_engagement,
+    upsert_org,
 )

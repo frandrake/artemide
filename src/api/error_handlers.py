@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from ..services.exceptions import (
     ConflictError,
+    ForbiddenRoleError,
     InvalidStateTransitionError,
     NotFoundError,
     ValidationError as ServiceValidationError,
@@ -43,6 +44,13 @@ def register_error_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=_envelope("rule_violation", str(exc)),
+        )
+
+    @app.exception_handler(ForbiddenRoleError)
+    async def _forbidden_role(_: Request, exc: ForbiddenRoleError):
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content=_envelope("forbidden_role", str(exc)),
         )
 
     @app.exception_handler(ServiceValidationError)

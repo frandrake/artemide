@@ -123,6 +123,19 @@ def restore_partner(conn: sqlite3.Connection, partner_id: int) -> None:
     conn.execute("UPDATE partners SET deleted_at = NULL WHERE id = ?", (partner_id,))
 
 
+def count_by_relationship_states(conn: sqlite3.Connection, states: tuple[str, ...]) -> int:
+    """Count non-deleted partners in any of the given relationship states (v1.2 RAG)."""
+    if not states:
+        return 0
+    placeholders = ", ".join("?" for _ in states)
+    row = conn.execute(
+        f"SELECT COUNT(*) FROM partners "
+        f"WHERE deleted_at IS NULL AND relationship_state IN ({placeholders})",
+        states,
+    ).fetchone()
+    return int(row[0])
+
+
 def list_partners_with_due_touches(
     conn: sqlite3.Connection,
     *,

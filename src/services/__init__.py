@@ -12,6 +12,7 @@ from typing import Iterator, Literal
 
 
 Transport = Literal["mcp", "rest", "cli", "system", "web", "api"]
+Role = Literal["owner", "bot"]
 
 
 @dataclass
@@ -20,6 +21,27 @@ class ServiceContext:
     conn: sqlite3.Connection
     actor: str = "FF"
     transport: Transport = "system"
+    # v1.2 — owner/bot role (Rule 18). Cookie sessions, CLI and system tasks
+    # are always 'owner'; only bot-role bearer tokens carry 'bot'.
+    role: Role = "owner"
+
+
+def assert_owner(ctx: "ServiceContext", *, operation: str) -> None:
+    """Enforce Rule 18 at the service layer so every transport (REST, MCP) is
+    covered. Audits the blocked attempt then raises ForbiddenRoleError."""
+    if ctx.role != "owner":
+        from ..models import AuditAction
+        from .audit_service import AuditService
+        from .exceptions import ForbiddenRoleError
+
+        AuditService.record(
+            ctx,
+            action=AuditAction.denied,
+            entity_type="auth",
+            entity_ulid="forbidden_role",
+            after={"actor": ctx.actor, "role": ctx.role, "operation": operation},
+        )
+        raise ForbiddenRoleError(f"owner role required: {operation}")
 
 
 @contextmanager

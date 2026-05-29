@@ -20,3 +20,7 @@ class InvalidStateTransitionError(ServiceError):
 
 class ValidationError(ServiceError):
     """Caller-supplied data failed validation."""
+
+
+class ForbiddenRoleError(ServiceError):
+    """The authenticated role lacks scope for this operation (Rule 18)."""

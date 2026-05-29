@@ -8,10 +8,12 @@ import time
 from contextlib import contextmanager
 from typing import Iterator
 
+from ..auth import current_auth
 from ..db import get_connection
 from ..services import ServiceContext
 from ..services.exceptions import (
     ConflictError,
+    ForbiddenRoleError,
     InvalidStateTransitionError,
     NotFoundError,
     ValidationError,
@@ -27,9 +29,10 @@ def tool_session(name: str) -> Iterator[tuple[sqlite3.Connection, ServiceContext
     Logs tool name + duration only — never payloads.
     """
     started = time.perf_counter()
+    actor, role = current_auth.get()
     conn = get_connection()
     try:
-        yield conn, ServiceContext(conn=conn, actor="FF", transport="mcp")
+        yield conn, ServiceContext(conn=conn, actor=actor, transport="mcp", role=role)
     finally:
         with contextlib.suppress(Exception):
             conn.close()
@@ -46,6 +49,8 @@ def error_response(exc: Exception) -> dict:
         code = "rule_violation"
     elif isinstance(exc, ValidationError):
         code = "validation_error"
+    elif isinstance(exc, ForbiddenRoleError):
+        code = "forbidden_role"
     else:
         code = "internal_error"
     return {"ok": False, "error": code, "message": str(exc)}

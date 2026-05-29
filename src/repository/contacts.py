@@ -29,16 +29,17 @@ def insert_contact(
     value_given: str | None = None,
     value_received: str | None = None,
     follow_up: str | None = None,
+    engagement_id: int | None = None,
     ulid: str | None = None,
 ) -> ContactLogRecord:
     ulid_value = ulid or new_ulid()
     cur = conn.execute(
         "INSERT INTO contact_log (ulid, partner_id, contact_date, channel, initiated_by, "
-        "summary, value_given, value_received, follow_up) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "summary, value_given, value_received, follow_up, engagement_id) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             ulid_value, partner_id, contact_date, channel.value, initiated_by.value,
-            summary, value_given, value_received, follow_up,
+            summary, value_given, value_received, follow_up, engagement_id,
         ),
     )
     row = conn.execute(f"SELECT {_COLUMNS} FROM contact_log WHERE id = ?", (cur.lastrowid,)).fetchone()

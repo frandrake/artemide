@@ -20,14 +20,19 @@ from .api.routes_analytics import router as analytics_router
 from .api.routes_audit import router as audit_router
 from .api.routes_contacts import router as contacts_router
 from .api.routes_engagement import router as engagement_router
+from .api.routes_engagements import router as engagements_router
 from .api.routes_export import router as export_router
 from .api.routes_firms import router as firms_router
+from .api.routes_fit import router as fit_router
 from .api.routes_import import router as import_router
+from .api.routes_messages import router as messages_router
 from .api.routes_notes import router as notes_router
+from .api.routes_orgs import router as orgs_router
 from .api.routes_outreach import router as outreach_router
 from .api.routes_partners import router as partners_router
 from .api.routes_pipeline import router as pipeline_router
 from .api.routes_planning import router as planning_router
+from .api.routes_programme import router as programme_router
 from .api.routes_search import router as search_router
 from .api.routes_system import router as system_router
 from .api.routes_templates import router as templates_router
@@ -35,7 +40,8 @@ from .auth import (
     COOKIE_NAME,
     SESSION_TTL_SECONDS,
     create_session_cookie,
-    verify_bearer,
+    ensure_seed_tokens,
+    verify_owner_bearer,
 )
 from .db import init_db
 from .mcp.server import get_mcp_app
@@ -55,6 +61,7 @@ _mcp_app = get_mcp_app()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    ensure_seed_tokens()
     log.info("artemide ready")
     # Nest FastMCP's lifespan so its session manager starts/stops with us.
     async with _mcp_app.router.lifespan_context(app):
@@ -91,6 +98,12 @@ for router in (
     import_router,
     admin_router,
     system_router,
+    # v1.2 — engagement & programme extension
+    orgs_router,
+    engagements_router,
+    fit_router,
+    messages_router,
+    programme_router,
 ):
     app.include_router(router)
 
@@ -121,7 +134,7 @@ def _cookie_kwargs() -> dict:
 
 @app.post("/login", status_code=status.HTTP_204_NO_CONTENT, include_in_schema=False)
 def login(body: LoginInput) -> Response:
-    if not verify_bearer(body.token):
+    if not verify_owner_bearer(body.token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="unauthorized"
         )

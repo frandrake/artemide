@@ -10,11 +10,19 @@ import json
 import sqlite3
 from typing import Any
 
-from ..models import EngagementProfileRecord, EngagementRecord, FitResult, OrganisationRecord
+from ..models import (
+    AuditAction,
+    EngagementProfileRecord,
+    EngagementRecord,
+    FitProfileInput,
+    FitResult,
+    OrganisationRecord,
+)
 from ..repository import engagement_profile as profile_repo
 from ..repository import engagements as engagements_repo
 from ..repository import orgs as orgs_repo
-from . import ServiceContext
+from . import ServiceContext, assert_owner, transaction
+from .audit_service import AuditService
 
 # Canonical dimensions and the value used when a dimension cannot be evaluated.
 NEUTRAL = 50
@@ -182,3 +190,37 @@ class FitService:
         for engagement in open_engagements:
             FitService.rescore(ctx, engagement)
         return len(open_engagements)
+
+    @staticmethod
+    def rescore_all_owner(ctx: ServiceContext) -> int:
+        """Owner-only entry point for the /fit/rescore-all endpoint (Rule 18)."""
+        assert_owner(ctx, operation="rescore all engagements")
+        with transaction(ctx.conn):
+            return FitService.rescore_all(ctx)
+
+    @staticmethod
+    def set_active_profile(ctx: ServiceContext, data: FitProfileInput) -> EngagementProfileRecord:
+        """Create a new profile version, deactivate the prior, then rescore all
+        open engagements against it. Owner-only (Rule 18)."""
+        assert_owner(ctx, operation="set engagement profile")
+        with transaction(ctx.conn):
+            profile_repo.deactivate_all(ctx.conn)
+            version = profile_repo.max_version(ctx.conn) + 1
+            profile = profile_repo.insert_profile(
+                ctx.conn,
+                version=version,
+                active=True,
+                comp_base_floor_gbp=data.comp_base_floor_gbp,
+                comp_total_target_gbp=data.comp_total_target_gbp,
+                accepted_role_types=data.accepted_role_types,
+                accepted_scale_bands=data.accepted_scale_bands,
+                hard_exclusions=data.hard_exclusions,
+                weights=data.weights,
+            )
+            AuditService.record(
+                ctx, action=AuditAction.update, entity_type="profile",
+                entity_id=profile.id, entity_ulid=profile.ulid,
+                after={"version": version, "active": True},
+            )
+            FitService.rescore_all(ctx)
+            return profile

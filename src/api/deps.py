@@ -10,7 +10,9 @@ from fastapi import Depends, Header, Request, Response
 
 from ..auth import auth_dependency
 from ..db import get_connection
+from ..models import AuditAction
 from ..services import ServiceContext
+from ..services.exceptions import ForbiddenRoleError
 
 
 _IDEMPOTENCY_TTL_HOURS = 24
@@ -24,16 +26,33 @@ def get_db() -> Iterator[sqlite3.Connection]:
         conn.close()
 
 
-def get_actor(request: Request) -> str:
+def get_identity(request: Request) -> tuple[str, str]:
     return auth_dependency(request)
 
 
 def get_context(
     request: Request,
     conn: sqlite3.Connection = Depends(get_db),
-    actor: str = Depends(get_actor),
+    identity: tuple[str, str] = Depends(get_identity),
 ) -> ServiceContext:
-    return ServiceContext(conn=conn, actor=actor, transport="rest")
+    actor, role = identity
+    return ServiceContext(conn=conn, actor=actor, transport="rest", role=role)
+
+
+def require_owner(ctx: ServiceContext = Depends(get_context)) -> ServiceContext:
+    """Gate an endpoint to owner-role callers (Rule 18). Audits and 403s a bot."""
+    if ctx.role != "owner":
+        from ..services.audit_service import AuditService
+
+        AuditService.record(
+            ctx,
+            action=AuditAction.denied,
+            entity_type="auth",
+            entity_ulid="forbidden_role",
+            after={"actor": ctx.actor, "role": ctx.role},
+        )
+        raise ForbiddenRoleError("owner role required for this operation")
+    return ctx
 
 
 def lookup_idempotent_response(
