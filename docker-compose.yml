@@ -7,6 +7,7 @@ services:
       - artemide-data:/data
     networks:
       - internal
+      - n8n_default
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -19,6 +20,8 @@ services:
 
 networks:
   internal:
+  n8n_default:
+    external: true
 
 volumes:
   artemide-data:
