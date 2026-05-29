@@ -1,6 +1,6 @@
 {
   "id": "artemide-flywheel",
-  "versionId": "artemide-flywheel-v1",
+  "versionId": "artemide-flywheel-v4",
   "name": "Artemide \u00b7 Flywheel",
   "nodes": [
     {
@@ -13,10 +13,10 @@
           ]
         }
       },
-      "id": "weekly",
+      "id": "f-sch",
       "name": "Weekly",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -24,22 +24,22 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/orgs",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/orgs",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'flywheel-org-' + $now.toFormat('kkkk-WW') + '-' + $runIndex }}"
             }
           ]
         }
       },
-      "id": "upsert-org",
+      "id": "f-org",
       "name": "Upsert org",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -49,32 +49,31 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/engagements",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/engagements",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'flywheel-eng-' + $now.toFormat('kkkk-WW') + '-' + $runIndex }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"org_ulid\": {{ JSON.stringify($json.org_ulid) }},\n  \"role_title\": {{ JSON.stringify($json.role_title) }},\n  \"source\": \"flywheel\"\n}"
+        "jsonBody": "={{ { \"org_ulid\": $json.org_ulid, \"role_title\": $json.role_title, \"source\": \"flywheel\" } }}"
       },
-      "id": "surface-flywheel-engagement",
+      "id": "f-eng",
       "name": "Surface flywheel engagement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -84,23 +83,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "FLYWHEEL (weekly)\n\nClaude matches engagement signals to the org list and surfaces warm intros.\nPOST /orgs + /engagements (source=flywheel). Owner decides whether to act.",
-        "height": 220,
-        "width": 420
+        "content": "FLYWHEEL (weekly)\n\nClaude matches signals to the org list; POST /orgs + /engagements (source=flywheel).\nArtemide nodes use internal http://artemide:8000.",
+        "height": 260,
+        "width": 440
       },
-      "id": "note-58002",
+      "id": "f-stick",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }

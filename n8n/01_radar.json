@@ -1,6 +1,6 @@
 {
   "id": "artemide-radar",
-  "versionId": "artemide-radar-v1",
+  "versionId": "artemide-radar-v4",
   "name": "Artemide \u00b7 Radar",
   "nodes": [
     {
@@ -13,10 +13,10 @@
           ]
         }
       },
-      "id": "daily-06:00",
+      "id": "r-sch",
       "name": "Daily 06:00",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -24,22 +24,22 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/orgs",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/orgs",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'radar-org-' + $now.toFormat('yyyy-MM-dd') + '-' + $runIndex }}"
             }
           ]
         }
       },
-      "id": "upsert-org",
+      "id": "r-org",
       "name": "Upsert org",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -49,29 +49,28 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/engagements",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/engagements",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'radar-eng-' + $now.toFormat('yyyy-MM-dd') + '-' + $runIndex }}"
             }
           ]
         }
       },
-      "id": "surface-engagement",
+      "id": "r-eng",
       "name": "Surface engagement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -81,20 +80,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "={{ 'https://artemide.francescofederico.net/api/v1/engagements/{{ $json.ulid }}/rescore' }}",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/engagements/{{ $json.ulid }}/rescore",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "rescore",
+      "id": "r-rs",
       "name": "Rescore",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -104,23 +102,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "RADAR (daily 06:00)\n\nMonitor sources, classify relevance with Claude, then\nPOST /orgs (upsert) and /engagements (surfaced), and rescore.\nClaude composes the morning digest emailed to the bot inbox.\n\nDedupe on org name / engagement (org+role). Idempotency-Key on writes.\nAuth: Artemide Bot Token (bot role).",
-        "height": 220,
-        "width": 420
+        "content": "RADAR (daily 06:00)\n\nClassify sources with Claude, POST /orgs + /engagements (surfaced), rescore;\nClaude composes the morning digest. Add the Claude + source nodes per spec.\nArtemide nodes use internal http://artemide:8000. Idempotency-Key on writes.",
+        "height": 260,
+        "width": 440
       },
-      "id": "note-44908",
+      "id": "r-note",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }

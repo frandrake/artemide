@@ -1,6 +1,6 @@
 {
   "id": "artemide-sender",
-  "versionId": "artemide-sender-v1",
+  "versionId": "artemide-sender-v4",
   "name": "Artemide \u00b7 Sender",
   "nodes": [
     {
@@ -14,10 +14,10 @@
           ]
         }
       },
-      "id": "poll-outbox",
+      "id": "s-sch",
       "name": "Poll outbox",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -25,13 +25,13 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/events?limit=50",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/events?limit=50",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "get-events",
+      "id": "s-ev",
       "name": "Get events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -41,8 +41,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -51,7 +50,7 @@
         "resource": "message",
         "operation": "send"
       },
-      "id": "send-from-bot-mailbox",
+      "id": "s-send",
       "name": "Send from bot mailbox",
       "type": "n8n-nodes-base.microsoftOutlook",
       "typeVersion": 2,
@@ -62,13 +61,13 @@
     },
     {
       "parameters": {
-        "url": "={{ 'https://artemide.francescofederico.net/api/v1/messages/{{ $json.entity_ulid }}/sent' }}",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/messages/{{ $json.entity_ulid }}/sent",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "mark-sent",
+      "id": "s-sent",
       "name": "Mark sent",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -78,20 +77,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "={{ 'https://artemide.francescofederico.net/api/v1/events/{{ $json.ulid }}/ack' }}",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/events/{{ $json.ulid }}/ack",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "ack-event",
+      "id": "s-ack",
       "name": "Ack event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -101,23 +99,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "SENDER (outbox message.approved) \u2014 THE ONLY WORKFLOW THAT SENDS MAIL\n\nFilter events to message.approved (emitted only after the owner approves\nin the UI). Send from the bot mailbox, then POST /messages/{ulid}/sent and\nack the event. No workflow ever calls /approve (bot token returns 403).\nWire this LIVE only after eyeballing proposed drafts for a week.",
-        "height": 220,
-        "width": 420
+        "content": "SENDER (outbox message.approved) \u2014 THE ONLY SENDER\n\nFilter events to message.approved (emitted only after owner approval). Send via\nthe bot mailbox (bind Outlook OAuth2), then POST /messages/{ulid}/sent + ack.\nNo workflow calls /approve. Artemide nodes use internal http://artemide:8000.",
+        "height": 300,
+        "width": 470
       },
-      "id": "note-5888",
+      "id": "s-stick",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }

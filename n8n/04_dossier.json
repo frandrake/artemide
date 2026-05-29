@@ -1,6 +1,6 @@
 {
   "id": "artemide-dossier",
-  "versionId": "artemide-dossier-v1",
+  "versionId": "artemide-dossier-v4",
   "name": "Artemide \u00b7 Dossier",
   "nodes": [
     {
@@ -14,10 +14,10 @@
           ]
         }
       },
-      "id": "poll-outbox",
+      "id": "d-sch",
       "name": "Poll outbox",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -25,13 +25,13 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/events?limit=50",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/events?limit=50",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "get-events",
+      "id": "d-ev",
       "name": "Get events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -41,29 +41,28 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/notes",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/notes",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'dossier-' + $json.ulid }}"
             }
           ]
         }
       },
-      "id": "post-dossier-note",
+      "id": "d-note",
       "name": "Post dossier note",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -73,20 +72,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "={{ 'https://artemide.francescofederico.net/api/v1/events/{{ $json.ulid }}/ack' }}",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/events/{{ $json.ulid }}/ack",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "ack-event",
+      "id": "d-ack",
       "name": "Ack event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -96,23 +94,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "DOSSIER (outbox engagement.surfaced)\n\nFilter events to engagement.surfaced. Read the company-data MCP + web;\nClaude assembles a structured brief; POST /notes (entity_type=org|engagement).\nAck the event by ulid (dedupe on events_outbox.ulid). Read-only intelligence.",
-        "height": 220,
-        "width": 420
+        "content": "DOSSIER (outbox engagement.surfaced)\n\nFilter events to engagement.surfaced. company-data MCP + web; Claude assembles\nthe brief; POST /notes (entity_type=org|engagement); ack by ulid.\nArtemide nodes use internal http://artemide:8000.",
+        "height": 260,
+        "width": 440
       },
-      "id": "note-85344",
+      "id": "d-stick",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }

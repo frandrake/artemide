@@ -35,9 +35,16 @@ event `ulid` (at-least-once delivery, Rule 19).
 3. **Company-data MCP** — the connected company-research MCP (workflow 4).
 4. **Claude API** — Anthropic API key for classification and drafting.
 
-Replace the `REPLACE_ARTEMIDE_BOT` credential id placeholder on import, and bind the
-mailbox/Claude/MCP nodes to your credentials. The HTTP nodes target
-`https://artemide.francescofederico.net`.
+Bind the mailbox/Claude/MCP nodes to your credentials.
+
+**Important — Artemide is reached over the internal docker network.** The HTTP nodes
+call **`http://artemide:8000`**, not the public hostname: the n8n and artemide
+containers share the `n8n_default` docker network, and the public
+`artemide.francescofederico.net` sits behind **Cloudflare Access** (a browser gate
+that returns a login page to header-token API calls). The Artemide *Header Auth*
+credential's header **name must be `Authorization`**, value `Bearer <bot-token>`.
+The Claude node calls `https://api.anthropic.com/v1/messages` with an `x-api-key`
+Header Auth credential.
 
 ## The send loop (cardinal rule)
 

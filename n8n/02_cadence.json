@@ -1,6 +1,6 @@
 {
   "id": "artemide-cadence",
-  "versionId": "artemide-cadence-v3",
+  "versionId": "artemide-cadence-v4",
   "name": "Artemide \u00b7 Cadence",
   "nodes": [
     {
@@ -17,7 +17,7 @@
           ]
         }
       },
-      "id": "cad-schedule",
+      "id": "cad-sch",
       "name": "Weekly Mon 08:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -29,7 +29,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://artemide.francescofederico.net/api/v1/planning/due-touches",
+        "url": "http://artemide:8000/api/v1/planning/due-touches",
         "authentication": "genericCredentialType",
         "options": {},
         "genericAuthType": "httpHeaderAuth",
@@ -94,7 +94,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://artemide.francescofederico.net/api/v1/messages",
+        "url": "http://artemide:8000/api/v1/messages",
         "authentication": "genericCredentialType",
         "options": {},
         "genericAuthType": "httpHeaderAuth",
@@ -111,7 +111,7 @@
         "specifyBody": "json",
         "jsonBody": "={{ {\n  \"kind\": \"cadence_touch\",\n  \"channel\": \"email\",\n  \"partner_ulid\": $('Get due touches').item.json.partner_ulid,\n  \"recipient_hint\": $('Get due touches').item.json.partner_name,\n  \"body\": ($json.content && $json.content[0] ? $json.content[0].text : ''),\n  \"rationale\": 'cadence touch \u00b7 ' + $('Get due touches').item.json.status\n} }}"
       },
-      "id": "cad-propose",
+      "id": "cad-prop",
       "name": "Propose message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -127,8 +127,8 @@
     },
     {
       "parameters": {
-        "content": "CADENCE (weekly)\n\nWeekly -> GET /planning/due-touches (14d) -> Claude draft -> POST /messages\n(proposed, kind=cadence_touch). Owner approves in /messages; Sender sends.\nNever calls /approve.\n\nArtemide nodes: Header Auth, header name Authorization, value 'Bearer <bot>'.\nClaude node: Header Auth, header name x-api-key. JSON bodies are object-\nexpressions so n8n serialises them safely.",
-        "height": 320,
+        "content": "CADENCE (weekly)\n\nArtemide nodes call the INTERNAL url http://artemide:8000 (n8n + artemide\nshare the n8n_default docker network) \u2014 the public hostname is behind\nCloudflare Access and would return a login page. Claude node calls\napi.anthropic.com. JSON bodies are object-expressions.\n\nApprove drafts in /messages; the Sender workflow sends.",
+        "height": 300,
         "width": 470
       },
       "id": "cad-note",
@@ -137,7 +137,7 @@
       "typeVersion": 1,
       "position": [
         -540,
-        -40
+        -60
       ]
     }
   ],

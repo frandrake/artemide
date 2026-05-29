@@ -1,6 +1,6 @@
 {
   "id": "artemide-preppack",
-  "versionId": "artemide-preppack-v1",
+  "versionId": "artemide-preppack-v4",
   "name": "Artemide \u00b7 Prep pack",
   "nodes": [
     {
@@ -14,10 +14,10 @@
           ]
         }
       },
-      "id": "poll-outbox",
+      "id": "p-sch",
       "name": "Poll outbox",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -25,13 +25,13 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/events?limit=50",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/events?limit=50",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "get-events",
+      "id": "p-ev",
       "name": "Get events",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -41,20 +41,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "={{ 'https://artemide.francescofederico.net/api/v1/engagements/{{ $json.entity_ulid }}' }}",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/engagements/{{ $json.entity_ulid }}",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "get-engagement",
+      "id": "p-get",
       "name": "Get engagement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -64,29 +63,28 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/notes",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/notes",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'prep-' + $json.ulid }}"
             }
           ]
         }
       },
-      "id": "post-prep-note",
+      "id": "p-note",
       "name": "Post prep note",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -96,20 +94,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "={{ 'https://artemide.francescofederico.net/api/v1/events/{{ $json.ulid }}/ack' }}",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/events/{{ $json.ulid }}/ack",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "ack-event",
+      "id": "p-ack",
       "name": "Ack event",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -119,23 +116,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "PREP PACK (outbox engagement.stage_changed -> formal)\n\nFilter events to stage_changed with to_stage=formal. GET the engagement;\nClaude builds the SRA story bank, themes, five questions, weak spots;\nPOST /notes (entity_type=engagement). Owner reviews before interview.",
-        "height": 220,
-        "width": 420
+        "content": "PREP PACK (outbox engagement.stage_changed -> formal)\n\nFilter events to stage_changed/to_stage=formal. GET engagement; Claude builds\nthe SRA pack; POST /notes (engagement). Ack by ulid.\nArtemide nodes use internal http://artemide:8000.",
+        "height": 260,
+        "width": 440
       },
-      "id": "note-97584",
+      "id": "p-stick",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }

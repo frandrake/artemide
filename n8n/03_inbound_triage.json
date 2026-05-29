@@ -1,13 +1,13 @@
 {
   "id": "artemide-inbound",
-  "versionId": "artemide-inbound-v1",
+  "versionId": "artemide-inbound-v4",
   "name": "Artemide \u00b7 Inbound triage",
   "nodes": [
     {
       "parameters": {
         "event": "messageReceived"
       },
-      "id": "bot-mailbox-watch",
+      "id": "i-watch",
       "name": "Bot mailbox watch",
       "type": "n8n-nodes-base.microsoftOutlookTrigger",
       "typeVersion": 1,
@@ -18,22 +18,22 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/orgs",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/orgs",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'inbound-org-' + $json.id }}"
             }
           ]
         }
       },
-      "id": "upsert-org",
+      "id": "i-org",
       "name": "Upsert org",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -43,29 +43,28 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/engagements",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/engagements",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'inbound-eng-' + $json.id }}"
             }
           ]
         }
       },
-      "id": "upsert-engagement",
+      "id": "i-eng",
       "name": "Upsert engagement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -75,32 +74,31 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/messages",
         "method": "POST",
+        "url": "http://artemide:8000/api/v1/messages",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "options": {},
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+              "value": "={{ 'inbound-msg-' + $json.id }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"kind\": \"inbound_reply\",\n  \"body\": {{ JSON.stringify($json.draft) }},\n  \"source_ref\": {{ JSON.stringify($json.mailId) }}\n}"
+        "jsonBody": "={{ { \"kind\": \"inbound_reply\", \"body\": ($json.draft || \"\"), \"source_ref\": $json.mailId } }}"
       },
-      "id": "propose-reply",
+      "id": "i-msg",
       "name": "Propose reply",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -110,23 +108,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "INBOUND TRIAGE (bot mailbox watch)\n\nClaude classifies relevant/borderline/off and drafts a calibrated reply\nwith one qualifying question. POST /orgs + /engagements where relevant,\nPOST /messages (proposed, kind=inbound_reply, source_ref=mail id).\nsource_ref gives idempotency (Rule 20): re-reads do not double-draft.\nHigh-priority pinged to the owner.",
-        "height": 220,
-        "width": 420
+        "content": "INBOUND TRIAGE (bot mailbox watch)\n\nClaude classifies + drafts a reply; POST /orgs + /engagements where relevant,\nPOST /messages (proposed, kind=inbound_reply, source_ref=mail id -> Rule 20\nidempotency). Bind the Outlook OAuth2 cred to the trigger; add the Claude node.\nArtemide nodes use internal http://artemide:8000.",
+        "height": 260,
+        "width": 440
       },
-      "id": "note-66334",
+      "id": "i-note",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }

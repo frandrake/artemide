@@ -1,6 +1,6 @@
 {
   "id": "artemide-rollup",
-  "versionId": "artemide-rollup-v1",
+  "versionId": "artemide-rollup-v4",
   "name": "Artemide \u00b7 Rollup",
   "nodes": [
     {
@@ -17,10 +17,10 @@
           ]
         }
       },
-      "id": "friday-16:00",
+      "id": "ro-sch",
       "name": "Friday 16:00",
       "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.1,
+      "typeVersion": 1.2,
       "position": [
         0,
         0
@@ -28,13 +28,13 @@
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/programme/status",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/programme/status",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "programme-status",
+      "id": "ro-st",
       "name": "Programme status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -44,20 +44,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/engagements?sort=fit",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/engagements?sort=fit",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "engagements",
+      "id": "ro-eng",
       "name": "Engagements",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -67,20 +66,19 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "url": "https://artemide.francescofederico.net/api/v1/messages?status=proposed",
         "method": "GET",
+        "url": "http://artemide:8000/api/v1/messages?status=proposed",
         "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {},
+        "genericAuthType": "httpHeaderAuth"
       },
-      "id": "proposed-messages",
+      "id": "ro-msg",
       "name": "Proposed messages",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -90,23 +88,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "REPLACE_ARTEMIDE_BOT",
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "ROLLUP (Friday 16:00)\n\nGET /programme/status + /engagements + /messages?status=proposed.\nClaude composes the Friday read-out incl. the Phase-1 slippage question;\nemail to the bot inbox. Owner reviews; replan if red.",
-        "height": 220,
-        "width": 420
+        "content": "ROLLUP (Friday 16:00)\n\nGET /programme/status + /engagements + /messages?status=proposed; Claude\ncomposes the Friday read-out incl. the slippage question; email to bot inbox.\nArtemide nodes use internal http://artemide:8000.",
+        "height": 260,
+        "width": 440
       },
-      "id": "note-6565",
+      "id": "ro-stick",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -360,
+        -540,
         0
       ]
     }
