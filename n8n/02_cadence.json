@@ -1,6 +1,6 @@
 {
   "id": "artemide-cadence",
-  "versionId": "artemide-cadence-v4",
+  "versionId": "artemide-cadence-v5",
   "name": "Artemide \u00b7 Cadence",
   "nodes": [
     {
@@ -31,8 +31,8 @@
         "method": "GET",
         "url": "http://artemide:8000/api/v1/planning/due-touches",
         "authentication": "genericCredentialType",
-        "options": {},
         "genericAuthType": "httpHeaderAuth",
+        "options": {},
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -62,8 +62,15 @@
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "authentication": "genericCredentialType",
-        "options": {},
         "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 1500
+            }
+          }
+        },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -89,15 +96,18 @@
         "httpHeaderAuth": {
           "name": "Header Auth account 2"
         }
-      }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 4000
     },
     {
       "parameters": {
         "method": "POST",
         "url": "http://artemide:8000/api/v1/messages",
         "authentication": "genericCredentialType",
-        "options": {},
         "genericAuthType": "httpHeaderAuth",
+        "options": {},
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -127,7 +137,7 @@
     },
     {
       "parameters": {
-        "content": "CADENCE (weekly)\n\nArtemide nodes call the INTERNAL url http://artemide:8000 (n8n + artemide\nshare the n8n_default docker network) \u2014 the public hostname is behind\nCloudflare Access and would return a login page. Claude node calls\napi.anthropic.com. JSON bodies are object-expressions.\n\nApprove drafts in /messages; the Sender workflow sends.",
+        "content": "CADENCE (weekly)\n\nInternal url http://artemide:8000 (public host is behind CF Access). Claude node\nbatches 1 req / 1.5s with retries to respect Anthropic rate limits. JSON bodies\nare object-expressions. Approve drafts in /messages; Sender sends.",
         "height": 300,
         "width": 470
       },
