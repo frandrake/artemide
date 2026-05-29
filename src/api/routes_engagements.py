@@ -107,7 +107,13 @@ def patch_engagement(ulid: str, body: EngagementUpdateInput, ctx: ServiceContext
 
 @router.post("/{ulid}/advance")
 def advance_engagement(ulid: str, body: AdvanceStageInput, ctx: ServiceContext = Depends(get_context)):
-    return _engagement_response(ctx, EngagementsService.advance_stage(ctx, ulid, body))
+    from ..services.programme_service import ProgrammeService
+
+    e = EngagementsService.advance_stage(ctx, ulid, body)
+    payload = _engagement_response(ctx, e)
+    # Rule 15: suggested reciprocity note (not auto-written).
+    payload["reciprocity_suggestion"] = ProgrammeService.reciprocity_suggestion(ctx, e)
+    return payload
 
 
 @router.post("/{ulid}/close")

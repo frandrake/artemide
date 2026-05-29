@@ -21,6 +21,7 @@ from .api.routes_audit import router as audit_router
 from .api.routes_contacts import router as contacts_router
 from .api.routes_engagement import router as engagement_router
 from .api.routes_engagements import router as engagements_router
+from .api.routes_events import router as events_router
 from .api.routes_export import router as export_router
 from .api.routes_firms import router as firms_router
 from .api.routes_fit import router as fit_router
@@ -58,14 +59,47 @@ def _truthy(v: str | None) -> bool:
 _mcp_app = get_mcp_app()
 
 
+async def _outbox_sweep_loop() -> None:
+    """In-process periodic outbox sweep (Rule 19). No external scheduler, no
+    inbound ports. Best-effort: a sweep failure never tears down the app."""
+    import asyncio
+
+    from .db import get_connection
+    from .services.outbox_service import OutboxService
+
+    try:
+        interval = int(os.environ.get("ARTEMIDE_OUTBOX_SWEEP_INTERVAL", "300"))
+    except ValueError:
+        interval = 300
+    while True:
+        await asyncio.sleep(max(30, interval))
+        try:
+            conn = get_connection()
+            try:
+                OutboxService.sweep(conn)
+            finally:
+                conn.close()
+        except Exception as e:  # pragma: no cover - defensive
+            log.warning("outbox sweep failed: %s", e)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    import asyncio
+
     init_db()
     ensure_seed_tokens()
     log.info("artemide ready")
+    sweep_task = None
+    if _truthy(os.environ.get("ARTEMIDE_OUTBOX_ENABLED", "true")):
+        sweep_task = asyncio.create_task(_outbox_sweep_loop())
     # Nest FastMCP's lifespan so its session manager starts/stops with us.
-    async with _mcp_app.router.lifespan_context(app):
-        yield
+    try:
+        async with _mcp_app.router.lifespan_context(app):
+            yield
+    finally:
+        if sweep_task is not None:
+            sweep_task.cancel()
 
 
 _enable_docs = _truthy(os.environ.get("ARTEMIDE_ENABLE_DOCS"))
@@ -104,6 +138,7 @@ for router in (
     fit_router,
     messages_router,
     programme_router,
+    events_router,
 ):
     app.include_router(router)
 

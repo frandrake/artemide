@@ -91,6 +91,20 @@ class ProgrammeService:
             return updated
 
     @staticmethod
+    def reciprocity_suggestion(ctx: ServiceContext, engagement) -> str | None:
+        """Rule 15: when a partner-sourced engagement advances, suggest (do not
+        auto-write) a value_received note against that partner."""
+        if getattr(engagement, "source_partner_id", None) is None:
+            return None
+        partner = partners_repo.get_partner_by_id(ctx.conn, engagement.source_partner_id)
+        if partner is None:
+            return None
+        return (
+            f"{partner.name} surfaced '{engagement.role_title}', now at "
+            f"{engagement.stage.value}. Consider logging this as value received."
+        )
+
+    @staticmethod
     def note_offer_reached(ctx: ServiceContext) -> None:
         """Rule 14: reaching 'offer' nudges the close milestone toward done."""
         m = programme_repo.get_milestone_by_phase(ctx.conn, "close")

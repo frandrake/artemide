@@ -99,6 +99,43 @@ async def test_message_approval_flow(client):
 
 
 @pytest.mark.asyncio
+async def test_events_flow_and_ack(client):
+    org = (await client.post("/api/v1/orgs", json={"name": "Acme", "scale_band": "fortune_500"}, headers=AUTH)).json()
+    eng = (await client.post("/api/v1/engagements", json={"org_ulid": org["ulid"], "role_title": "CMO", "role_type": "cmo"}, headers=AUTH)).json()
+    await client.post(f"/api/v1/engagements/{eng['ulid']}/advance", json={"to_stage": "exploratory"}, headers=AUTH)
+    m = (await client.post("/api/v1/messages", json={"body": "hi"}, headers=AUTH)).json()
+    await client.post(f"/api/v1/messages/{m['ulid']}/approve", headers=AUTH)
+
+    events = (await client.get("/api/v1/events", headers=AUTH)).json()
+    types = {e["event_type"] for e in events}
+    assert {"engagement.surfaced", "engagement.stage_changed", "message.approved"} <= types
+
+    first = events[0]["ulid"]
+    ack = (await client.post(f"/api/v1/events/{first}/ack", headers=AUTH)).json()
+    assert ack["delivered"] is True
+    remaining = (await client.get("/api/v1/events", headers=AUTH)).json()
+    assert first not in {e["ulid"] for e in remaining}
+
+    health = (await client.get("/api/v1/events/health", headers=AUTH)).json()
+    assert health["undelivered"] == len(remaining)
+
+
+@pytest.mark.asyncio
+async def test_reciprocity_suggestion_on_advance(client):
+    # seed a firm + partner directly so the engagement can be partner-sourced
+    from src.models import FirmTier
+    from src.repository import firms as firms_repo, partners as partners_repo
+    firm = firms_repo.insert_firm(client.conn, name="TML", tier=FirmTier.specialist, region="London")
+    partner = partners_repo.insert_partner(client.conn, firm_id=firm.id, name="Jane")
+    org = (await client.post("/api/v1/orgs", json={"name": "Acme", "scale_band": "fortune_500"}, headers=AUTH)).json()
+    eng = (await client.post("/api/v1/engagements", json={
+        "org_ulid": org["ulid"], "role_title": "CMO", "role_type": "cmo",
+        "source_partner_ulid": partner.ulid}, headers=AUTH)).json()
+    adv = (await client.post(f"/api/v1/engagements/{eng['ulid']}/advance", json={"to_stage": "exploratory"}, headers=AUTH)).json()
+    assert adv["reciprocity_suggestion"] and "Jane" in adv["reciprocity_suggestion"]
+
+
+@pytest.mark.asyncio
 async def test_programme_status_and_milestones(client):
     await client.post("/api/v1/programme/milestones",
                       json={"phase": "close", "label": "Offer", "target_date": "2027-03-24",
