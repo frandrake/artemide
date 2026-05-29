@@ -1,6 +1,6 @@
 {
   "id": "artemide-cadence",
-  "versionId": "artemide-cadence-v2",
+  "versionId": "artemide-cadence-v3",
   "name": "Artemide \u00b7 Cadence",
   "nodes": [
     {
@@ -53,7 +53,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
@@ -75,7 +75,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 400,\n  \"system\": \"You are drafting a brief, warm professional check-in email in the owner\\u0027s voice to an executive-search partner. One short paragraph, specific, no filler, end with a light question. Return only the email body text.\",\n  \"messages\": [\n    { \"role\": \"user\", \"content\": {{ JSON.stringify(\"Partner: \" + $json.partner_name + \" at \" + $json.firm_name + \". Planned topic: \" + ($json.next_touch_topic || \"general check-in\") + \". Days since last contact: \" + $json.days_since_last_contact + \". Draft the check-in.\") }} }\n  ]\n}"
+        "jsonBody": "={{ {\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 400,\n  \"system\": \"You are drafting a brief, warm professional check-in email in the owner\\u0027s voice to an executive-search partner. One short paragraph, specific, no filler, end with a light question. Return only the email body text.\",\n  \"messages\": [ { \"role\": \"user\", \"content\": \"Partner: \" + $json.partner_name + \" at \" + $json.firm_name + \". Planned topic: \" + ($json.next_touch_topic || \"general check-in\") + \". Days since last contact: \" + $json.days_since_last_contact + \". Draft the check-in.\" } ]\n} }}"
       },
       "id": "cad-claude",
       "name": "Draft with Claude",
@@ -87,7 +87,7 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "name": "Anthropic API"
+          "name": "Header Auth account 2"
         }
       }
     },
@@ -109,7 +109,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"kind\": \"cadence_touch\",\n  \"channel\": \"email\",\n  \"partner_ulid\": {{ JSON.stringify($('Get due touches').item.json.partner_ulid) }},\n  \"recipient_hint\": {{ JSON.stringify($('Get due touches').item.json.partner_name) }},\n  \"body\": {{ JSON.stringify($json.content[0].text) }},\n  \"rationale\": {{ JSON.stringify(\"cadence touch \u00b7 \" + $('Get due touches').item.json.status) }}\n}"
+        "jsonBody": "={{ {\n  \"kind\": \"cadence_touch\",\n  \"channel\": \"email\",\n  \"partner_ulid\": $('Get due touches').item.json.partner_ulid,\n  \"recipient_hint\": $('Get due touches').item.json.partner_name,\n  \"body\": ($json.content && $json.content[0] ? $json.content[0].text : ''),\n  \"rationale\": 'cadence touch \u00b7 ' + $('Get due touches').item.json.status\n} }}"
       },
       "id": "cad-propose",
       "name": "Propose message",
@@ -121,22 +121,22 @@
       ],
       "credentials": {
         "httpHeaderAuth": {
-          "name": "Artemide Bot Token"
+          "name": "Header Auth account"
         }
       }
     },
     {
       "parameters": {
-        "content": "CADENCE (weekly)\n\nWeekly Mon 08:00 -> GET /planning/due-touches (14d window) ->\nClaude drafts each warm check-in in voice -> POST /messages (proposed,\nkind=cadence_touch). Owner approves in /messages; the Sender workflow then\nsends. This workflow NEVER calls /approve.\n\nCredentials to bind: 'Artemide Bot Token' (Header Auth, bot role) on the two\nArtemide nodes; 'Anthropic API' (Header Auth: x-api-key) on the Claude node.\nIdempotency-Key = cadence-<partner>-<ISO week>, so a re-run within the week\nreturns the same proposed message.",
+        "content": "CADENCE (weekly)\n\nWeekly -> GET /planning/due-touches (14d) -> Claude draft -> POST /messages\n(proposed, kind=cadence_touch). Owner approves in /messages; Sender sends.\nNever calls /approve.\n\nArtemide nodes: Header Auth, header name Authorization, value 'Bearer <bot>'.\nClaude node: Header Auth, header name x-api-key. JSON bodies are object-\nexpressions so n8n serialises them safely.",
         "height": 320,
-        "width": 460
+        "width": 470
       },
       "id": "cad-note",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -520,
+        -540,
         -40
       ]
     }
