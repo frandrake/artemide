@@ -1,4 +1,6 @@
 {
+  "id": "artemide-cadence",
+  "versionId": "artemide-cadence-v1",
   "name": "Artemide \u00b7 Cadence",
   "nodes": [
     {
@@ -122,10 +124,5 @@
   "pinData": {},
   "meta": {
     "templateId": "artemide-v1.2"
-  },
-  "tags": [
-    {
-      "name": "artemide-v1.2"
-    }
-  ]
+  }
 }

@@ -1,4 +1,6 @@
 {
+  "id": "artemide-sender",
+  "versionId": "artemide-sender-v1",
   "name": "Artemide \u00b7 Sender",
   "nodes": [
     {
@@ -173,10 +175,5 @@
   "pinData": {},
   "meta": {
     "templateId": "artemide-v1.2"
-  },
-  "tags": [
-    {
-      "name": "artemide-v1.2"
-    }
-  ]
+  }
 }

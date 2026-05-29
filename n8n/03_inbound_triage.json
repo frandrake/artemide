@@ -1,4 +1,6 @@
 {
+  "id": "artemide-inbound",
+  "versionId": "artemide-inbound-v1",
   "name": "Artemide \u00b7 Inbound triage",
   "nodes": [
     {
@@ -159,10 +161,5 @@
   "pinData": {},
   "meta": {
     "templateId": "artemide-v1.2"
-  },
-  "tags": [
-    {
-      "name": "artemide-v1.2"
-    }
-  ]
+  }
 }

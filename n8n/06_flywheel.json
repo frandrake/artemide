@@ -1,4 +1,6 @@
 {
+  "id": "artemide-flywheel",
+  "versionId": "artemide-flywheel-v1",
   "name": "Artemide \u00b7 Flywheel",
   "nodes": [
     {
@@ -134,10 +136,5 @@
   "pinData": {},
   "meta": {
     "templateId": "artemide-v1.2"
-  },
-  "tags": [
-    {
-      "name": "artemide-v1.2"
-    }
-  ]
+  }
 }
