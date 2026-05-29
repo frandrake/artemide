@@ -1,0 +1,148 @@
+{
+  "name": "Artemide \u00b7 Rollup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                5
+              ],
+              "triggerAtHour": 16
+            }
+          ]
+        }
+      },
+      "id": "friday-16:00",
+      "name": "Friday 16:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/programme/status",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "programme-status",
+      "name": "Programme status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        -120
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/engagements?sort=fit",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "engagements",
+      "name": "Engagements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/messages?status=proposed",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "proposed-messages",
+      "name": "Proposed messages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "ROLLUP (Friday 16:00)\n\nGET /programme/status + /engagements + /messages?status=proposed.\nClaude composes the Friday read-out incl. the Phase-1 slippage question;\nemail to the bot inbox. Owner reviews; replan if red.",
+        "height": 220,
+        "width": 420
+      },
+      "id": "note-6565",
+      "name": "Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Friday 16:00": {
+      "main": [
+        [
+          {
+            "node": "Programme status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Engagements",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Proposed messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "artemide-v1.2"
+  },
+  "tags": [
+    {
+      "name": "artemide-v1.2"
+    }
+  ]
+}

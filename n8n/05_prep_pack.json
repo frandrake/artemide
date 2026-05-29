@@ -1,0 +1,200 @@
+{
+  "name": "Artemide \u00b7 Prep pack",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "poll-outbox",
+      "name": "Poll outbox",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/events?limit=50",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-events",
+      "name": "Get events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://artemide.francescofederico.net/api/v1/engagements/{{ $json.entity_ulid }}' }}",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-engagement",
+      "name": "Get engagement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        -40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/notes",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+            }
+          ]
+        }
+      },
+      "id": "post-prep-note",
+      "name": "Post prep note",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://artemide.francescofederico.net/api/v1/events/{{ $json.ulid }}/ack' }}",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "ack-event",
+      "name": "Ack event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "PREP PACK (outbox engagement.stage_changed -> formal)\n\nFilter events to stage_changed with to_stage=formal. GET the engagement;\nClaude builds the SRA story bank, themes, five questions, weak spots;\nPOST /notes (entity_type=engagement). Owner reviews before interview.",
+        "height": 220,
+        "width": 420
+      },
+      "id": "note-97584",
+      "name": "Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Poll outbox": {
+      "main": [
+        [
+          {
+            "node": "Get events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get events": {
+      "main": [
+        [
+          {
+            "node": "Get engagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get engagement": {
+      "main": [
+        [
+          {
+            "node": "Post prep note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post prep note": {
+      "main": [
+        [
+          {
+            "node": "Ack event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "artemide-v1.2"
+  },
+  "tags": [
+    {
+      "name": "artemide-v1.2"
+    }
+  ]
+}

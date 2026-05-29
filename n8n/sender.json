@@ -1,0 +1,182 @@
+{
+  "name": "Artemide \u00b7 Sender",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "poll-outbox",
+      "name": "Poll outbox",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/events?limit=50",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-events",
+      "name": "Get events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send"
+      },
+      "id": "send-from-bot-mailbox",
+      "name": "Send from bot mailbox",
+      "type": "n8n-nodes-base.microsoftOutlook",
+      "typeVersion": 2,
+      "position": [
+        480,
+        -40
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://artemide.francescofederico.net/api/v1/messages/{{ $json.entity_ulid }}/sent' }}",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "mark-sent",
+      "name": "Mark sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://artemide.francescofederico.net/api/v1/events/{{ $json.ulid }}/ack' }}",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "ack-event",
+      "name": "Ack event",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "SENDER (outbox message.approved) \u2014 THE ONLY WORKFLOW THAT SENDS MAIL\n\nFilter events to message.approved (emitted only after the owner approves\nin the UI). Send from the bot mailbox, then POST /messages/{ulid}/sent and\nack the event. No workflow ever calls /approve (bot token returns 403).\nWire this LIVE only after eyeballing proposed drafts for a week.",
+        "height": 220,
+        "width": 420
+      },
+      "id": "note-5888",
+      "name": "Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Poll outbox": {
+      "main": [
+        [
+          {
+            "node": "Get events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get events": {
+      "main": [
+        [
+          {
+            "node": "Send from bot mailbox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send from bot mailbox": {
+      "main": [
+        [
+          {
+            "node": "Mark sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark sent": {
+      "main": [
+        [
+          {
+            "node": "Ack event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "artemide-v1.2"
+  },
+  "tags": [
+    {
+      "name": "artemide-v1.2"
+    }
+  ]
+}

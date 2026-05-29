@@ -1,0 +1,168 @@
+{
+  "name": "Artemide \u00b7 Inbound triage",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "messageReceived"
+      },
+      "id": "bot-mailbox-watch",
+      "name": "Bot mailbox watch",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/orgs",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+            }
+          ]
+        }
+      },
+      "id": "upsert-org",
+      "name": "Upsert org",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        -160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/engagements",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+            }
+          ]
+        }
+      },
+      "id": "upsert-engagement",
+      "name": "Upsert engagement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/messages",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"kind\": \"inbound_reply\",\n  \"body\": {{ JSON.stringify($json.draft) }},\n  \"source_ref\": {{ JSON.stringify($json.mailId) }}\n}"
+      },
+      "id": "propose-reply",
+      "name": "Propose reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        160
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "INBOUND TRIAGE (bot mailbox watch)\n\nClaude classifies relevant/borderline/off and drafts a calibrated reply\nwith one qualifying question. POST /orgs + /engagements where relevant,\nPOST /messages (proposed, kind=inbound_reply, source_ref=mail id).\nsource_ref gives idempotency (Rule 20): re-reads do not double-draft.\nHigh-priority pinged to the owner.",
+        "height": 220,
+        "width": 420
+      },
+      "id": "note-66334",
+      "name": "Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Bot mailbox watch": {
+      "main": [
+        [
+          {
+            "node": "Upsert org",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Upsert engagement",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Propose reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "artemide-v1.2"
+  },
+  "tags": [
+    {
+      "name": "artemide-v1.2"
+    }
+  ]
+}

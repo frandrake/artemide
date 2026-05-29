@@ -1,0 +1,174 @@
+{
+  "name": "Artemide \u00b7 Radar",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "daily-06:00",
+      "name": "Daily 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/orgs",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+            }
+          ]
+        }
+      },
+      "id": "upsert-org",
+      "name": "Upsert org",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        -120
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://artemide.francescofederico.net/api/v1/engagements",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $json.idempotency_key || $runIndex + '-' + $now.toMillis() }}"
+            }
+          ]
+        }
+      },
+      "id": "surface-engagement",
+      "name": "Surface engagement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://artemide.francescofederico.net/api/v1/engagements/{{ $json.ulid }}/rescore' }}",
+        "method": "POST",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "rescore",
+      "name": "Rescore",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "REPLACE_ARTEMIDE_BOT",
+          "name": "Artemide Bot Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "RADAR (daily 06:00)\n\nMonitor sources, classify relevance with Claude, then\nPOST /orgs (upsert) and /engagements (surfaced), and rescore.\nClaude composes the morning digest emailed to the bot inbox.\n\nDedupe on org name / engagement (org+role). Idempotency-Key on writes.\nAuth: Artemide Bot Token (bot role).",
+        "height": 220,
+        "width": 420
+      },
+      "id": "note-44908",
+      "name": "Guide",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Daily 06:00": {
+      "main": [
+        [
+          {
+            "node": "Upsert org",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert org": {
+      "main": [
+        [
+          {
+            "node": "Surface engagement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Surface engagement": {
+      "main": [
+        [
+          {
+            "node": "Rescore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateId": "artemide-v1.2"
+  },
+  "tags": [
+    {
+      "name": "artemide-v1.2"
+    }
+  ]
+}

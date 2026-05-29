@@ -12,3 +12,8 @@ backups/
 web/node_modules/
 web/dist/
 web/.astro/
+
+# n8n credential store / local exports — never commit credential values
+n8n/credentials*.json
+n8n/.cred*
+n8n/*.secret.json
