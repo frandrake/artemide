@@ -1,0 +1,11 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import EngagementsBoard from '../components/v12/EngagementsBoard';
+---
+<AppShell title="Engagements · Artemide" current="engagements">
+  <header class="v12-head">
+    <h1>Engagements</h1>
+    <p class="v12-subhead">Roles in motion, grouped by stage. Sorted by fit.</p>
+  </header>
+  <EngagementsBoard client:load />
+</AppShell>

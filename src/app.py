@@ -243,6 +243,20 @@ def _partner_detail_shell(ulid: str):
     return _serve_detail_shell("partner-detail")
 
 
+@app.get("/orgs/{ulid}", include_in_schema=False)
+def _org_detail_shell(ulid: str):
+    if not ulid or ulid == "index" or "/" in ulid:
+        raise HTTPException(status_code=404)
+    return _serve_detail_shell("org-detail")
+
+
+@app.get("/engagements/{ulid}", include_in_schema=False)
+def _engagement_detail_shell(ulid: str):
+    if not ulid or ulid == "index" or "/" in ulid:
+        raise HTTPException(status_code=404)
+    return _serve_detail_shell("engagement-detail")
+
+
 # ---------- static UI (Phase 5+) ----------
 if _ui_path.exists() and _ui_path.is_dir():
     app.mount("/", StaticFiles(directory=str(_ui_path), html=True), name="ui")

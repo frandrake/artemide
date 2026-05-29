@@ -1,0 +1,8 @@
+---
+// Shell served by FastAPI at /orgs/{ulid}. The island reads the ulid.
+import AppShell from '../components/layout/AppShell.astro';
+import OrgDetail from '../components/v12/OrgDetail';
+---
+<AppShell title="Organisation · Artemide" current="orgs">
+  <OrgDetail client:load />
+</AppShell>

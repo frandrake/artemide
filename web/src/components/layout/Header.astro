@@ -2,21 +2,26 @@
 interface Props {
   current?:
     | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
-    | 'engagement' | 'drafts' | 'templates' | 'pipeline';
+    | 'engagement' | 'drafts' | 'templates' | 'pipeline'
+    | 'engagements' | 'orgs' | 'messages' | 'programme';
 }
 const { current } = Astro.props;
 
 const primary = [
   { id: 'dashboard', href: '/', label: 'Dashboard' },
   { id: 'firms', href: '/firms', label: 'Firms' },
-  { id: 'pipeline', href: '/pipeline', label: 'Pipeline' },
-  { id: 'engagement', href: '/engagement', label: 'Engagement' },
-  { id: 'drafts', href: '/drafts', label: 'Drafts' },
+  { id: 'engagements', href: '/engagements', label: 'Engagements' },
+  { id: 'messages', href: '/messages', label: 'Messages' },
+  { id: 'programme', href: '/programme', label: 'Programme' },
   { id: 'plan', href: '/plan', label: 'Plan' },
   { id: 'audit', href: '/audit', label: 'Audit' },
 ] as const;
 
 const more = [
+  { id: 'orgs', href: '/orgs', label: 'Organisations' },
+  { id: 'pipeline', href: '/pipeline', label: 'Outreach pipeline' },
+  { id: 'engagement', href: '/engagement', label: 'Engagement calendar' },
+  { id: 'drafts', href: '/drafts', label: 'Drafts' },
   { id: 'templates', href: '/templates', label: 'Templates' },
   { id: 'search', href: '/search', label: 'Search' },
   { id: 'notes', href: '/notes', label: 'Notes' },

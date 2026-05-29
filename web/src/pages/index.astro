@@ -4,12 +4,15 @@ import PipelineOverview from '../components/dashboard/PipelineOverview';
 import UpcomingTouches from '../components/dashboard/UpcomingTouches';
 import AuditHighlights from '../components/dashboard/AuditHighlights';
 import OutreachMetricsTiles from '../components/dashboard/OutreachMetricsTiles';
+import ProgrammeBanner from '../components/v12/ProgrammeBanner';
 ---
 <AppShell title="Dashboard · Artemide" current="dashboard">
   <header class="page-head">
     <h1>Dashboard</h1>
-    <p class="page-subhead">Pipeline state, upcoming touches, audit highlights.</p>
+    <p class="page-subhead">Programme status, pipeline, upcoming touches, audit highlights.</p>
   </header>
+
+  <ProgrammeBanner client:load />
 
   <OutreachMetricsTiles client:load />
 

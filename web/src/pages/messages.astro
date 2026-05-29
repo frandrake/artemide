@@ -1,0 +1,11 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import ApprovalInbox from '../components/v12/ApprovalInbox';
+---
+<AppShell title="Messages · Artemide" current="messages">
+  <header class="v12-head">
+    <h1>Approval inbox</h1>
+    <p class="v12-subhead">Proposed messages. Approve to release; nothing sends without you.</p>
+  </header>
+  <ApprovalInbox client:load />
+</AppShell>

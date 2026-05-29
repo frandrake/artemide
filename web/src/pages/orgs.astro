@@ -1,0 +1,11 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import OrgsList from '../components/v12/OrgsList';
+---
+<AppShell title="Organisations · Artemide" current="orgs">
+  <header class="v12-head">
+    <h1>Organisations</h1>
+    <p class="v12-subhead">Organisations of interest, grouped by watch state.</p>
+  </header>
+  <OrgsList client:load />
+</AppShell>

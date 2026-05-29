@@ -1,0 +1,8 @@
+---
+// Shell served by FastAPI at /engagements/{ulid}. The island reads the ulid.
+import AppShell from '../components/layout/AppShell.astro';
+import EngagementDetail from '../components/v12/EngagementDetail';
+---
+<AppShell title="Engagement · Artemide" current="engagements">
+  <EngagementDetail client:load />
+</AppShell>

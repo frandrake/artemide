@@ -1,0 +1,11 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import ProgrammePage from '../components/v12/ProgrammePage';
+---
+<AppShell title="Programme · Artemide" current="programme">
+  <header class="v12-head">
+    <h1>Programme</h1>
+    <p class="v12-subhead">Phase status, milestones, and days to target.</p>
+  </header>
+  <ProgrammePage client:load />
+</AppShell>
