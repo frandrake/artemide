@@ -50,6 +50,7 @@ def _engagement_response(
     org = org_map.get(e.org_id) if org_map is not None else orgs_repo.get_org_by_id(ctx.conn, e.org_id)
     payload["org_ulid"] = org.ulid if org else None
     payload["org_name"] = org.name if org else None
+    payload["org_scale_band"] = org.scale_band.value if (org and org.scale_band) else None
     if e.source_partner_id is not None:
         partner = (
             partner_map.get(e.source_partner_id)

@@ -172,3 +172,23 @@ async def test_engagements_list_is_not_n_plus_1(client):
     # the enriched fields are still correct
     names = {e["org_name"] for e in r.json()}
     assert names == {"Org One", "Org Two"}
+    assert all(e["org_scale_band"] == "fortune_500" for e in r.json())
+
+
+@pytest.mark.asyncio
+async def test_draft_list_exposes_partner_ulid(client):
+    """The drafts list injects partner_ulid (id is stripped) so the global
+    Drafts page can open the editor for the right partner."""
+    from src.models import FirmTier
+    from src.repository import firms as firms_repo
+    from src.repository import outreach as outreach_repo
+    from src.repository import partners as partners_repo
+
+    firm = firms_repo.insert_firm(client.conn, name="TML", tier=FirmTier.specialist)
+    partner = partners_repo.insert_partner(client.conn, firm_id=firm.id, name="Imogen Carr")
+    outreach_repo.insert_draft(client.conn, partner_id=partner.id, channel="email", body="hi")
+
+    rows = (await client.get("/api/v1/outreach/drafts", headers=AUTH)).json()
+    assert len(rows) == 1
+    assert rows[0]["partner_ulid"] == partner.ulid
+    assert "partner_id" not in rows[0]  # internal pk stays stripped

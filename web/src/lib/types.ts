@@ -102,7 +102,7 @@ export interface TemplateRecord {
 
 export interface OutreachDraftRecord {
   ulid: string;
-  partner_id: number;
+  partner_ulid: string | null;
   template_id: number | null;
   channel: OutreachChannel;
   subject: string | null;
@@ -380,6 +380,7 @@ export interface Engagement {
   ulid: string;
   org_ulid: string | null;
   org_name: string | null;
+  org_scale_band: ScaleBand | null;
   role_title: string;
   role_type: RoleType | null;
   source: EngagementSource | null;

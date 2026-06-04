@@ -21,8 +21,8 @@ export function Toast({ message, tone = 'info', onDismiss }: ToastProps) {
   return (
     <div
       className={`toast toast--${tone}${visible ? '' : ' toast--fade'}`}
-      role="status"
-      aria-live="polite"
+      role={tone === 'error' ? 'alert' : 'status'}
+      aria-live={tone === 'error' ? 'assertive' : 'polite'}
     >
       <span className="toast__message">{message}</span>
       <button

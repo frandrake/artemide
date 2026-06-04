@@ -14,7 +14,7 @@
   color: var(--charcoal);
   min-width: 280px;
   max-width: 480px;
-  box-shadow: 0 2px 8px rgba(43, 45, 48, 0.15);
+  border: 1px solid rgba(43, 45, 48, 0.12);
   opacity: 1;
   transition: opacity 200ms ease;
 }

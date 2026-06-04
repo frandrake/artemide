@@ -29,10 +29,11 @@ export default function EngagementsBoard() {
     for (const e of data ?? []) {
       if (e.stage === 'closed') continue;
       if (interest && e.interest !== interest) continue;
+      if (band && e.org_scale_band !== band) continue;
       (groups[e.stage] ??= []).push(e);
     }
     return groups;
-  }, [data, interest]);
+  }, [data, interest, band]);
 
   if (loading) return <Skeleton height={320} />;
   if (error) return <p className="v12-error">{error}</p>;

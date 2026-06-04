@@ -13,6 +13,7 @@ from ..models import (
     OutreachSendInput,
 )
 from ..repository import outreach as outreach_repo
+from ..repository import partners as partners_repo
 from ..services import ServiceContext
 from ..services.outreach_service import OutreachService
 from ._serde import to_response, to_response_list
@@ -44,7 +45,14 @@ def list_drafts(
         channel=channel.value if channel else None,
         limit=limit,
     )
-    return to_response_list(items)
+    payloads = to_response_list(items)
+    # The serializer strips partner_id; surface partner_ulid (batched) so the
+    # global Drafts page can open the editor / render templates for the partner.
+    partner_map = partners_repo.get_partners_by_ids(ctx.conn, [d.partner_id for d in items])
+    for payload, draft in zip(payloads, items):
+        p = partner_map.get(draft.partner_id)
+        payload["partner_ulid"] = p.ulid if p else None
+    return payloads
 
 
 @router.post("/drafts")
