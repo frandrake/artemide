@@ -25,16 +25,32 @@ router = APIRouter(prefix="/api/v1/messages", tags=["messages"])
 _EXCLUDE = {"engagement_id"}  # partner_id already stripped by _serde
 
 
-def _message_response(ctx: ServiceContext, m: MessageRecord) -> dict[str, Any]:
+def _message_response(
+    ctx: ServiceContext,
+    m: MessageRecord,
+    *,
+    partner_map: dict[int, Any] | None = None,
+    engagement_map: dict[int, Any] | None = None,
+) -> dict[str, Any]:
+    # When maps are supplied (list path) reads come from the preloaded batch,
+    # avoiding a per-row N+1; otherwise fall back to single-row lookups.
     payload = to_response(m, extra_exclude=_EXCLUDE)
     if m.partner_id is not None:
-        partner = partners_repo.get_partner_by_id(ctx.conn, m.partner_id)
+        partner = (
+            partner_map.get(m.partner_id)
+            if partner_map is not None
+            else partners_repo.get_partner_by_id(ctx.conn, m.partner_id)
+        )
         payload["partner_ulid"] = partner.ulid if partner else None
         payload["partner_name"] = partner.name if partner else None
     else:
         payload["partner_ulid"] = None
     if m.engagement_id is not None:
-        e = engagements_repo.get_engagement_by_id(ctx.conn, m.engagement_id)
+        e = (
+            engagement_map.get(m.engagement_id)
+            if engagement_map is not None
+            else engagements_repo.get_engagement_by_id(ctx.conn, m.engagement_id)
+        )
         payload["engagement_ulid"] = e.ulid if e else None
     else:
         payload["engagement_ulid"] = None
@@ -51,7 +67,16 @@ def list_messages(
     items = MessagesService.list(
         ctx, status=status, partner_ulid=partner_ulid, engagement_ulid=engagement_ulid
     )
-    return [_message_response(ctx, m) for m in items]
+    partner_map = partners_repo.get_partners_by_ids(
+        ctx.conn, [m.partner_id for m in items if m.partner_id is not None]
+    )
+    engagement_map = engagements_repo.get_engagements_by_ids(
+        ctx.conn, [m.engagement_id for m in items if m.engagement_id is not None]
+    )
+    return [
+        _message_response(ctx, m, partner_map=partner_map, engagement_map=engagement_map)
+        for m in items
+    ]
 
 
 @router.post("")

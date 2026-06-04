@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,7 +32,7 @@ def trigger_backup(ctx: ServiceContext = Depends(get_context)):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="backup script unavailable",
         )
-    timestamp = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     proc = subprocess.run(
         ["/bin/sh", str(script), timestamp],
         capture_output=True,
@@ -59,7 +59,7 @@ def list_backups(ctx: ServiceContext = Depends(get_context)):
         rows.append({
             "filename": p.name,
             "size_bytes": st.st_size,
-            "modified_at": datetime.utcfromtimestamp(st.st_mtime).isoformat() + "Z",
+            "modified_at": datetime.fromtimestamp(st.st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         })
     return {"backups": rows}
 

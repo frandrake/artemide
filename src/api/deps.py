@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator
 
 from fastapi import Depends, Header, Request, Response
@@ -82,7 +82,7 @@ def store_idempotent_response(
 ) -> None:
     if not key:
         return
-    expires_at = (datetime.utcnow() + timedelta(hours=_IDEMPOTENCY_TTL_HOURS)).strftime(
+    expires_at = (datetime.now(timezone.utc) + timedelta(hours=_IDEMPOTENCY_TTL_HOURS)).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
     serialised = body if isinstance(body, str) else json.dumps(body, default=str)

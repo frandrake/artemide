@@ -62,6 +62,27 @@ def get_partner_by_ulid(conn: sqlite3.Connection, ulid: str) -> PartnerRecord | 
     return _row_to_record(row) if row else None
 
 
+def get_partners_by_ids(conn: sqlite3.Connection, ids: list[int]) -> dict[int, PartnerRecord]:
+    """Batch-load partners by id (avoids per-row N+1 in list responses)."""
+    unique = list({i for i in ids if i is not None})
+    if not unique:
+        return {}
+    placeholders = ",".join("?" * len(unique))
+    rows = conn.execute(
+        f"SELECT {_COLUMNS} FROM partners WHERE id IN ({placeholders})", unique
+    ).fetchall()
+    return {r["id"]: _row_to_record(r) for r in rows}
+
+
+def list_all_partners(conn: sqlite3.Connection, *, include_deleted: bool = False) -> list[PartnerRecord]:
+    """All partners in one query (used by the audit report to avoid per-firm N+1)."""
+    where = "" if include_deleted else "WHERE deleted_at IS NULL"
+    rows = conn.execute(
+        f"SELECT {_COLUMNS} FROM partners {where} ORDER BY firm_id, name"
+    ).fetchall()
+    return [_row_to_record(r) for r in rows]
+
+
 def get_partner_by_name(conn: sqlite3.Connection, firm_id: int, name: str) -> PartnerRecord | None:
     row = conn.execute(
         f"SELECT {_COLUMNS} FROM partners WHERE firm_id = ? AND name = ?", (firm_id, name)
