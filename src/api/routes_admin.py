@@ -21,6 +21,9 @@ def _backup_dir() -> Path:
 
 @router.post("/backup")
 def trigger_backup(ctx: ServiceContext = Depends(get_context)):
+    # Owner-only: spawning a backup subprocess is an operator action, not
+    # something the n8n bot should be able to do (mirrors rotate/issue-token).
+    assert_owner(ctx, operation="trigger backup")
     # admin-backup.sh runs *inside* the container; scripts/backup.sh is
     # the host-side counterpart used by cron / restore.sh.
     script = Path(os.environ.get("ARTEMIDE_BACKUP_SCRIPT", "/app/scripts/admin-backup.sh"))

@@ -64,6 +64,7 @@ async def _outbox_sweep_loop() -> None:
     inbound ports. Best-effort: a sweep failure never tears down the app."""
     import asyncio
 
+    from .api.deps import prune_expired_idempotency_keys
     from .db import get_connection
     from .services.outbox_service import OutboxService
 
@@ -77,6 +78,9 @@ async def _outbox_sweep_loop() -> None:
             conn = get_connection()
             try:
                 OutboxService.sweep(conn)
+                # Retention: keep the outbox and idempotency cache bounded.
+                OutboxService.prune(conn)
+                prune_expired_idempotency_keys(conn)
             finally:
                 conn.close()
         except Exception as e:  # pragma: no cover - defensive

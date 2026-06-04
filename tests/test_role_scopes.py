@@ -18,6 +18,10 @@ os.environ.setdefault("ARTEMIDE_COOKIE_DOMAIN", "")
 
 from src.app import app  # noqa: E402
 from src.api.deps import get_db  # noqa: E402
+from src.models import FirmTier  # noqa: E402
+from src.repository import firms as firms_repo  # noqa: E402
+from src.repository import partners as partners_repo  # noqa: E402
+from src.repository import templates as templates_repo  # noqa: E402
 
 OWNER = {"Authorization": "Bearer test-token"}
 BOT = {"Authorization": "Bearer bot-token"}
@@ -58,7 +62,17 @@ async def _seed(client) -> dict:
     org = (await client.post("/api/v1/orgs", json={"name": "Acme", "scale_band": "fortune_500"}, headers=BOT)).json()
     eng = (await client.post("/api/v1/engagements", json={"org_ulid": org["ulid"], "role_title": "CMO", "role_type": "cmo"}, headers=BOT)).json()
     msg = (await client.post("/api/v1/messages", json={"body": "hi"}, headers=BOT)).json()
-    return {"org": org["ulid"], "eng": eng["ulid"], "msg": msg["ulid"]}
+    # Seed firm/partner/template directly — their delete/restore are owner-only
+    # (Rule 18) and that's exactly what we assert a bot cannot reach.
+    firm = firms_repo.insert_firm(client.conn, name="TML", tier=FirmTier.specialist, region="London")
+    partner = partners_repo.insert_partner(client.conn, firm_id=firm.id, name="Imogen Carr")
+    template = templates_repo.insert_template(
+        client.conn, name="Intro", channel="email", body_template="Hi {{first_name}}"
+    )
+    return {
+        "org": org["ulid"], "eng": eng["ulid"], "msg": msg["ulid"],
+        "firm": firm.ulid, "partner": partner.ulid, "template": template.ulid,
+    }
 
 
 @pytest.mark.asyncio
@@ -83,6 +97,15 @@ async def test_owner_only_endpoints_reject_bot(client):
         ("post", f"/api/v1/messages/{ids['msg']}/approve", None),
         ("post", f"/api/v1/messages/{ids['msg']}/discard", None),
         ("post", "/api/v1/programme/milestones", {"phase": "seed", "label": "x", "target_date": "2026-09-30"}),
+        # soft delete / restore are owner-only for every soft-deletable entity
+        ("delete", f"/api/v1/firms/{ids['firm']}", None),
+        ("post", f"/api/v1/firms/{ids['firm']}/restore", None),
+        ("delete", f"/api/v1/partners/{ids['partner']}", None),
+        ("post", f"/api/v1/partners/{ids['partner']}/restore", None),
+        ("delete", f"/api/v1/templates/{ids['template']}", None),
+        ("post", f"/api/v1/templates/{ids['template']}/restore", None),
+        # operator actions
+        ("post", "/api/v1/admin/backup", None),
     ]
     for method, path, body in owner_only:
         resp = await getattr(client, method)(path, json=body, headers=BOT) if body is not None \

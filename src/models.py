@@ -792,6 +792,9 @@ class EngagementUpdateInput(BaseModel):
 class AdvanceStageInput(BaseModel):
     to_stage: EngagementStage
     summary: str | None = None
+    # Required only when to_stage == closed: closing is routed through the
+    # single close() path so closed_reason is never left NULL (Rule 14).
+    closed_reason: ClosedReason | None = None
 
 
 class CloseEngagementInput(BaseModel):

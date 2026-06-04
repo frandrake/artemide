@@ -13,7 +13,7 @@ from ..models import (
 from ..repository import firms as firms_repo
 from ..repository import partners as partners_repo
 from ..repository import search_index as search_repo
-from . import ServiceContext, transaction
+from . import ServiceContext, assert_owner, transaction
 from .audit_service import AuditService
 from .exceptions import ConflictError, InvalidStateTransitionError, NotFoundError, ValidationError
 
@@ -186,6 +186,7 @@ class FirmsService:
 
     @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:
+        assert_owner(ctx, operation="delete firm")
         with transaction(ctx.conn):
             firm = FirmsService.get_by_ulid(ctx, ulid)
             if firm.deleted_at is not None:
@@ -222,6 +223,7 @@ class FirmsService:
 
     @staticmethod
     def restore(ctx: ServiceContext, ulid: str) -> FirmRecord:
+        assert_owner(ctx, operation="restore firm")
         with transaction(ctx.conn):
             firm = firms_repo.get_firm_by_ulid(ctx.conn, ulid)
             if firm is None:

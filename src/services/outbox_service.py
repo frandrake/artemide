@@ -30,6 +30,13 @@ def _enabled() -> bool:
     return (os.environ.get("ARTEMIDE_OUTBOX_ENABLED", "true") or "").lower() in {"1", "true", "yes", "on"}
 
 
+def _retention_days() -> int:
+    try:
+        return int(os.environ.get("ARTEMIDE_OUTBOX_RETENTION_DAYS", "30"))
+    except ValueError:
+        return 30
+
+
 def _json_default(obj: Any) -> Any:
     if hasattr(obj, "isoformat"):
         return obj.isoformat()
@@ -80,6 +87,13 @@ class OutboxService:
         run repeatedly. Returns the number of events bumped. Events past the cap
         remain undelivered and are surfaced via health()."""
         return outbox_repo.bump_undelivered_attempts(conn)
+
+    @staticmethod
+    def prune(conn: sqlite3.Connection, *, older_than_days: int | None = None) -> int:
+        """Delete delivered events older than the retention window so the
+        append-only table doesn't grow unbounded. Undelivered events are kept."""
+        days = older_than_days if older_than_days is not None else _retention_days()
+        return outbox_repo.delete_delivered_before(conn, older_than_days=days)
 
     @staticmethod
     def health(ctx: ServiceContext) -> OutboxHealth:

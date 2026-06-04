@@ -97,3 +97,12 @@ def idempotency_key_header(
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> str | None:
     return idempotency_key
+
+
+def prune_expired_idempotency_keys(conn: sqlite3.Connection) -> int:
+    """Delete idempotency keys past their TTL so the cache (which stores full
+    response bodies) doesn't grow unbounded. Returns rows deleted."""
+    cur = conn.execute(
+        "DELETE FROM idempotency_keys WHERE expires_at < CURRENT_TIMESTAMP"
+    )
+    return cur.rowcount

@@ -10,7 +10,7 @@ from ..models import AuditAction, FirmRecord, PartnerRecord, PartnerUpdateInput,
 from ..repository import firms as firms_repo
 from ..repository import partners as partners_repo
 from ..repository import search_index as search_repo
-from . import ServiceContext, transaction
+from . import ServiceContext, assert_owner, transaction
 from .audit_service import AuditService
 from .exceptions import ConflictError, InvalidStateTransitionError, NotFoundError, ValidationError
 
@@ -261,6 +261,7 @@ class PartnersService:
 
     @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:
+        assert_owner(ctx, operation="delete partner")
         with transaction(ctx.conn):
             pwf = PartnersService.get_by_ulid(ctx, ulid)
             if pwf.partner.deleted_at is not None:
@@ -282,6 +283,7 @@ class PartnersService:
 
     @staticmethod
     def restore(ctx: ServiceContext, ulid: str) -> PartnerRecord:
+        assert_owner(ctx, operation="restore partner")
         with transaction(ctx.conn):
             partner = partners_repo.get_partner_by_ulid(ctx.conn, ulid)
             if partner is None:

@@ -79,6 +79,17 @@ def bump_undelivered_attempts(conn: sqlite3.Connection) -> int:
     return cur.rowcount
 
 
+def delete_delivered_before(conn: sqlite3.Connection, *, older_than_days: int) -> int:
+    """Prune already-delivered events older than the retention window. Undelivered
+    events are never removed (they still need a consumer). Returns rows deleted."""
+    cur = conn.execute(
+        "DELETE FROM events_outbox "
+        "WHERE delivered_at IS NOT NULL AND delivered_at < datetime('now', ?)",
+        (f"-{int(older_than_days)} days",),
+    )
+    return cur.rowcount
+
+
 def count_undelivered(conn: sqlite3.Connection) -> int:
     row = conn.execute("SELECT COUNT(*) FROM events_outbox WHERE delivered_at IS NULL").fetchone()
     return int(row[0])

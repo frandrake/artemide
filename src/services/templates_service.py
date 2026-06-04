@@ -16,7 +16,7 @@ from ..repository import firms as firms_repo
 from ..repository import templates as templates_repo
 from ..repository import search_index as search_repo
 from ..repository import calendar as calendar_repo
-from . import ServiceContext, transaction
+from . import ServiceContext, assert_owner, transaction
 from .audit_service import AuditService
 from .exceptions import ConflictError, NotFoundError, ValidationError
 from .template_render import build_context, render
@@ -131,6 +131,7 @@ class TemplatesService:
 
     @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:
+        assert_owner(ctx, operation="delete template")
         with transaction(ctx.conn):
             rec = TemplatesService.get_by_ulid(ctx, ulid)
             if rec.deleted_at is not None:
@@ -151,6 +152,7 @@ class TemplatesService:
 
     @staticmethod
     def restore(ctx: ServiceContext, ulid: str) -> TemplateRecord:
+        assert_owner(ctx, operation="restore template")
         with transaction(ctx.conn):
             rec = templates_repo.get_template_by_ulid(ctx.conn, ulid)
             if rec is None:
