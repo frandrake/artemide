@@ -230,29 +230,34 @@ class FirmsService:
                 raise NotFoundError(f"firm not found: {ulid}")
             if firm.deleted_at is None:
                 return firm
-            firms_repo.restore_firm(ctx.conn, firm.id)
-            restored = firms_repo.get_firm_by_ulid(ctx.conn, ulid)
-            assert restored is not None
-            primary, secondary = _firm_search_text(restored)
-            search_repo.upsert_search_row(
-                ctx.conn,
-                entity_type="firm",
-                entity_ulid=restored.ulid,
-                primary_text=primary,
-                secondary_text=secondary,
-            )
-            AuditService.record(
-                ctx,
-                action=AuditAction.restore,
-                entity_type="firm",
-                entity_id=restored.id,
-                entity_ulid=restored.ulid,
-                before=None,
-                after=_record_to_dict(restored),
-            )
-            return restored
+            return FirmsService._restore_internal(ctx, firm)
 
     # Internal helpers — not part of the public API but used by ImportService.
+
+    @staticmethod
+    def _restore_internal(ctx: ServiceContext, firm: FirmRecord) -> FirmRecord:
+        """Un-delete a firm and re-index it. No owner gate and no transaction of
+        its own — the caller supplies both (restore() and ImportService)."""
+        firms_repo.restore_firm(ctx.conn, firm.id)
+        restored = firms_repo.get_firm_by_id(ctx.conn, firm.id) or firm
+        primary, secondary = _firm_search_text(restored)
+        search_repo.upsert_search_row(
+            ctx.conn,
+            entity_type="firm",
+            entity_ulid=restored.ulid,
+            primary_text=primary,
+            secondary_text=secondary,
+        )
+        AuditService.record(
+            ctx,
+            action=AuditAction.restore,
+            entity_type="firm",
+            entity_id=restored.id,
+            entity_ulid=restored.ulid,
+            before=None,
+            after=_record_to_dict(restored),
+        )
+        return restored
 
     @staticmethod
     def _create_internal(

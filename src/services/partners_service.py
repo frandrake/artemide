@@ -295,24 +295,32 @@ class PartnersService:
             assert firm is not None
             if firm.deleted_at is not None:
                 raise InvalidStateTransitionError("restore the parent firm before restoring this partner")
-            partners_repo.restore_partner(ctx.conn, partner.id)
-            restored = partners_repo.get_partner_by_ulid(ctx.conn, ulid)
-            assert restored is not None
-            primary, secondary = _partner_search_text(restored, firm.name)
-            search_repo.upsert_search_row(
-                ctx.conn,
-                entity_type="partner",
-                entity_ulid=restored.ulid,
-                primary_text=primary,
-                secondary_text=secondary,
-            )
-            AuditService.record(
-                ctx,
-                action=AuditAction.restore,
-                entity_type="partner",
-                entity_id=restored.id,
-                entity_ulid=restored.ulid,
-                before=None,
-                after=_record_to_dict(restored),
-            )
-            return restored
+            return PartnersService._restore_internal(ctx, partner, firm)
+
+    @staticmethod
+    def _restore_internal(
+        ctx: ServiceContext, partner: PartnerRecord, firm: FirmRecord
+    ) -> PartnerRecord:
+        """Un-delete a partner under an already-active firm and re-index it. No
+        owner gate / no transaction of its own — the caller supplies both
+        (restore() and ImportService). The firm must already be active."""
+        partners_repo.restore_partner(ctx.conn, partner.id)
+        restored = partners_repo.get_partner_by_ulid(ctx.conn, partner.ulid) or partner
+        primary, secondary = _partner_search_text(restored, firm.name)
+        search_repo.upsert_search_row(
+            ctx.conn,
+            entity_type="partner",
+            entity_ulid=restored.ulid,
+            primary_text=primary,
+            secondary_text=secondary,
+        )
+        AuditService.record(
+            ctx,
+            action=AuditAction.restore,
+            entity_type="partner",
+            entity_id=restored.id,
+            entity_ulid=restored.ulid,
+            before=None,
+            after=_record_to_dict(restored),
+        )
+        return restored

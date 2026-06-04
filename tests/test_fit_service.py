@@ -166,3 +166,24 @@ def test_rescore_all_counts_open_engagements(db):
     engagements_repo.set_closed(db, closed_eng.id, "lapsed")
     ctx = ServiceContext(conn=db, actor="FF", transport="system")
     assert FitService.rescore_all(ctx) == 1  # only the open one
+
+
+# ---------- profile input validation ----------
+
+def test_fit_profile_input_rejects_degenerate_weights():
+    from pydantic import ValidationError as PydanticValidationError
+
+    from src.models import FitProfileInput
+
+    base = dict(
+        comp_base_floor_gbp=250_000,
+        comp_total_target_gbp=500_000,
+        accepted_role_types=["cmo"],
+        accepted_scale_bands=["fortune_500"],
+        hard_exclusions=[],
+    )
+    for bad in ({}, {"role_type": 0, "comp": 0}, {"role_type": -5, "comp": 5}):
+        with pytest.raises(PydanticValidationError):
+            FitProfileInput(**base, weights=bad)
+    # a positive-sum, non-negative set still constructs
+    assert FitProfileInput(**base, weights={"role_type": 100}).weights == {"role_type": 100}

@@ -113,7 +113,9 @@ def mark_sent(conn: sqlite3.Connection, message_id: int) -> None:
 def update_body_subject(
     conn: sqlite3.Connection, message_id: int, *, subject: str | None, body: str | None
 ) -> None:
-    sets: list[str] = ["status = 'edited'"]
+    # Editing reverts the message to an unapproved ('edited') state, so any prior
+    # approval no longer applies — clear approved_at to keep the trail honest.
+    sets: list[str] = ["status = 'edited'", "approved_at = NULL"]
     params: list[Any] = []
     if subject is not None:
         sets.append("subject = ?")

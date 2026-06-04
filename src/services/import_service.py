@@ -17,6 +17,7 @@ from ..repository import firms as firms_repo
 from ..repository import partners as partners_repo
 from . import ServiceContext, transaction
 from .audit_service import AuditService
+from .exceptions import ValidationError
 from .firms_service import FirmsService
 from .partners_service import PartnersService
 
@@ -211,13 +212,15 @@ class ImportService:
         overwrite_existing: bool = False,
     ) -> ImportSummary:
         summary = ImportSummary()
-        with transaction(ctx.conn):
-            try:
-                parsed_firms = _parse(content)
-            except Exception as e:
-                summary.errors.append(f"parse error: {e}")
-                raise
+        # Parse fully before opening the write transaction: parsing is pure, so a
+        # malformed ledger fails fast with a structured error and writes nothing
+        # (no partial import, and the error reaches the caller instead of a 500).
+        try:
+            parsed_firms = _parse(content)
+        except Exception as e:
+            raise ValidationError(f"could not parse ledger: {e}") from e
 
+        with transaction(ctx.conn):
             for pfirm in parsed_firms:
                 existing_firm = firms_repo.get_firm_by_name(ctx.conn, pfirm.name)
                 if existing_firm is None:
@@ -233,9 +236,17 @@ class ImportService:
                     summary.firms_created += 1
                 else:
                     firm = existing_firm
+                    resurrected = False
+                    if firm.deleted_at is not None:
+                        # Re-import resurrects a soft-deleted firm rather than
+                        # attaching new partners/contacts to a tombstone.
+                        firm = FirmsService._restore_internal(ctx, firm)
+                        resurrected = True
                     update_fields = _firm_fields_for_update(pfirm)
                     if overwrite_existing and update_fields:
-                        FirmsService._update_internal(ctx, firm=existing_firm, fields=update_fields)
+                        FirmsService._update_internal(ctx, firm=firm, fields=update_fields)
+                        summary.firms_updated += 1
+                    elif resurrected:
                         summary.firms_updated += 1
 
                 for pp in pfirm.partners:
@@ -250,21 +261,28 @@ class ImportService:
                             **_partner_upsert_kwargs(pp),
                         )
                         summary.partners_created += 1
-                    elif overwrite_existing:
-                        PartnersService.upsert(
-                            ctx,
-                            firm_name=firm.name,
-                            name=pp.name,
-                            **_partner_upsert_kwargs(pp),
-                        )
-                        summary.partners_updated += 1
+                    else:
+                        if existing_partner.deleted_at is not None:
+                            # Resurrect a soft-deleted partner under the (now
+                            # active) firm rather than logging onto a tombstone.
+                            PartnersService._restore_internal(ctx, existing_partner, firm)
+                            if not overwrite_existing:
+                                summary.partners_updated += 1
+                        if overwrite_existing:
+                            PartnersService.upsert(
+                                ctx,
+                                firm_name=firm.name,
+                                name=pp.name,
+                                **_partner_upsert_kwargs(pp),
+                            )
+                            summary.partners_updated += 1
 
                     partner_row = partners_repo.get_partner_by_name(ctx.conn, firm.id, pp.name)
                     assert partner_row is not None
 
                     for c in pp.contacts:
                         if contacts_repo.is_duplicate_contact(
-                            ctx.conn, partner_row.id, c.contact_date, c.channel
+                            ctx.conn, partner_row.id, c.contact_date, c.channel, c.initiated_by
                         ):
                             summary.contacts_skipped += 1
                             continue

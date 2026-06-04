@@ -47,6 +47,56 @@ def test_overwrite_existing_re_updates_without_duplicating(ctx):
     assert third.contacts_skipped >= 3
 
 
+def test_malformed_ledger_fails_fast_and_writes_nothing(ctx):
+    from src.repository import firms as firms_repo
+    from src.services.exceptions import ValidationError
+
+    # A valid firm precedes a malformed Tier token; the whole import is rejected.
+    bad = "## Tier: primary\n### Firm: Good Firm\n## Tier: bogus_tier\n"
+    with pytest.raises(ValidationError):
+        ImportService.import_markdown(ctx, bad)
+    assert firms_repo.get_firm_by_name(ctx.conn, "Good Firm") is None  # nothing committed
+
+
+def test_reimport_resurrects_soft_deleted_firm(ctx):
+    from src.repository import firms as firms_repo
+    from src.repository import partners as partners_repo
+    from src.services.firms_service import FirmsService
+
+    md = FIXTURE.read_text()
+    ImportService.import_markdown(ctx, md)
+    firm = firms_repo.get_firm_by_name(ctx.conn, "TML Partners")
+    FirmsService.soft_delete(ctx, firm.ulid)  # cascades to its partners
+    assert firms_repo.get_firm_by_name(ctx.conn, "TML Partners").deleted_at is not None
+
+    # Re-import must revive the firm/partner, not attach onto a tombstone.
+    ImportService.import_markdown(ctx, md)
+    revived = firms_repo.get_firm_by_name(ctx.conn, "TML Partners")
+    assert revived.deleted_at is None
+    partner = partners_repo.get_partner_by_name(ctx.conn, revived.id, "Imogen Carr")
+    assert partner is not None and partner.deleted_at is None
+
+
+def test_import_keeps_both_directions_on_same_day(ctx):
+    md = (
+        "## Tier: primary\n"
+        "### Firm: Acme\n"
+        "#### Partner: Dana Lee\n"
+        "##### Contacts\n"
+        "- 2026-02-01 | email | me\n"
+        "  - **Summary:** outbound note\n"
+        "- 2026-02-01 | email | them\n"
+        "  - **Summary:** their reply\n"
+    )
+    summary = ImportService.import_markdown(ctx, md)
+    assert summary.contacts_imported == 2  # me + them are distinct, not collapsed
+    assert summary.contacts_skipped == 0
+    # and re-importing the same ledger is still idempotent
+    again = ImportService.import_markdown(ctx, md)
+    assert again.contacts_imported == 0
+    assert again.contacts_skipped == 2
+
+
 def test_round_trip_through_export(ctx, tmp_path):
     md = FIXTURE.read_text()
     ImportService.import_markdown(ctx, md)
