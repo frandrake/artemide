@@ -177,11 +177,12 @@ class EngagementsService:
 
     @staticmethod
     def _check_forward(current: str, to_stage: str) -> None:
-        """Rule 14: forward-only along the stage order, plus any → closed."""
+        """Rule 14: forward-only along the stage order. Closing is handled
+        separately (routed through close()), so it never reaches here."""
         if to_stage == "closed":
-            if current == "closed":
-                raise InvalidStateTransitionError("engagement already closed")
-            return
+            # Unreachable via advance_stage (which delegates closing to close());
+            # guard defensively so no path can close without a closed_reason.
+            raise InvalidStateTransitionError("use close() to close an engagement")
         if current == "closed":
             raise InvalidStateTransitionError("cannot advance a closed engagement")
         if to_stage not in ENGAGEMENT_STAGE_ORDER:
@@ -193,6 +194,18 @@ class EngagementsService:
 
     @staticmethod
     def advance_stage(ctx: ServiceContext, ulid: str, data: AdvanceStageInput) -> EngagementRecord:
+        if data.to_stage.value == "closed":
+            # Closing must capture a reason and flow through the single close()
+            # path (Rule 14) — advancing to 'closed' previously left
+            # closed_reason NULL and then permanently blocked close().
+            if data.closed_reason is None:
+                raise ValidationError(
+                    "closing an engagement requires closed_reason (or use the close operation)"
+                )
+            return EngagementsService.close(
+                ctx, ulid,
+                CloseEngagementInput(closed_reason=data.closed_reason, summary=data.summary),
+            )
         with transaction(ctx.conn):
             e = EngagementsService.get_by_ulid(ctx, ulid)
             from_stage = e.stage.value

@@ -13,7 +13,7 @@ from ..models import (
 from ..repository import firms as firms_repo
 from ..repository import partners as partners_repo
 from ..repository import search_index as search_repo
-from . import ServiceContext, transaction
+from . import ServiceContext, assert_owner, transaction
 from .audit_service import AuditService
 from .exceptions import ConflictError, InvalidStateTransitionError, NotFoundError, ValidationError
 
@@ -186,6 +186,7 @@ class FirmsService:
 
     @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:
+        assert_owner(ctx, operation="delete firm")
         with transaction(ctx.conn):
             firm = FirmsService.get_by_ulid(ctx, ulid)
             if firm.deleted_at is not None:
@@ -222,35 +223,41 @@ class FirmsService:
 
     @staticmethod
     def restore(ctx: ServiceContext, ulid: str) -> FirmRecord:
+        assert_owner(ctx, operation="restore firm")
         with transaction(ctx.conn):
             firm = firms_repo.get_firm_by_ulid(ctx.conn, ulid)
             if firm is None:
                 raise NotFoundError(f"firm not found: {ulid}")
             if firm.deleted_at is None:
                 return firm
-            firms_repo.restore_firm(ctx.conn, firm.id)
-            restored = firms_repo.get_firm_by_ulid(ctx.conn, ulid)
-            assert restored is not None
-            primary, secondary = _firm_search_text(restored)
-            search_repo.upsert_search_row(
-                ctx.conn,
-                entity_type="firm",
-                entity_ulid=restored.ulid,
-                primary_text=primary,
-                secondary_text=secondary,
-            )
-            AuditService.record(
-                ctx,
-                action=AuditAction.restore,
-                entity_type="firm",
-                entity_id=restored.id,
-                entity_ulid=restored.ulid,
-                before=None,
-                after=_record_to_dict(restored),
-            )
-            return restored
+            return FirmsService._restore_internal(ctx, firm)
 
     # Internal helpers — not part of the public API but used by ImportService.
+
+    @staticmethod
+    def _restore_internal(ctx: ServiceContext, firm: FirmRecord) -> FirmRecord:
+        """Un-delete a firm and re-index it. No owner gate and no transaction of
+        its own — the caller supplies both (restore() and ImportService)."""
+        firms_repo.restore_firm(ctx.conn, firm.id)
+        restored = firms_repo.get_firm_by_id(ctx.conn, firm.id) or firm
+        primary, secondary = _firm_search_text(restored)
+        search_repo.upsert_search_row(
+            ctx.conn,
+            entity_type="firm",
+            entity_ulid=restored.ulid,
+            primary_text=primary,
+            secondary_text=secondary,
+        )
+        AuditService.record(
+            ctx,
+            action=AuditAction.restore,
+            entity_type="firm",
+            entity_id=restored.id,
+            entity_ulid=restored.ulid,
+            before=None,
+            after=_record_to_dict(restored),
+        )
+        return restored
 
     @staticmethod
     def _create_internal(

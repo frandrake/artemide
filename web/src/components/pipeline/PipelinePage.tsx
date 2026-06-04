@@ -35,18 +35,26 @@ export default function PipelinePage() {
     return q ? `/api/v1/pipeline?${q}` : '/api/v1/pipeline';
   }, [tier, strategic, nedGateway]);
 
-  const { data, loading, refresh } = useFetch<PipelineSnapshot>(path);
+  const { data, loading, error, refresh } = useFetch<PipelineSnapshot>(path);
 
   const [dragging, setDragging] = useState<{ ulid: string; from: OutreachStage } | null>(null);
+  const [dropError, setDropError] = useState<string | null>(null);
 
   async function onDrop(stage: OutreachStage) {
     if (!dragging) return;
     if (dragging.from === stage) { setDragging(null); return; }
+    const moving = dragging;
+    setDragging(null);
     try {
-      await apiPost(`/api/v1/partners/${dragging.ulid}/outreach-stage`, { stage });
+      await apiPost(`/api/v1/partners/${moving.ulid}/outreach-stage`, { stage });
+      setDropError(null);
       await refresh();
-    } catch (e) { /* surface via reload */ }
-    finally { setDragging(null); }
+    } catch (e) {
+      setDropError(
+        e instanceof ApiError ? `Couldn't move card: ${e.message}` : "Couldn't move card — please retry.",
+      );
+      await refresh(); // resync the board to the server's truth
+    }
   }
 
   return (
@@ -73,7 +81,18 @@ export default function PipelinePage() {
 
       {loading && <Skeleton width="100%" height={300} />}
 
-      {data && (
+      {error && !loading && (
+        <div className="pipeline-page__error" role="alert">
+          <span>Couldn't load the pipeline. {error}</span>
+          <button type="button" onClick={() => refresh()}>Retry</button>
+        </div>
+      )}
+
+      {dropError && (
+        <div className="pipeline-page__error" role="alert">{dropError}</div>
+      )}
+
+      {!loading && !error && data && (
         <div className="pipeline-board">
           {STAGES.map(stage => (
             <PipelineColumn

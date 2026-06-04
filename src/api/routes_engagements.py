@@ -37,13 +37,26 @@ router = APIRouter(prefix="/api/v1/engagements", tags=["engagements"])
 _EXCLUDE = {"org_id", "source_partner_id"}
 
 
-def _engagement_response(ctx: ServiceContext, e: EngagementRecord) -> dict[str, Any]:
+def _engagement_response(
+    ctx: ServiceContext,
+    e: EngagementRecord,
+    *,
+    org_map: dict[int, Any] | None = None,
+    partner_map: dict[int, Any] | None = None,
+) -> dict[str, Any]:
+    # When maps are supplied (list path) reads come from the preloaded batch,
+    # avoiding a per-row N+1; otherwise fall back to single-row lookups.
     payload = to_response(e, extra_exclude=_EXCLUDE)
-    org = orgs_repo.get_org_by_id(ctx.conn, e.org_id)
+    org = org_map.get(e.org_id) if org_map is not None else orgs_repo.get_org_by_id(ctx.conn, e.org_id)
     payload["org_ulid"] = org.ulid if org else None
     payload["org_name"] = org.name if org else None
+    payload["org_scale_band"] = org.scale_band.value if (org and org.scale_band) else None
     if e.source_partner_id is not None:
-        partner = partners_repo.get_partner_by_id(ctx.conn, e.source_partner_id)
+        partner = (
+            partner_map.get(e.source_partner_id)
+            if partner_map is not None
+            else partners_repo.get_partner_by_id(ctx.conn, e.source_partner_id)
+        )
         payload["source_partner_ulid"] = partner.ulid if partner else None
         payload["source_partner_name"] = partner.name if partner else None
     else:
@@ -70,7 +83,11 @@ def list_engagements(
         ctx, stage=stage, interest=interest, org_ulid=org_ulid,
         source_partner_ulid=partner_ulid, sort=sort,
     )
-    return [_engagement_response(ctx, e) for e in items]
+    org_map = orgs_repo.get_orgs_by_ids(ctx.conn, [e.org_id for e in items])
+    partner_map = partners_repo.get_partners_by_ids(
+        ctx.conn, [e.source_partner_id for e in items if e.source_partner_id is not None]
+    )
+    return [_engagement_response(ctx, e, org_map=org_map, partner_map=partner_map) for e in items]
 
 
 @router.post("")

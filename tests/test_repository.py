@@ -73,8 +73,10 @@ def test_contacts_insert_list_and_duplicate(db):
     )
     listed = contacts.list_contacts_by_partner(db, p.id)
     assert len(listed) == 1
-    assert contacts.is_duplicate_contact(db, p.id, contact_date, ContactChannel.email) is True
-    assert contacts.is_duplicate_contact(db, p.id, contact_date, ContactChannel.call) is False
+    assert contacts.is_duplicate_contact(db, p.id, contact_date, ContactChannel.email, InitiatedBy.me) is True
+    assert contacts.is_duplicate_contact(db, p.id, contact_date, ContactChannel.call, InitiatedBy.me) is False
+    # same day + channel but the other direction is a distinct contact (e.g. their reply)
+    assert contacts.is_duplicate_contact(db, p.id, contact_date, ContactChannel.email, InitiatedBy.them) is False
 
 
 def test_notes_insert_and_list(db):

@@ -8,7 +8,7 @@ from src.repository import engagements as engagements_repo
 from src.repository import outbox as outbox_repo
 from src.services import ServiceContext
 from src.services.engagements_service import EngagementsService
-from src.services.exceptions import InvalidStateTransitionError
+from src.services.exceptions import InvalidStateTransitionError, ValidationError
 from src.services.orgs_service import OrgsService
 from src.models import UpsertOrgInput
 
@@ -62,10 +62,24 @@ def test_advance_emits_stage_changed(db):
     assert any(ev.event_type == "engagement.stage_changed" for ev in events)
 
 
+def test_advance_to_closed_requires_reason(db):
+    """Closing via advance must carry a closed_reason — never leave it NULL."""
+    ctx, e = _make_engagement(db)
+    with pytest.raises(ValidationError):
+        EngagementsService.advance_stage(ctx, e.ulid, AdvanceStageInput(to_stage=EngagementStage.closed))
+    # nothing committed: still in the opening stage
+    assert EngagementsService.get_by_ulid(ctx, e.ulid).stage == EngagementStage.surfaced
+
+
 def test_advance_to_closed_then_cannot_advance(db):
     ctx, e = _make_engagement(db)
-    closed = EngagementsService.advance_stage(ctx, e.ulid, AdvanceStageInput(to_stage=EngagementStage.closed))
+    closed = EngagementsService.advance_stage(
+        ctx, e.ulid,
+        AdvanceStageInput(to_stage=EngagementStage.closed, closed_reason=ClosedReason.withdrew, summary="paused"),
+    )
     assert closed.stage == EngagementStage.closed
+    # routed through close() → reason is persisted, not NULL
+    assert closed.closed_reason == ClosedReason.withdrew
     with pytest.raises(InvalidStateTransitionError):
         EngagementsService.advance_stage(ctx, e.ulid, AdvanceStageInput(to_stage=EngagementStage.exploratory))
 

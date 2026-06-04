@@ -101,12 +101,28 @@ def count_value_given_received(conn: sqlite3.Connection, partner_id: int) -> tup
     return (int(row["given"] or 0), int(row["received"] or 0))
 
 
+def value_counts_by_partner(conn: sqlite3.Connection) -> dict[int, tuple[int, int]]:
+    """Given/received value counts for every partner in one pass (audit report)."""
+    rows = conn.execute(
+        "SELECT partner_id, "
+        "SUM(CASE WHEN value_given IS NOT NULL AND value_given <> '' THEN 1 ELSE 0 END) AS given, "
+        "SUM(CASE WHEN value_received IS NOT NULL AND value_received <> '' THEN 1 ELSE 0 END) AS received "
+        "FROM contact_log GROUP BY partner_id"
+    ).fetchall()
+    return {int(r["partner_id"]): (int(r["given"] or 0), int(r["received"] or 0)) for r in rows}
+
+
 def is_duplicate_contact(
-    conn: sqlite3.Connection, partner_id: int, contact_date: date, channel: ContactChannel
+    conn: sqlite3.Connection,
+    partner_id: int,
+    contact_date: date,
+    channel: ContactChannel,
+    initiated_by: InitiatedBy,
 ) -> bool:
     row = conn.execute(
-        "SELECT 1 FROM contact_log WHERE partner_id = ? AND contact_date = ? AND channel = ? LIMIT 1",
-        (partner_id, contact_date, channel.value),
+        "SELECT 1 FROM contact_log WHERE partner_id = ? AND contact_date = ? "
+        "AND channel = ? AND initiated_by = ? LIMIT 1",
+        (partner_id, contact_date, channel.value, initiated_by.value),
     ).fetchone()
     return row is not None
 

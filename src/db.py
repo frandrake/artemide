@@ -24,6 +24,9 @@ def get_connection(db_path: str | None = None) -> sqlite3.Connection:
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
+    # Wait (instead of failing instantly with SQLITE_BUSY) when another writer
+    # holds the lock — e.g. the in-process outbox sweep overlapping a request.
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 

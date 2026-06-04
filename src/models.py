@@ -792,6 +792,9 @@ class EngagementUpdateInput(BaseModel):
 class AdvanceStageInput(BaseModel):
     to_stage: EngagementStage
     summary: str | None = None
+    # Required only when to_stage == closed: closing is routed through the
+    # single close() path so closed_reason is never left NULL (Rule 14).
+    closed_reason: ClosedReason | None = None
 
 
 class CloseEngagementInput(BaseModel):
@@ -810,6 +813,17 @@ class FitProfileInput(BaseModel):
     accepted_scale_bands: list[str]
     hard_exclusions: list[str]
     weights: dict[str, int]
+
+    @field_validator("weights")
+    @classmethod
+    def _weights_must_be_positive_sum(cls, v: dict[str, int]) -> dict[str, int]:
+        if not v:
+            raise ValueError("weights must not be empty")
+        if any(w < 0 for w in v.values()):
+            raise ValueError("weights must be non-negative")
+        if sum(v.values()) <= 0:
+            raise ValueError("weights must sum to a positive total")
+        return v
 
 
 class ProposeMessageInput(BaseModel):

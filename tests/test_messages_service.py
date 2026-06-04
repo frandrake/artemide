@@ -71,6 +71,21 @@ def test_source_ref_idempotency(db):
     assert len([r for r in rows if r.source_ref == "mail-123"]) == 1
 
 
+def test_edit_after_approve_revokes_approval(db):
+    owner = _ctx(db, "owner")
+    m = _propose(owner)
+    approved = MessagesService.approve(owner, m.ulid)
+    assert approved.approved_at is not None
+    from src.models import MessageEditInput
+    edited = MessagesService.edit(owner, m.ulid, MessageEditInput(body="revised after approval"))
+    assert edited.status == MessageStatus.edited
+    assert edited.approved_at is None  # editing an approved message clears the stale approval
+    # and it must be re-approved before it can be sent
+    from src.services.exceptions import ConflictError
+    with pytest.raises(ConflictError):
+        MessagesService.mark_sent(owner, m.ulid)
+
+
 def test_bot_cannot_edit_or_discard(db):
     owner = _ctx(db, "owner")
     bot = _ctx(db, "bot")

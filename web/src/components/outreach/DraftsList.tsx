@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useFetch } from '../../lib/useFetch';
-import type { DraftStatus, OutreachDraftRecord, Partner } from '../../lib/types';
+import type { DraftStatus, OutreachDraftRecord } from '../../lib/types';
 import Select from '../ui/Select';
 import Skeleton from '../ui/Skeleton';
 import EmptyState from '../ui/EmptyState';
@@ -18,31 +18,13 @@ export default function DraftsList() {
   }, [statusFilter]);
 
   const drafts = useFetch<OutreachDraftRecord[]>(path);
-  const partners = useFetch<Partner[]>('/api/v1/partners');
-
-  const partnerById = useMemo(() => {
-    const out: Record<number, Partner> = {};
-    for (const p of partners.data ?? []) {
-      // No id in the response (stripped), match on draft.partner_id via array index would be wrong.
-      // We re-fetch each draft's partner via API when opening the editor instead. Here use ulid lookup.
-    }
-    return out;
-  }, [partners.data]);
 
   const [editing, setEditing] = useState<{ partnerUlid: string; draftUlid: string } | null>(null);
 
   function openDraft(draft: OutreachDraftRecord) {
-    // Need partner_ulid; fetch on demand via /partners endpoint side data.
-    // Since list response has partner_id (numeric) but Partner type strips id, we fetch partner by id via a search.
-    // Simpler: GET /api/v1/outreach/drafts/{ulid} doesn't expose partner_ulid either.
-    // Use the partner list fetched here to resolve. We don't have partner_id in the Partner type — load it
-    // by looking up the partner via the partner-detail endpoint sequence is overkill. Instead, the editor
-    // takes partner_ulid; we look it up by traversing GET /partners with each one's ULID? No — we don't have
-    // partner_id↔ULID mapping in the typed response.
-    // Pragma: keep a small lookup that the API gives us — /partners returns the ULID but strips id.
-    // Easiest fix: call /api/v1/outreach/drafts/{ulid} and use its embedded info; for now, open editor
-    // with an empty partner_ulid and let DraftEditor resolve via the draft endpoint (which it already does).
-    setEditing({ partnerUlid: '', draftUlid: draft.ulid });
+    // The list response now carries partner_ulid (injected server-side), so the
+    // editor can render templates for the right partner.
+    setEditing({ partnerUlid: draft.partner_ulid ?? '', draftUlid: draft.ulid });
   }
 
   return (

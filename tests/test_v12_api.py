@@ -145,3 +145,50 @@ async def test_programme_status_and_milestones(client):
     status = (await client.get("/api/v1/programme/status", headers=AUTH)).json()
     assert "overall_rag" in status and "days_to_target" in status
     assert any(p["phase"] == "close" for p in status["phases"])
+
+
+@pytest.mark.asyncio
+async def test_engagements_list_is_not_n_plus_1(client):
+    """The list endpoint batch-loads orgs/partners — query count must not grow
+    per row (regression guard for the N+1 that _engagement_response had)."""
+    o1 = (await client.post("/api/v1/orgs", json={"name": "Org One", "scale_band": "fortune_500"}, headers=AUTH)).json()
+    o2 = (await client.post("/api/v1/orgs", json={"name": "Org Two", "scale_band": "fortune_500"}, headers=AUTH)).json()
+    for org, title in ((o1, "CMO A"), (o1, "CMO B"), (o2, "CMO C")):
+        await client.post("/api/v1/engagements",
+                          json={"org_ulid": org["ulid"], "role_title": title, "role_type": "cmo"},
+                          headers=AUTH)
+
+    sql_log: list[str] = []
+    client.conn.set_trace_callback(sql_log.append)
+    try:
+        r = await client.get("/api/v1/engagements", headers=AUTH)
+    finally:
+        client.conn.set_trace_callback(None)
+
+    assert r.status_code == 200 and len(r.json()) == 3
+    # one batched org lookup regardless of row count (was one-per-row before)
+    assert sum(1 for s in sql_log if "FROM organisations" in s) <= 1, sql_log
+    assert sum(1 for s in sql_log if "FROM partners" in s) <= 1, sql_log
+    # the enriched fields are still correct
+    names = {e["org_name"] for e in r.json()}
+    assert names == {"Org One", "Org Two"}
+    assert all(e["org_scale_band"] == "fortune_500" for e in r.json())
+
+
+@pytest.mark.asyncio
+async def test_draft_list_exposes_partner_ulid(client):
+    """The drafts list injects partner_ulid (id is stripped) so the global
+    Drafts page can open the editor for the right partner."""
+    from src.models import FirmTier
+    from src.repository import firms as firms_repo
+    from src.repository import outreach as outreach_repo
+    from src.repository import partners as partners_repo
+
+    firm = firms_repo.insert_firm(client.conn, name="TML", tier=FirmTier.specialist)
+    partner = partners_repo.insert_partner(client.conn, firm_id=firm.id, name="Imogen Carr")
+    outreach_repo.insert_draft(client.conn, partner_id=partner.id, channel="email", body="hi")
+
+    rows = (await client.get("/api/v1/outreach/drafts", headers=AUTH)).json()
+    assert len(rows) == 1
+    assert rows[0]["partner_ulid"] == partner.ulid
+    assert "partner_id" not in rows[0]  # internal pk stays stripped

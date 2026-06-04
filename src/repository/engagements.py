@@ -65,6 +65,18 @@ def get_engagement_by_id(conn: sqlite3.Connection, engagement_id: int) -> Engage
     return _row_to_record(row) if row else None
 
 
+def get_engagements_by_ids(conn: sqlite3.Connection, ids: list[int]) -> dict[int, EngagementRecord]:
+    """Batch-load engagements by id (avoids per-row N+1 in list responses)."""
+    unique = list({i for i in ids if i is not None})
+    if not unique:
+        return {}
+    placeholders = ",".join("?" * len(unique))
+    rows = conn.execute(
+        f"SELECT {_COLUMNS} FROM engagements WHERE id IN ({placeholders})", unique
+    ).fetchall()
+    return {r["id"]: _row_to_record(r) for r in rows}
+
+
 def get_engagement_by_ulid(conn: sqlite3.Connection, ulid: str) -> EngagementRecord | None:
     row = conn.execute(f"SELECT {_COLUMNS} FROM engagements WHERE ulid = ?", (ulid,)).fetchone()
     return _row_to_record(row) if row else None

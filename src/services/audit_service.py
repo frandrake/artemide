@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 
 from ..models import (
@@ -173,14 +173,21 @@ class AuditService:
     @staticmethod
     def generate_report(ctx: ServiceContext) -> AuditReport:
         today = date.today()
-        report = AuditReport(generated_at=datetime.utcnow().isoformat() + "Z")
+        report = AuditReport(generated_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"))
+
+        # Preload once — the report makes four passes over the same firms and
+        # partners, which was a 4x N+1. Logic below is unchanged; it just reads
+        # from these maps instead of re-querying per firm/partner.
+        all_firms = firms_repo.list_firms(ctx.conn)
+        partners_by_firm: dict[int, list] = {}
+        for _p in partners_repo.list_all_partners(ctx.conn):
+            partners_by_firm.setdefault(_p.firm_id, []).append(_p)
+        value_counts = contacts_repo.value_counts_by_partner(ctx.conn)
 
         for tier, target in ((FirmTier.primary, report.primary_tier_coverage),
                               (FirmTier.specialist, report.specialist_tier_coverage)):
-            for firm in firms_repo.list_firms(ctx.conn, tier=tier):
-                firm_partners = [
-                    p for p in partners_repo.list_partners_by_firm(ctx.conn, firm.id)
-                ]
+            for firm in (f for f in all_firms if f.tier == tier):
+                firm_partners = partners_by_firm.get(firm.id, [])
                 has_active = bool(firm_partners)
                 last_contact_dates = [
                     p.last_contact_date for p in firm_partners if p.last_contact_date is not None
@@ -209,11 +216,11 @@ class AuditService:
                     note=note,
                 ))
 
-        for firm in firms_repo.list_firms(ctx.conn):
+        for firm in all_firms:
             tier_threshold = _DORMANT_THRESHOLD.get(firm.tier)
             if tier_threshold is None:
                 continue
-            for p in partners_repo.list_partners_by_firm(ctx.conn, firm.id):
+            for p in partners_by_firm.get(firm.id, []):
                 if p.last_contact_date is None:
                     continue
                 days = (today - p.last_contact_date).days
@@ -226,8 +233,8 @@ class AuditService:
                         days_since_last_contact=days,
                     ))
 
-        for firm in firms_repo.list_firms(ctx.conn):
-            for p in partners_repo.list_partners_by_firm(ctx.conn, firm.id):
+        for firm in all_firms:
+            for p in partners_by_firm.get(firm.id, []):
                 if not p.follow_ups_outstanding:
                     continue
                 try:
@@ -242,9 +249,9 @@ class AuditService:
                         items=[str(i) for i in items],
                     ))
 
-        for firm in firms_repo.list_firms(ctx.conn):
-            for p in partners_repo.list_partners_by_firm(ctx.conn, firm.id):
-                given, received = contacts_repo.count_value_given_received(ctx.conn, p.id)
+        for firm in all_firms:
+            for p in partners_by_firm.get(firm.id, []):
+                given, received = value_counts.get(p.id, (0, 0))
                 if given >= 3 and received == 0:
                     report.reciprocity_imbalances.append(ReciprocityImbalance(
                         partner_ulid=p.ulid,
