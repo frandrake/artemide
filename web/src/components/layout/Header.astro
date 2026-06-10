@@ -3,7 +3,7 @@ interface Props {
   current?:
     | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
     | 'engagement' | 'drafts' | 'templates' | 'pipeline'
-    | 'engagements' | 'orgs' | 'messages' | 'programme';
+    | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation';
 }
 const { current } = Astro.props;
 
@@ -23,6 +23,7 @@ const more = [
   { id: 'engagement', href: '/engagement', label: 'Engagement calendar' },
   { id: 'drafts', href: '/drafts', label: 'Drafts' },
   { id: 'templates', href: '/templates', label: 'Templates' },
+  { id: 'compensation', href: '/compensation', label: 'Compensation' },
   { id: 'search', href: '/search', label: 'Search' },
   { id: 'notes', href: '/notes', label: 'Notes' },
   { id: 'audit-log', href: '/audit/log', label: 'Audit log' },

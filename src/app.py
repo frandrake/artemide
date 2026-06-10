@@ -19,6 +19,7 @@ from .api.routes_admin import router as admin_router
 from .api.routes_analytics import router as analytics_router
 from .api.routes_attachments import router as attachments_router
 from .api.routes_audit import router as audit_router
+from .api.routes_comp import router as comp_router
 from .api.routes_contacts import router as contacts_router
 from .api.routes_engagement import router as engagement_router
 from .api.routes_engagements import router as engagements_router
@@ -148,6 +149,8 @@ for router in (
     # v1.3 — documents & interview transcripts
     attachments_router,
     interviews_router,
+    # comp comparison
+    comp_router,
 ):
     app.include_router(router)
 

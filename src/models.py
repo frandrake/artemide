@@ -947,6 +947,37 @@ class InterviewRecord(_Base):
     deleted_at: datetime | None = None
 
 
+# ---------- compensation scenarios ----------
+
+class CompScenarioStatus(str, Enum):
+    current = "current"
+    offer = "offer"
+    negotiating = "negotiating"
+    accepted = "accepted"
+    rejected = "rejected"
+
+
+class CompScenarioRecord(_Base):
+    id: int
+    ulid: str
+    name: str
+    status: CompScenarioStatus = CompScenarioStatus.offer
+    is_baseline: bool = False
+    engagement_id: int | None = None
+    base_gbp: int | None = None
+    cash_bonus_gbp: int | None = None
+    equity_gbp: int | None = None
+    equity_note: str | None = None
+    pension_pct: float | None = None
+    healthcare_gbp: int | None = None
+    car_allowance_gbp: int | None = None
+    other_gbp: int | None = None
+    benefits_note: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
 class AttachmentRecord(_Base):
     """Metadata only — deliberately omits the `content` BLOB so bytes can never
     flow through to_response / model_dump. Bytes are read solely via
@@ -1018,3 +1049,52 @@ class GetAttachmentInput(BaseModel):
 class ListAttachmentsInput(BaseModel):
     entity_type: AttachmentEntityType
     entity_ulid: str
+
+
+class UpsertCompScenarioInput(BaseModel):
+    # No is_baseline here — the baseline flag is swapped only via the
+    # dedicated set_baseline operation so an upsert can never steal the anchor.
+    ulid: str | None = None
+    name: str
+    status: CompScenarioStatus | None = None
+    engagement_ulid: str | None = None
+    base_gbp: int | None = None
+    cash_bonus_gbp: int | None = None
+    equity_gbp: int | None = None
+    equity_note: str | None = None
+    pension_pct: float | None = None
+    healthcare_gbp: int | None = None
+    car_allowance_gbp: int | None = None
+    other_gbp: int | None = None
+    benefits_note: str | None = None
+
+
+class CompScenarioUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str | None = None
+    status: CompScenarioStatus | None = None
+    engagement_ulid: str | None = None
+    base_gbp: int | None = None
+    cash_bonus_gbp: int | None = None
+    equity_gbp: int | None = None
+    equity_note: str | None = None
+    pension_pct: float | None = None
+    healthcare_gbp: int | None = None
+    car_allowance_gbp: int | None = None
+    other_gbp: int | None = None
+    benefits_note: str | None = None
+
+
+class ListCompScenariosInput(BaseModel):
+    status: CompScenarioStatus | None = None
+    include_deleted: bool = False
+
+
+class CompareCompInput(BaseModel):
+    # None → compare every live non-baseline scenario against the baseline.
+    scenario_ulids: list[str] | None = None
+    baseline_ulid: str | None = None
+
+
+class DeleteCompScenarioInput(BaseModel):
+    ulid: str
