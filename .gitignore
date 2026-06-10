@@ -17,3 +17,4 @@ web/.astro/
 n8n/credentials*.json
 n8n/.cred*
 n8n/*.secret.json
+.digest.env
