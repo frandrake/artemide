@@ -235,7 +235,12 @@ def _serve_detail_shell(name: str) -> FileResponse:
     p = _ui_path / name / "index.html"
     if not p.exists():
         raise HTTPException(status_code=404, detail="ui shell missing")
-    return FileResponse(str(p), media_type="text/html")
+    # HTML shells must always revalidate: they reference per-build hashed
+    # asset bundles, so a stale cached shell would request bundles that
+    # 404 after a redeploy and the islands would never hydrate.
+    return FileResponse(
+        str(p), media_type="text/html", headers={"Cache-Control": "no-cache"}
+    )
 
 
 @app.get("/firms/{ulid}", include_in_schema=False)
@@ -267,8 +272,27 @@ def _engagement_detail_shell(ulid: str):
 
 
 # ---------- static UI (Phase 5+) ----------
+class _CachedStaticFiles(StaticFiles):
+    """Static mount with deploy-safe caching.
+
+    Astro emits content-hashed bundles under /_astro/* — those are immutable
+    and safe to cache forever. Everything else (HTML documents, favicon) must
+    revalidate so a redeploy's new asset hashes are picked up immediately;
+    otherwise a heuristically-cached index.html keeps requesting the previous
+    build's bundles, which 404, and the React islands never hydrate.
+    """
+
+    async def get_response(self, path: str, scope) -> Response:
+        response = await super().get_response(path, scope)
+        if path.startswith("_astro/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        else:
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 if _ui_path.exists() and _ui_path.is_dir():
-    app.mount("/", StaticFiles(directory=str(_ui_path), html=True), name="ui")
+    app.mount("/", _CachedStaticFiles(directory=str(_ui_path), html=True), name="ui")
 else:
     log.warning("UI build path %s not present; static mount skipped", _ui_path)
 
