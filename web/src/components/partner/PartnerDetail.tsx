@@ -12,6 +12,7 @@ import Timeline from '../firm/Timeline';
 import LogContactForm from './LogContactForm';
 import EditPartnerModal from './EditPartnerModal';
 import DeleteConfirmModal from '../shared/DeleteConfirmModal';
+import DocumentsPanel from '../v12/DocumentsPanel';
 import Toast from '../shared/Toast';
 import {
   formatAbsoluteDate, formatRelativeDate,
@@ -134,6 +135,12 @@ export default function PartnerDetail() {
           />
         )}
       </section>
+
+      {partner.data && (
+        <section className="partner-detail__documents">
+          <DocumentsPanel entityType="partner" entityUlid={partner.data.ulid} />
+        </section>
+      )}
 
       {firmName && partner.data && (
         <LogContactForm

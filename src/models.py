@@ -70,6 +70,9 @@ class AuditAction(str, Enum):
     approve = "approve"
     ack = "ack"
     denied = "denied"
+    # v1.3 — documents & interview transcripts
+    attach = "attach"
+    interview = "interview"
 
 
 class OutreachChannel(str, Enum):
@@ -887,3 +890,131 @@ class OutboxHealth(BaseModel):
     undelivered: int
     oldest_undelivered_age_seconds: int | None = None
     past_attempt_cap: int
+
+
+# ============================================================================
+# v1.3 — documents & interview transcripts
+# ============================================================================
+
+# ---------- v1.3 enums ----------
+
+class InterviewFormat(str, Enum):
+    onsite = "onsite"
+    video = "video"
+    phone = "phone"
+    other = "other"
+
+
+class TranscriptSource(str, Enum):
+    manual = "manual"
+    uploaded = "uploaded"
+    auto = "auto"
+
+
+class AttachmentKind(str, Enum):
+    cv = "cv"
+    profile = "profile"
+    job_spec = "job_spec"
+    transcript_file = "transcript_file"
+    reference = "reference"
+    other = "other"
+
+
+class AttachmentEntityType(str, Enum):
+    firm = "firm"
+    partner = "partner"
+    org = "org"
+    engagement = "engagement"
+    interview = "interview"
+
+
+# ---------- v1.3 record models ----------
+
+class InterviewRecord(_Base):
+    id: int
+    ulid: str
+    engagement_id: int
+    engagement_log_id: int | None = None
+    interview_date: date
+    round: str | None = None
+    format: InterviewFormat | None = None
+    panel: str | None = None
+    summary: str | None = None
+    transcript: str | None = None
+    transcript_source: TranscriptSource | None = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
+class AttachmentRecord(_Base):
+    """Metadata only — deliberately omits the `content` BLOB so bytes can never
+    flow through to_response / model_dump. Bytes are read solely via
+    attachments_repo.get_content."""
+    id: int
+    ulid: str
+    entity_type: AttachmentEntityType
+    entity_id: str
+    kind: AttachmentKind
+    filename: str
+    content_type: str
+    byte_size: int
+    sha256: str
+    uploaded_by: str
+    created_at: datetime
+    deleted_at: datetime | None = None
+
+
+# ---------- v1.3 input models ----------
+
+class LogInterviewInput(BaseModel):
+    engagement_ulid: str
+    interview_date: date
+    round: str | None = None
+    format: InterviewFormat | None = None
+    panel: str | None = None
+    summary: str | None = None
+    transcript: str | None = None
+    transcript_source: TranscriptSource | None = None
+
+
+class SetTranscriptInput(BaseModel):
+    interview_ulid: str
+    transcript: str
+    transcript_source: TranscriptSource = TranscriptSource.manual
+
+
+class InterviewUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    interview_date: date | None = None
+    round: str | None = None
+    format: InterviewFormat | None = None
+    panel: str | None = None
+    summary: str | None = None
+
+
+class GetInterviewInput(BaseModel):
+    interview_ulid: str
+    include_transcript: bool = False
+
+
+class ListInterviewsInput(BaseModel):
+    engagement_ulid: str
+
+
+class AttachFileInput(BaseModel):
+    entity_type: AttachmentEntityType
+    entity_ulid: str
+    kind: AttachmentKind
+    filename: str
+    content_type: str
+    content_base64: str
+
+
+class GetAttachmentInput(BaseModel):
+    attachment_ulid: str
+
+
+class ListAttachmentsInput(BaseModel):
+    entity_type: AttachmentEntityType
+    entity_ulid: str

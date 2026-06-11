@@ -8,6 +8,8 @@ import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Skeleton } from '../ui/Skeleton';
 import { fitTone, gbp, titleCase, ulidFromPath } from './helpers';
+import InterviewsPanel from './InterviewsPanel';
+import DocumentsPanel from './DocumentsPanel';
 import './v12.css';
 
 function nextStages(stage: string): string[] {
@@ -139,6 +141,9 @@ export default function EngagementDetail() {
             <div key={n.ulid} className="kv"><span>{n.body}</span><span className="when">{n.created_at.slice(0, 10)}</span></div>
           ))}
       </Card>
+
+      {ulid && <InterviewsPanel engagementUlid={ulid} />}
+      {ulid && <DocumentsPanel entityType="engagement" entityUlid={ulid} />}
     </div>
   );
 }

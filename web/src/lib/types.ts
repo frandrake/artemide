@@ -486,3 +486,42 @@ export interface OutboxHealth {
   oldest_undelivered_age_seconds: number | null;
   past_attempt_cap: number;
 }
+
+// ---------- v1.3: documents & interview transcripts ----------
+
+export type InterviewFormat = 'onsite' | 'video' | 'phone' | 'other';
+export type TranscriptSource = 'manual' | 'uploaded' | 'auto';
+export type AttachmentKind =
+  | 'cv' | 'profile' | 'job_spec' | 'transcript_file' | 'reference' | 'other';
+export type AttachmentEntityType =
+  | 'firm' | 'partner' | 'org' | 'engagement' | 'interview';
+
+export interface Interview {
+  ulid: string;
+  engagement_ulid?: string | null;
+  interview_date: string;
+  round: string | null;
+  format: InterviewFormat | null;
+  panel: string | null;
+  summary: string | null;
+  // Present only when fetched with ?include_transcript=true.
+  transcript?: string | null;
+  transcript_source: TranscriptSource | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface Attachment {
+  ulid: string;
+  entity_type: AttachmentEntityType;
+  entity_id: string;
+  kind: AttachmentKind;
+  filename: string;
+  content_type: string;
+  byte_size: number;
+  sha256: string;
+  uploaded_by: string;
+  created_at: string;
+  deleted_at: string | null;
+}

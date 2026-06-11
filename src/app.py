@@ -17,6 +17,7 @@ from .api.deps import get_db
 from .api.error_handlers import register_error_handlers
 from .api.routes_admin import router as admin_router
 from .api.routes_analytics import router as analytics_router
+from .api.routes_attachments import router as attachments_router
 from .api.routes_audit import router as audit_router
 from .api.routes_contacts import router as contacts_router
 from .api.routes_engagement import router as engagement_router
@@ -26,6 +27,7 @@ from .api.routes_export import router as export_router
 from .api.routes_firms import router as firms_router
 from .api.routes_fit import router as fit_router
 from .api.routes_import import router as import_router
+from .api.routes_interviews import router as interviews_router
 from .api.routes_messages import router as messages_router
 from .api.routes_notes import router as notes_router
 from .api.routes_orgs import router as orgs_router
@@ -143,6 +145,9 @@ for router in (
     messages_router,
     programme_router,
     events_router,
+    # v1.3 — documents & interview transcripts
+    attachments_router,
+    interviews_router,
 ):
     app.include_router(router)
 
