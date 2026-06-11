@@ -5,6 +5,7 @@ import { Card } from '../ui/Card';
 import { Badge } from '../ui/Badge';
 import { Skeleton } from '../ui/Skeleton';
 import { fitTone, titleCase, ulidFromPath } from './helpers';
+import DocumentsPanel from './DocumentsPanel';
 import './v12.css';
 
 export default function OrgDetail() {
@@ -58,6 +59,8 @@ export default function OrgDetail() {
             <div key={n.ulid} className="kv"><span>{n.body}</span><span className="when">{n.created_at.slice(0, 10)}</span></div>
           ))}
       </Card>
+
+      {ulid && <DocumentsPanel entityType="org" entityUlid={ulid} />}
     </div>
   );
 }

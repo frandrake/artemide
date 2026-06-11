@@ -297,6 +297,73 @@ async def test_call_tool_via_client(db_path, mcp_client):
     assert payload["partner"]["name"] == "Hugh Bairstow"
 
 
+# ---------- v1.3: interviews + attachments tools ----------
+
+def _seed_engagement(path: str) -> str:
+    from src.repository import engagements as engagements_repo
+    from src.repository import orgs as orgs_repo
+
+    conn, _ = _ctx(path)
+    try:
+        org = orgs_repo.insert_org(conn, name="Acme Global")
+        eng = engagements_repo.insert_engagement(conn, org_id=org.id, role_title="CMO")
+        return eng.ulid
+    finally:
+        conn.close()
+
+
+def test_interview_tools_omit_transcript_until_requested(db_path):
+    import base64
+
+    from src.models import (
+        AttachFileInput,
+        AttachmentEntityType,
+        AttachmentKind,
+        GetInterviewInput,
+        InterviewFormat,
+        ListInterviewsInput,
+        LogInterviewInput,
+    )
+    from src.mcp.tools.attach_file import attach_file
+    from src.mcp.tools.get_interview import get_interview
+    from src.mcp.tools.list_interviews import list_interviews
+    from src.mcp.tools.log_interview import log_interview
+
+    eng = _seed_engagement(db_path)
+
+    logged = log_interview(LogInterviewInput(
+        engagement_ulid=eng, interview_date=date(2026, 6, 1), round=1,
+        format=InterviewFormat.video, summary="strong",
+        transcript="discussed quantum widgets",
+    ))
+    assert logged["ok"] is True
+    assert "transcript" not in logged["interview"]
+    ulid = logged["interview"]["ulid"]
+
+    listed = list_interviews(ListInterviewsInput(engagement_ulid=eng))
+    assert listed["ok"] is True
+    assert "transcript" not in listed["interviews"][0]
+
+    got = get_interview(GetInterviewInput(interview_ulid=ulid, include_transcript=True))
+    assert "quantum" in got["interview"]["transcript"]
+
+    # attach_file happy path + > 4 MB rejection
+    ok = attach_file(AttachFileInput(
+        entity_type=AttachmentEntityType.engagement, entity_ulid=eng,
+        kind=AttachmentKind.job_spec, filename="spec.pdf", content_type="application/pdf",
+        content_base64=base64.b64encode(b"%PDF-1.4 body").decode("ascii"),
+    ))
+    assert ok["ok"] is True
+
+    too_big = attach_file(AttachFileInput(
+        entity_type=AttachmentEntityType.engagement, entity_ulid=eng,
+        kind=AttachmentKind.other, filename="big.pdf", content_type="application/pdf",
+        content_base64=base64.b64encode(b"x" * (5 * 1024 * 1024)).decode("ascii"),
+    ))
+    assert too_big["ok"] is False
+    assert too_big["error"] == "validation_error"
+
+
 # ---------- HTTP-level test: /mcp auth gate ----------
 
 def test_mcp_http_requires_auth():

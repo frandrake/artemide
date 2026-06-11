@@ -56,6 +56,41 @@ async function request<T>(
   return parsed as T;
 }
 
+// Multipart upload. The browser must set its own `Content-Type` (with the
+// boundary), so unlike `request()` we do NOT send a Content-Type header. Reuses
+// the same 401-redirect + error-envelope handling.
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { Accept: 'application/json' },
+    body: formData,
+  });
+
+  if (res.status === 401 && typeof window !== 'undefined') {
+    const here = window.location.pathname;
+    if (here !== '/login') window.location.assign('/login');
+    throw new ApiError(401, 'unauthorized', null);
+  }
+
+  if (res.status === 204) return undefined as unknown as T;
+
+  const text = await res.text();
+  let parsed: unknown = null;
+  if (text) {
+    try { parsed = JSON.parse(text); } catch { parsed = text; }
+  }
+
+  if (!res.ok) {
+    const message =
+      (parsed && typeof parsed === 'object' && 'message' in (parsed as Record<string, unknown>)
+        ? String((parsed as Record<string, unknown>).message)
+        : null) || res.statusText;
+    throw new ApiError(res.status, message, parsed);
+  }
+  return parsed as T;
+}
+
 export const apiGet = <T>(path: string) => request<T>('GET', path);
 export const apiPost = <T>(path: string, body?: unknown, idempotencyKey?: string) =>
   request<T>('POST', path, body, idempotencyKey);

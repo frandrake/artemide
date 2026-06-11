@@ -30,4 +30,12 @@ from . import (  # noqa: F401
     queue_message,
     upsert_engagement,
     upsert_org,
+    # v1.3 — documents & interview transcripts
+    attach_file,
+    get_attachment,
+    get_interview,
+    list_attachments,
+    list_interviews,
+    log_interview,
+    set_transcript,
 )
