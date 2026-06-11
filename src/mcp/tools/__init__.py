@@ -38,4 +38,9 @@ from . import (  # noqa: F401
     list_interviews,
     log_interview,
     set_transcript,
+    # comp comparison
+    compare_comp,
+    delete_comp_scenario,
+    list_comp_scenarios,
+    upsert_comp_scenario,
 )

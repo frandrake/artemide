@@ -1,0 +1,16 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import CompPage from '../components/comp/CompPage';
+---
+<AppShell title="Compensation · Artemide" current="compensation">
+  <header class="page-head">
+    <h1>Compensation</h1>
+    <p class="page-subhead">Baseline vs scenarios, side by side.</p>
+  </header>
+  <CompPage client:load />
+</AppShell>
+
+<style>
+  .page-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .page-subhead { color: var(--charcoal-muted); }
+</style>

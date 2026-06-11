@@ -512,6 +512,39 @@ export interface Interview {
   deleted_at: string | null;
 }
 
+// ---------- compensation scenarios ----------
+
+export type CompScenarioStatus = 'current' | 'offer' | 'negotiating' | 'accepted' | 'rejected';
+
+export interface CompTotals {
+  pension_value_gbp: number;
+  total_cash_gbp: number;
+  total_gbp: number;
+}
+
+export interface CompScenario {
+  ulid: string;
+  name: string;
+  status: CompScenarioStatus;
+  is_baseline: boolean;
+  engagement_ulid: string | null;
+  engagement_role_title: string | null;
+  engagement_org_name: string | null;
+  base_gbp: number | null;
+  cash_bonus_gbp: number | null;
+  equity_gbp: number | null;
+  equity_note: string | null;
+  pension_pct: number | null;
+  healthcare_gbp: number | null;
+  car_allowance_gbp: number | null;
+  other_gbp: number | null;
+  benefits_note: string | null;
+  totals: CompTotals;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface Attachment {
   ulid: string;
   entity_type: AttachmentEntityType;
@@ -524,4 +557,16 @@ export interface Attachment {
   uploaded_by: string;
   created_at: string;
   deleted_at: string | null;
+}
+
+export interface CompDelta {
+  baseline: number;
+  scenario: number;
+  delta_gbp: number;
+  delta_pct: number | null;
+}
+
+export interface CompComparison {
+  baseline: CompScenario;
+  scenarios: (CompScenario & { deltas: Record<string, CompDelta> })[];
 }

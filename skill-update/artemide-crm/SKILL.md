@@ -15,15 +15,18 @@ description: >-
   "what's due", "plan the quarter", "audit the ledger", "draft an outreach to",
   "send the draft", "mark sent", "what stage", "add an org", "surface an
   engagement", "advance the engagement", "what's awaiting approval", "approve
-  that message", "programme status", "metrics", "reciprocity". Always call a
-  tool for state — never answer relationship or pipeline state from memory.
+  that message", "programme status", "metrics", "reciprocity", AND the
+  compensation layer: comparing packages/scenarios/offers, "total comp",
+  "compare the offer", "baseline package", base/bonus/equity/benefits figures.
+  Always call a tool for state — never answer relationship, pipeline, or
+  compensation state from memory.
 ---
 
 # artemide-crm
 
 Operate **Artemide** — Francesco's private executive-search relationship CRM —
 entirely from Claude Code. All state is read and written through the **`artemide`
-MCP server**: 29 tools exposed as **`mcp__artemide__<tool>`**. The tools are
+MCP server**: 33 tools exposed as **`mcp__artemide__<tool>`**. The tools are
 always live; there is no ledger file to paste. Every mutation is audit-logged
 server-side and appears in the web UI (`https://artemide.francescofederico.net`,
 behind Cloudflare Access — open in a browser to verify visually) immediately.
@@ -61,7 +64,7 @@ tell, **ask which one** before writing.
 
 ---
 
-## The 29 tools (call as `mcp__artemide__<name>`)
+## The 33 tools (call as `mcp__artemide__<name>`)
 
 ### A · Relationship ledger — firms, partners, cadence
 | Tool | Use |
@@ -104,12 +107,28 @@ tell, **ask which one** before writing.
 | `approve_message` | Approve (owner-only) → emits `message.approved`. **Confirm first.** See human-gate note. |
 | `programme_status` | Per-phase RAG, overall RAG, `target_at_risk`, days-to-target. |
 
+### D · Compensation scenarios (owner-only)
+| Tool | Use |
+|---|---|
+| `upsert_comp_scenario` | Save/update a package scenario (matched by `ulid` or `name`). All money fields are **GBP integers** (annual); `pension_pct` is the employer % of base; `equity_gbp` is annualised expected equity value. Optional `engagement_ulid` links it to a mandate. |
+| `list_comp_scenarios` | All saved scenarios, baseline first; returns `baseline_ulid`. Filter by `status`. |
+| `compare_comp` | Side-by-side vs the baseline ("Current — S&P Global"). Per field: `delta_gbp` + `delta_pct` (`delta_pct` is null when the baseline component is 0). Omit `scenario_ulids` to compare everything live. |
+| `delete_comp_scenario` | Soft-delete a scenario. The baseline can't be deleted — set another baseline first (via the web UI or `POST /{ulid}/baseline`). |
+
+Totals are computed server-side, never stored: `total_cash_gbp = base + cash
+bonus`; `total_gbp = total_cash + equity + pension value (base × pct) +
+healthcare + car allowance + other`. Scenario `status` vocabulary:
+`current` `offer` `negotiating` `accepted` `rejected`.
+
 ---
 
 ## Roles & the human gate
 
 - Claude Code authenticates with the **owner** token (actor `FF`). Owner can call
   everything, including `approve_message`.
+- **All four comp tools are owner-only, reads included** — bot tokens get
+  `forbidden_role` on the entire compensation surface (package figures never
+  reach the bot role), and each denial is audit-logged.
 - **Rule 17 (cardinal):** a queued message is *only ever* created as `proposed`.
   `approve_message` flips it to `approved` and emits `message.approved` to the
   events outbox; an external **n8n** "Sender" workflow is what actually sends mail
@@ -231,8 +250,9 @@ programme RAG rules are in **`reference.md`** (this folder).
   200). If the container was recreated, the loopback port should persist; see the
   connection runbook in `reference.md`.
 - **401** → bearer token mismatch (the owner token rotated). Stop; surface it.
-- **403 `forbidden_role`** → the token resolved to `bot`, not `owner` (only
-  `approve_message`, deletes, profile edits, token rotation are owner-gated). Stop.
+- **403 `forbidden_role`** → the token resolved to `bot`, not `owner` (
+  `approve_message`, deletes, profile edits, token rotation, and **every comp
+  scenario tool** are owner-gated). Stop.
 - **404 not_found** → stale/wrong ULID. Re-resolve via `get_partner_state` or ask.
 - **409 conflict** → e.g. `mark_sent` on an already-sent draft (immutable), or a
   duplicate `create_draft` / `upsert`. Read current state and report it.

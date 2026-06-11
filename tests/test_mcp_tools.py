@@ -387,3 +387,100 @@ def test_mcp_http_requires_auth():
         # Bearer middleware lets the request through; FastMCP handles
         # the protocol below. Anything other than 401 confirms the gate.
         assert r2.status_code != 401
+
+
+# ---------- comp comparison tools ----------
+
+def _seed_comp(path: str) -> tuple[str, str]:
+    """Return (baseline_ulid, offer_ulid)."""
+    from src.repository import comp_scenarios as comp_repo
+
+    conn, _ = _ctx(path)
+    try:
+        baseline = comp_repo.insert_scenario(
+            conn, name="Current — S&P Global", status="current", is_baseline=True,
+            base_gbp=200_000, cash_bonus_gbp=40_000,
+        )
+        offer = comp_repo.insert_scenario(conn, name="Offer A", base_gbp=250_000)
+        return baseline.ulid, offer.ulid
+    finally:
+        conn.close()
+
+
+def test_upsert_comp_scenario_happy_path(db_path):
+    from src.mcp.tools.upsert_comp_scenario import upsert_comp_scenario
+    from src.models import UpsertCompScenarioInput
+
+    out = upsert_comp_scenario(UpsertCompScenarioInput(
+        name="Offer B", base_gbp=260_000, pension_pct=10.0,
+    ))
+    assert out["ok"] is True
+    assert out["scenario"]["name"] == "Offer B"
+    assert out["scenario"]["status"] == "offer"
+    assert out["scenario"]["engagement_ulid"] is None
+    assert out["scenario"]["totals"]["total_gbp"] == 260_000 + 26_000
+
+
+def test_upsert_comp_scenario_engagement_mapping(db_path):
+    from src.mcp.tools.upsert_comp_scenario import upsert_comp_scenario
+    from src.models import UpsertCompScenarioInput
+    from src.repository import engagements as engagements_repo
+    from src.repository import orgs as orgs_repo
+
+    conn, _ = _ctx(db_path)
+    try:
+        org = orgs_repo.insert_org(conn, name="Acme")
+        eng = engagements_repo.insert_engagement(conn, org_id=org.id, role_title="CMO")
+    finally:
+        conn.close()
+    out = upsert_comp_scenario(UpsertCompScenarioInput(name="Offer B", engagement_ulid=eng.ulid))
+    assert out["ok"] is True
+    assert out["scenario"]["engagement_ulid"] == eng.ulid
+    assert out["scenario"]["engagement_org_name"] == "Acme"
+
+
+def test_list_comp_scenarios_returns_baseline_first(db_path):
+    from src.mcp.tools.list_comp_scenarios import list_comp_scenarios
+    from src.models import ListCompScenariosInput
+
+    baseline_ulid, offer_ulid = _seed_comp(db_path)
+    out = list_comp_scenarios(ListCompScenariosInput())
+    assert out["ok"] is True
+    assert out["baseline_ulid"] == baseline_ulid
+    assert [s["ulid"] for s in out["scenarios"]] == [baseline_ulid, offer_ulid]
+
+
+def test_compare_comp_deltas(db_path):
+    from src.mcp.tools.compare_comp import compare_comp
+    from src.models import CompareCompInput
+
+    baseline_ulid, offer_ulid = _seed_comp(db_path)
+    out = compare_comp(CompareCompInput())
+    assert out["ok"] is True
+    assert out["baseline"]["ulid"] == baseline_ulid
+    deltas = out["scenarios"][0]["deltas"]
+    assert deltas["base_gbp"]["delta_gbp"] == 50_000
+    assert deltas["total_gbp"]["delta_gbp"] == 250_000 - 240_000
+
+
+def test_compare_comp_without_baseline_not_found(db_path):
+    from src.mcp.tools.compare_comp import compare_comp
+    from src.models import CompareCompInput
+
+    out = compare_comp(CompareCompInput())
+    assert out == {"ok": False, "error": "not_found", "message": "no baseline scenario set"}
+
+
+def test_delete_comp_scenario(db_path):
+    from src.mcp.tools.delete_comp_scenario import delete_comp_scenario
+    from src.mcp.tools.list_comp_scenarios import list_comp_scenarios
+    from src.models import DeleteCompScenarioInput, ListCompScenariosInput
+
+    baseline_ulid, offer_ulid = _seed_comp(db_path)
+    out = delete_comp_scenario(DeleteCompScenarioInput(ulid=offer_ulid))
+    assert out == {"ok": True, "deleted": offer_ulid}
+    listed = list_comp_scenarios(ListCompScenariosInput())
+    assert [s["ulid"] for s in listed["scenarios"]] == [baseline_ulid]
+    # the baseline refuses deletion
+    refused = delete_comp_scenario(DeleteCompScenarioInput(ulid=baseline_ulid))
+    assert refused["ok"] is False and refused["error"] == "validation_error"
