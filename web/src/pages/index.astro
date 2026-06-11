@@ -1,6 +1,7 @@
 ---
 import AppShell from '../components/layout/AppShell.astro';
 import PipelineOverview from '../components/dashboard/PipelineOverview';
+import ThisWeekPanel from '../components/dashboard/ThisWeekPanel';
 import UpcomingTouches from '../components/dashboard/UpcomingTouches';
 import AuditHighlights from '../components/dashboard/AuditHighlights';
 import OutreachMetricsTiles from '../components/dashboard/OutreachMetricsTiles';
@@ -17,6 +18,9 @@ import ProgrammeBanner from '../components/v12/ProgrammeBanner';
   <OutreachMetricsTiles client:load />
 
   <div class="dashboard-grid">
+    <div class="dashboard-grid__thisweek">
+      <ThisWeekPanel client:load />
+    </div>
     <div class="dashboard-grid__pipeline">
       <PipelineOverview client:load />
     </div>
@@ -42,10 +46,12 @@ import ProgrammeBanner from '../components/v12/ProgrammeBanner';
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     grid-template-areas:
+      "thisweek thisweek"
       "pipeline pipeline"
       "upcoming audit";
     gap: var(--space-4);
   }
+  .dashboard-grid__thisweek { grid-area: thisweek; }
   .dashboard-grid__pipeline { grid-area: pipeline; }
   .dashboard-grid__upcoming { grid-area: upcoming; }
   .dashboard-grid__audit { grid-area: audit; }
@@ -54,6 +60,7 @@ import ProgrammeBanner from '../components/v12/ProgrammeBanner';
     .dashboard-grid {
       grid-template-columns: 1fr;
       grid-template-areas:
+        "thisweek"
         "pipeline"
         "upcoming"
         "audit";

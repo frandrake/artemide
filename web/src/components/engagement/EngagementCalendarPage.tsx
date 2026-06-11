@@ -16,7 +16,9 @@ type DueWindow = 'all' | 'past_due' | 'this_week' | 'next_30' | 'next_90';
 export default function EngagementCalendarPage() {
   const [status, setStatus] = useState<EngagementStatus | 'all'>('all');
   const [track, setTrack] = useState<string>('all');
-  const [dueWindow, setDueWindow] = useState<DueWindow>('next_90');
+  // Default to the whole plan: a narrower default (next_90) silently hid
+  // past-due rows, which is exactly what must stay visible.
+  const [dueWindow, setDueWindow] = useState<DueWindow>('all');
 
   const path = useMemo(() => {
     const params = new URLSearchParams();
@@ -28,6 +30,15 @@ export default function EngagementCalendarPage() {
   }, [status, track, dueWindow]);
 
   const { data, loading, error, refresh } = useFetch<EngagementCalendarRecord[]>(path);
+
+  // Past-due rows must never be invisible: when the active filters would hide
+  // them, surface a count with a one-click jump.
+  const pastDueFetch = useFetch<EngagementCalendarRecord[]>(
+    '/api/v1/engagement-calendar?due_window=past_due',
+  );
+  const pastDueOpen = (pastDueFetch.data ?? []).filter((r) => r.status !== 'complete');
+  const pastDueHidden =
+    pastDueOpen.length > 0 && dueWindow !== 'all' && dueWindow !== 'past_due';
 
   const [rescheduling, setRescheduling] = useState<EngagementCalendarRecord | null>(null);
   const [newDate, setNewDate] = useState('');
@@ -104,6 +115,18 @@ export default function EngagementCalendarPage() {
           <option value="next_90">Next 90 days</option>
         </Select>
       </div>
+
+      {pastDueHidden && (
+        <div className="engagement-page__pastdue" role="alert">
+          <span>
+            {pastDueOpen.length} plan row{pastDueOpen.length === 1 ? '' : 's'} past due,
+            hidden by the current due window.
+          </span>
+          <Button variant="secondary" size="sm" onClick={() => setDueWindow('past_due')}>
+            Show past due
+          </Button>
+        </div>
+      )}
 
       {loading && <Skeleton width="100%" height={120} />}
       {error && (
