@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS interviews (
     engagement_id INTEGER NOT NULL REFERENCES engagements(id),
     engagement_log_id INTEGER REFERENCES engagement_log(id),  -- nullable link
     interview_date DATE NOT NULL,
-    round INTEGER,
+    round TEXT,
     format TEXT
         CHECK (format IN ('onsite', 'video', 'phone', 'other')),
     panel TEXT,

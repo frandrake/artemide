@@ -58,7 +58,7 @@ async def test_interview_lifecycle(client):
 
     r = await client.post(
         f"/api/v1/engagements/{eng}/interviews",
-        json={"interview_date": "2026-06-01", "round": 1, "format": "video",
+        json={"interview_date": "2026-06-01", "round": "first", "format": "video",
               "summary": "strong", "transcript": "discussed quantum widgets"},
         headers=AUTH,
     )
@@ -81,8 +81,8 @@ async def test_interview_lifecycle(client):
     assert "quantum" in gt["transcript"]
 
     # patch fields
-    p = await client.patch(f"/api/v1/interviews/{ulid}", json={"round": 2, "panel": "CEO"}, headers=AUTH)
-    assert p.json()["round"] == 2
+    p = await client.patch(f"/api/v1/interviews/{ulid}", json={"round": "final", "panel": "CEO"}, headers=AUTH)
+    assert p.json()["round"] == "final"
 
     # replace transcript
     pt = await client.put(f"/api/v1/interviews/{ulid}/transcript",

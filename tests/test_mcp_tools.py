@@ -332,7 +332,7 @@ def test_interview_tools_omit_transcript_until_requested(db_path):
     eng = _seed_engagement(db_path)
 
     logged = log_interview(LogInterviewInput(
-        engagement_ulid=eng, interview_date=date(2026, 6, 1), round=1,
+        engagement_ulid=eng, interview_date=date(2026, 6, 1), round="first",
         format=InterviewFormat.video, summary="strong",
         transcript="discussed quantum widgets",
     ))

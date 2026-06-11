@@ -54,7 +54,7 @@ export default function InterviewsPanel({ engagementUlid }: Props) {
     try {
       await apiPost(`/api/v1/engagements/${engagementUlid}/interviews`, {
         interview_date: date,
-        round: round ? Number(round) : null,
+        round: round || null,
         format: fmt,
         panel: panel || null,
         summary: summary || null,
@@ -106,7 +106,7 @@ export default function InterviewsPanel({ engagementUlid }: Props) {
 
       <form onSubmit={logInterview} style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)', alignItems: 'flex-end', marginBottom: 'var(--space-3)' }}>
         <Input label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-        <Input label="Round" type="number" min={1} value={round} onChange={(e) => setRound(e.target.value)} style={{ maxWidth: 90 }} />
+        <Input label="Round" value={round} onChange={(e) => setRound(e.target.value)} placeholder="e.g. final" style={{ maxWidth: 130 }} />
         <Select label="Format" value={fmt} onChange={(e) => setFmt(e.target.value as InterviewFormat)}>
           {FORMATS.map((f) => <option key={f} value={f}>{titleCase(f)}</option>)}
         </Select>
@@ -123,7 +123,7 @@ export default function InterviewsPanel({ engagementUlid }: Props) {
                 <li key={iv.ulid}>
                   <div className="when">{iv.interview_date}</div>
                   <div>
-                    {iv.round != null ? `Round ${iv.round}` : 'Interview'}
+                    {iv.round ? titleCase(iv.round) : 'Interview'}
                     {iv.format ? ` · ${titleCase(iv.format)}` : ''}
                     {iv.panel ? ` · ${iv.panel}` : ''}
                     {iv.summary ? ` — ${iv.summary}` : ''}

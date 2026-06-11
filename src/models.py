@@ -936,7 +936,7 @@ class InterviewRecord(_Base):
     engagement_id: int
     engagement_log_id: int | None = None
     interview_date: date
-    round: int | None = None
+    round: str | None = None
     format: InterviewFormat | None = None
     panel: str | None = None
     summary: str | None = None
@@ -970,7 +970,7 @@ class AttachmentRecord(_Base):
 class LogInterviewInput(BaseModel):
     engagement_ulid: str
     interview_date: date
-    round: int | None = None
+    round: str | None = None
     format: InterviewFormat | None = None
     panel: str | None = None
     summary: str | None = None
@@ -987,7 +987,7 @@ class SetTranscriptInput(BaseModel):
 class InterviewUpdateInput(BaseModel):
     model_config = ConfigDict(extra="ignore")
     interview_date: date | None = None
-    round: int | None = None
+    round: str | None = None
     format: InterviewFormat | None = None
     panel: str | None = None
     summary: str | None = None

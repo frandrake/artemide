@@ -500,7 +500,7 @@ export interface Interview {
   ulid: string;
   engagement_ulid?: string | null;
   interview_date: string;
-  round: number | null;
+  round: string | null;
   format: InterviewFormat | null;
   panel: string | null;
   summary: string | null;

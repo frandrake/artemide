@@ -39,8 +39,8 @@ def _index(ctx: ServiceContext, rec: InterviewRecord) -> None:
     """Index round/summary as primary and summary+transcript as secondary so a
     transcript word is reachable via search_index MATCH."""
     parts = []
-    if rec.round is not None:
-        parts.append(f"Round {rec.round}")
+    if rec.round:
+        parts.append(rec.round)
     if rec.summary:
         parts.append(rec.summary)
     primary = " — ".join(parts) if parts else f"Interview {rec.interview_date.isoformat()}"

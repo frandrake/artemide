@@ -35,7 +35,7 @@ _BASE_EXCLUDE = {"engagement_id", "engagement_log_id"}
 class LogInterviewBody(BaseModel):
     # engagement_ulid comes from the path, not the body.
     interview_date: date
-    round: int | None = None
+    round: str | None = None
     format: InterviewFormat | None = None
     panel: str | None = None
     summary: str | None = None

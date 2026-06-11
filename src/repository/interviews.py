@@ -43,7 +43,7 @@ def insert_interview(
     *,
     engagement_id: int,
     interview_date: date,
-    round: int | None = None,
+    round: str | None = None,
     format: Any = None,
     panel: str | None = None,
     summary: str | None = None,

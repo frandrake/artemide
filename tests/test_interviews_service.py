@@ -35,7 +35,7 @@ def test_log_writes_linked_engagement_log_row(db):
     ctx = _ctx(db)
     eng = _seed_engagement(db)
     iv = InterviewsService.log(ctx, LogInterviewInput(
-        engagement_ulid=eng.ulid, interview_date=date.today(), round=1,
+        engagement_ulid=eng.ulid, interview_date=date.today(), round="first",
         format=InterviewFormat.video, summary="strong on strategy",
     ))
     assert iv.engagement_log_id is not None
@@ -111,10 +111,10 @@ def test_update_fields(db):
     ctx = _ctx(db)
     eng = _seed_engagement(db)
     iv = InterviewsService.log(ctx, LogInterviewInput(
-        engagement_ulid=eng.ulid, interview_date=date.today(), round=1,
+        engagement_ulid=eng.ulid, interview_date=date.today(), round="first",
     ))
-    updated = InterviewsService.update_fields(ctx, iv.ulid, InterviewUpdateInput(round=2, panel="CEO"))
-    assert updated.round == 2
+    updated = InterviewsService.update_fields(ctx, iv.ulid, InterviewUpdateInput(round="final", panel="CEO"))
+    assert updated.round == "final"
     assert updated.panel == "CEO"
 
 
