@@ -38,7 +38,7 @@
 /* fit breakdown bars */
 .bar-row { display: grid; grid-template-columns: 120px 1fr 40px; gap: var(--space-2); align-items: center; margin-bottom: 6px; font-size: var(--text-sm); }
 .bar-track { background: var(--light-gray); border-radius: 999px; height: 8px; overflow: hidden; }
-.bar-fill { background: var(--slate-blue); height: 100%; }
+.bar-fill { display: block; background: var(--slate-blue); height: 100%; }
 
 /* timeline */
 .timeline { list-style: none; margin: 0; padding: 0; }
