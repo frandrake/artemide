@@ -43,4 +43,8 @@ from . import (  # noqa: F401
     delete_comp_scenario,
     list_comp_scenarios,
     upsert_comp_scenario,
+    # board / NED domain (owner-only, unsynced)
+    board_activity_tools,
+    board_firm_tools,
+    board_opportunity_tools,
 )

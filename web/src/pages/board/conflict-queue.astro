@@ -1,0 +1,17 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import ConflictQueue from '../../components/board/ConflictQueue';
+---
+<AppShell title="Board · Conflicts" current="board-conflicts" domain="board">
+  <header class="bd-head">
+    <h1>Conflict-screen queue</h1>
+    <p class="bd-subhead">Opportunities awaiting a conflict-of-interest screen against the S&amp;P competitor list.</p>
+  </header>
+  <ConflictQueue client:load />
+</AppShell>
+
+<style>
+  .bd-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .bd-subhead { color: var(--charcoal-muted); }
+  .bd-head h1 { font-family: var(--font-serif); }
+</style>

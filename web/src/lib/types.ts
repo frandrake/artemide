@@ -570,3 +570,190 @@ export interface CompComparison {
   baseline: CompScenario;
   scenarios: (CompScenario & { deltas: Record<string, CompDelta> })[];
 }
+
+// ============================================================================
+// Board / NED search domain — parallel to the executive search, owner-only.
+// ============================================================================
+
+export type BoardFirmType =
+  | 'big_five_board_practice' | 'boutique' | 'platform' | 'network' | 'italian_european';
+export type BoardGeography = 'UK' | 'Europe' | 'Italy';
+export type BoardFirmStatus =
+  | 'to_approach' | 'to_register' | 'to_join' | 'queued' | 'contacted' | 'in_dialogue' | 'dormant'
+  | 'drafted' | 'consider' | 'monitor';
+export type BoardContactPractice = 'board' | 'executive' | 'mixed';
+export type BoardRelationship = 'cold' | 'warm' | 'active';
+export type BoardOppBoardType =
+  | 'listed_ftse350' | 'listed_aim' | 'pe_vc' | 'private' | 'mutual' | 'charity_arts' | 'public_appointment';
+export type BoardOppRole = 'ned' | 'sid' | 'committee' | 'trustee' | 'adviser';
+export type BoardStage =
+  | 'surfaced' | 'conflict_screen' | 'chair_meeting' | 'formal_process'
+  | 'final_nomco' | 'offer' | 'decision';
+export type BoardConflictCleared = 'yes' | 'no' | 'pending';
+export type BoardConflictResult = 'pass' | 'fail' | 'pending';
+export type BoardOppInterest = 'pass' | 'exploratory' | 'active' | 'preferred';
+export type BoardVerdict = 'proceed' | 'proceed_with_caution' | 'pass';
+export type BoardInteractionType = 'email' | 'call' | 'meeting' | 'application' | 'event' | 'note';
+export type BoardLinkedEntityType = 'board_firm' | 'board_contact' | 'board_opportunity';
+
+export const BOARD_STAGE_ORDER: BoardStage[] = [
+  'surfaced', 'conflict_screen', 'chair_meeting', 'formal_process',
+  'final_nomco', 'offer', 'decision',
+];
+
+export const BOARD_EVAL_DIMENSIONS: { key: string; label: string; weight: number }[] = [
+  { key: 'chair_board_quality', label: 'Chair & board quality', weight: 25 },
+  { key: 'mandate_contribution_fit', label: 'Mandate / contribution fit', weight: 25 },
+  { key: 'governance_health_risk', label: 'Governance health / risk', weight: 20 },
+  { key: 'time_conflict_cost', label: 'Time / conflict cost', weight: 15 },
+  { key: 'brand_portfolio_value', label: 'Brand / portfolio value', weight: 10 },
+  { key: 'terms', label: 'Terms', weight: 5 },
+];
+
+export const BOARD_HARD_DISQUALIFIERS: { key: string; label: string }[] = [
+  { key: 'unclearable_sp_conflict', label: 'Unclearable S&P conflict' },
+  { key: 'dominant_chair_or_factional_board', label: 'Dominant chair / factional board' },
+  { key: 'decorative_seat', label: 'Decorative seat' },
+  { key: 'unmanaged_governance_risk', label: 'Serious unmanaged governance/financial/litigation risk' },
+  { key: 'inadequate_do_indemnification', label: 'Inadequate D&O / indemnification' },
+  { key: 'performative_visibility_demanded', label: 'Constant performative visibility demanded' },
+  { key: 'weak_transformation_ambition', label: 'Weak transformation ambition' },
+];
+
+export interface BoardFirm {
+  ulid: string;
+  name: string;
+  firm_type: BoardFirmType | null;
+  geography: BoardGeography[];
+  sectors_level: string | null;
+  ai_on_boards_hook: string | null;
+  tier: number | null;
+  status: BoardFirmStatus;
+  next_action: string | null;
+  notes: string | null;
+  source_url: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  contacts?: BoardContact[];
+  interactions?: BoardInteraction[];
+}
+
+export interface BoardContact {
+  ulid: string;
+  name: string;
+  role_title: string | null;
+  firm_ulid: string | null;
+  firm_name: string | null;
+  practice: BoardContactPractice | null;
+  email: string | null;
+  linkedin: string | null;
+  mutual_connections: string | null;
+  relationship: BoardRelationship;
+  last_contact_date: string | null;
+  source_url: string | null;
+  notes: string | null;
+  verify_before_send: boolean;
+  interactions?: BoardInteraction[];
+}
+
+export interface BoardConflictScreen {
+  ulid: string;
+  is_sp_competitor: boolean;
+  result: BoardConflictResult;
+  checked_date: string | null;
+  notes: string | null;
+}
+
+export interface BoardEvaluation {
+  ulid: string;
+  score_chair_board_quality: number | null;
+  score_mandate_contribution_fit: number | null;
+  score_governance_health_risk: number | null;
+  score_time_conflict_cost: number | null;
+  score_brand_portfolio_value: number | null;
+  score_terms: number | null;
+  weighted_total: number | null;
+  hard_disqualifiers: string[];
+  firo_b_fit_notes: string | null;
+  verdict: BoardVerdict | null;
+}
+
+export interface BoardOpportunityLogEntry {
+  ulid: string;
+  event_date: string;
+  event_type: string;
+  from_stage: string | null;
+  to_stage: string | null;
+  summary: string | null;
+  created_at: string;
+}
+
+export interface BoardInteraction {
+  ulid: string;
+  interaction_date: string;
+  interaction_type: BoardInteractionType;
+  linked_entity_type: BoardLinkedEntityType;
+  linked_entity_ulid: string;
+  summary: string | null;
+  next_action: string | null;
+  due_date: string | null;
+}
+
+export interface BoardOpportunity {
+  ulid: string;
+  organisation: string;
+  board_type: BoardOppBoardType | null;
+  role: BoardOppRole | null;
+  source_firm_ulid: string | null;
+  source_firm_name: string | null;
+  source_text: string | null;
+  chair_contact_ulid: string | null;
+  chair_name: string | null;
+  date_surfaced: string | null;
+  stage: BoardStage;
+  conflict_cleared: BoardConflictCleared;
+  interest: BoardOppInterest;
+  next_step: string | null;
+  notes: string | null;
+  eval_weighted_total: number | null;
+  eval_verdict: BoardVerdict | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+  warnings?: string[];
+  conflict_screen?: BoardConflictScreen | null;
+  evaluation?: BoardEvaluation | null;
+  log?: BoardOpportunityLogEntry[];
+  interactions?: BoardInteraction[];
+}
+
+export interface BoardTask {
+  ulid: string;
+  linked_entity_type: BoardLinkedEntityType | null;
+  linked_entity_ulid: string | null;
+  title: string;
+  due_date: string | null;
+  status: 'open' | 'done';
+}
+
+export interface BoardCompetitor {
+  ulid: string;
+  name: string;
+  notes: string | null;
+  active: number;
+}
+
+export interface BoardEvaluationCompare {
+  weights: Record<string, number>;
+  opportunities: {
+    opportunity_ulid: string;
+    organisation: string;
+    stage: BoardStage;
+    interest: BoardOppInterest;
+    weighted_total: number | null;
+    verdict: BoardVerdict | null;
+    scores: Record<string, number> | null;
+    hard_disqualifiers: string[];
+  }[];
+}

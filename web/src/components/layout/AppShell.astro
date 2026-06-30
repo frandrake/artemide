@@ -4,15 +4,19 @@ import Header from './Header.astro';
 
 interface Props {
   title?: string;
+  domain?: 'exec' | 'board';
   current?:
     | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
     | 'engagement' | 'drafts' | 'templates' | 'pipeline'
-    | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation';
+    | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation'
+    | 'board-home' | 'board-firms' | 'board-contacts' | 'board-opportunities'
+    | 'board-pipeline' | 'board-conflicts' | 'board-evaluations' | 'board-due'
+    | 'board-competitors' | 'board-tasks' | 'board-export';
 }
-const { title, current } = Astro.props;
+const { title, current, domain = 'exec' } = Astro.props;
 ---
 <BaseLayout title={title}>
-  <Header slot="header" current={current} />
+  <Header slot="header" current={current} domain={domain} />
   <div class="container">
     <slot />
   </div>

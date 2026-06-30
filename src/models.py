@@ -1098,3 +1098,460 @@ class CompareCompInput(BaseModel):
 
 class DeleteCompScenarioInput(BaseModel):
     ulid: str
+
+
+# ============================================================================
+# Board / NED search domain — a parallel, owner-only, unsynced island.
+# Namespaced Board* enums avoid colliding with the exec domain's lightweight
+# NED notions (FirmTier.ned, RoleType.ned).
+# ============================================================================
+
+# ---------- board enums ----------
+
+class BoardFirmType(str, Enum):
+    big_five_board_practice = "big_five_board_practice"
+    boutique = "boutique"
+    platform = "platform"
+    network = "network"
+    italian_european = "italian_european"
+
+
+class BoardGeography(str, Enum):
+    uk = "UK"
+    europe = "Europe"
+    italy = "Italy"
+
+
+class BoardFirmStatus(str, Enum):
+    to_approach = "to_approach"
+    to_register = "to_register"
+    to_join = "to_join"
+    queued = "queued"
+    contacted = "contacted"
+    in_dialogue = "in_dialogue"
+    dormant = "dormant"
+    # outreach states carried on the firm (the board tracker's vocabulary)
+    drafted = "drafted"
+    consider = "consider"
+    monitor = "monitor"
+
+
+class BoardContactPractice(str, Enum):
+    board = "board"
+    executive = "executive"
+    mixed = "mixed"
+
+
+class BoardRelationship(str, Enum):
+    cold = "cold"
+    warm = "warm"
+    active = "active"
+
+
+class BoardOppBoardType(str, Enum):
+    listed_ftse350 = "listed_ftse350"
+    listed_aim = "listed_aim"
+    pe_vc = "pe_vc"
+    private = "private"
+    mutual = "mutual"
+    charity_arts = "charity_arts"
+    public_appointment = "public_appointment"
+
+
+class BoardOppRole(str, Enum):
+    ned = "ned"
+    sid = "sid"
+    committee = "committee"
+    trustee = "trustee"
+    adviser = "adviser"
+
+
+class BoardStage(str, Enum):
+    surfaced = "surfaced"
+    conflict_screen = "conflict_screen"
+    chair_meeting = "chair_meeting"
+    formal_process = "formal_process"
+    final_nomco = "final_nomco"
+    offer = "offer"
+    decision = "decision"
+
+
+class BoardConflictCleared(str, Enum):
+    yes = "yes"
+    no = "no"
+    pending = "pending"
+
+
+class BoardConflictResult(str, Enum):
+    pass_ = "pass"
+    fail = "fail"
+    pending = "pending"
+
+
+class BoardOppInterest(str, Enum):
+    pass_ = "pass"
+    exploratory = "exploratory"
+    active = "active"
+    preferred = "preferred"
+
+
+class BoardVerdict(str, Enum):
+    proceed = "proceed"
+    proceed_with_caution = "proceed_with_caution"
+    pass_ = "pass"
+
+
+class BoardInteractionType(str, Enum):
+    email = "email"
+    call = "call"
+    meeting = "meeting"
+    application = "application"
+    event = "event"
+    note = "note"
+
+
+class BoardTaskStatus(str, Enum):
+    open = "open"
+    done = "done"
+
+
+class BoardLinkedEntityType(str, Enum):
+    board_firm = "board_firm"
+    board_contact = "board_contact"
+    board_opportunity = "board_opportunity"
+
+
+class BoardOppEventType(str, Enum):
+    stage_change = "stage_change"
+    conflict_screen = "conflict_screen"
+    evaluation = "evaluation"
+    interaction = "interaction"
+    note = "note"
+
+
+# Ordered stage machine (forward-only via advance). All seven are sequential —
+# there is no separate 'closed' stage (unlike engagements); a passed-over
+# opportunity is marked interest='pass'.
+BOARD_STAGE_ORDER: list[str] = [
+    "surfaced", "conflict_screen", "chair_meeting", "formal_process",
+    "final_nomco", "offer", "decision",
+]
+
+
+def _parse_json_list(v: Any) -> Any:
+    """Decode a JSON-array TEXT column into a list (None/'' → [])."""
+    if v is None or v == "":
+        return []
+    if isinstance(v, str):
+        import json
+        return json.loads(v)
+    return v
+
+
+# ---------- board record models ----------
+
+class BoardFirmRecord(_Base):
+    id: int
+    ulid: str
+    name: str
+    firm_type: BoardFirmType | None = None
+    geography: list[BoardGeography] = Field(default_factory=list)
+    sectors_level: str | None = None
+    ai_on_boards_hook: str | None = None
+    tier: int | None = None
+    status: BoardFirmStatus = BoardFirmStatus.to_approach
+    next_action: str | None = None
+    notes: str | None = None
+    source_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+    @field_validator("geography", mode="before")
+    @classmethod
+    def _parse_geography(cls, v: Any) -> Any:
+        return _parse_json_list(v)
+
+
+class BoardContactRecord(_Base):
+    id: int
+    ulid: str
+    name: str
+    role_title: str | None = None
+    firm_id: int | None = None
+    practice: BoardContactPractice | None = None
+    email: str | None = None
+    linkedin: str | None = None
+    mutual_connections: str | None = None
+    relationship: BoardRelationship = BoardRelationship.cold
+    last_contact_date: date | None = None
+    source_url: str | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
+class BoardOpportunityRecord(_Base):
+    id: int
+    ulid: str
+    organisation: str
+    board_type: BoardOppBoardType | None = None
+    role: BoardOppRole | None = None
+    source_firm_id: int | None = None
+    source_text: str | None = None
+    chair_contact_id: int | None = None
+    date_surfaced: date | None = None
+    stage: BoardStage = BoardStage.surfaced
+    conflict_cleared: BoardConflictCleared = BoardConflictCleared.pending
+    interest: BoardOppInterest = BoardOppInterest.exploratory
+    next_step: str | None = None
+    notes: str | None = None
+    eval_weighted_total: float | None = None
+    eval_verdict: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
+class BoardOpportunityLogRecord(_Base):
+    id: int
+    ulid: str
+    opportunity_id: int
+    event_date: date
+    event_type: BoardOppEventType
+    from_stage: str | None = None
+    to_stage: str | None = None
+    summary: str | None = None
+    created_at: datetime
+
+
+class BoardConflictScreenRecord(_Base):
+    id: int
+    ulid: str
+    opportunity_id: int
+    is_sp_competitor: bool = False
+    result: BoardConflictResult = BoardConflictResult.pending
+    checked_date: date | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class BoardEvaluationRecord(_Base):
+    id: int
+    ulid: str
+    opportunity_id: int
+    score_chair_board_quality: int | None = None
+    score_mandate_contribution_fit: int | None = None
+    score_governance_health_risk: int | None = None
+    score_time_conflict_cost: int | None = None
+    score_brand_portfolio_value: int | None = None
+    score_terms: int | None = None
+    weighted_total: float | None = None
+    hard_disqualifiers: list[str] = Field(default_factory=list)
+    firo_b_fit_notes: str | None = None
+    verdict: BoardVerdict | None = None
+    created_at: datetime
+    updated_at: datetime
+
+    @field_validator("hard_disqualifiers", mode="before")
+    @classmethod
+    def _parse_disqualifiers(cls, v: Any) -> Any:
+        return _parse_json_list(v)
+
+
+class BoardInteractionRecord(_Base):
+    id: int
+    ulid: str
+    interaction_date: date
+    interaction_type: BoardInteractionType
+    linked_entity_type: BoardLinkedEntityType
+    linked_entity_ulid: str
+    summary: str | None = None
+    next_action: str | None = None
+    due_date: date | None = None
+    created_at: datetime
+
+
+class BoardTaskRecord(_Base):
+    id: int
+    ulid: str
+    linked_entity_type: BoardLinkedEntityType | None = None
+    linked_entity_ulid: str | None = None
+    title: str
+    due_date: date | None = None
+    status: BoardTaskStatus = BoardTaskStatus.open
+    created_at: datetime
+    updated_at: datetime
+
+
+class BoardCompetitorRecord(_Base):
+    id: int
+    ulid: str
+    name: str
+    notes: str | None = None
+    active: int = 1
+    created_at: datetime
+    updated_at: datetime
+
+
+class BoardEvaluationResult(BaseModel):
+    """Pure computed result of the weighted six-dimension offer framework."""
+    weighted_total: float
+    verdict: BoardVerdict
+    forced_pass: bool
+    breakdown: dict[str, Any]
+
+
+# ---------- board input models ----------
+
+class UpsertBoardFirmInput(BaseModel):
+    ulid: str | None = None
+    name: str
+    firm_type: BoardFirmType | None = None
+    geography: list[BoardGeography] | None = None
+    sectors_level: str | None = None
+    ai_on_boards_hook: str | None = None
+    tier: int | None = Field(default=None, ge=1, le=4)
+    status: BoardFirmStatus | None = None
+    next_action: str | None = None
+    notes: str | None = None
+    source_url: str | None = None
+
+
+class BoardFirmUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str | None = None
+    firm_type: BoardFirmType | None = None
+    geography: list[BoardGeography] | None = None
+    sectors_level: str | None = None
+    ai_on_boards_hook: str | None = None
+    tier: int | None = Field(default=None, ge=1, le=4)
+    status: BoardFirmStatus | None = None
+    next_action: str | None = None
+    notes: str | None = None
+    source_url: str | None = None
+
+
+class UpsertBoardContactInput(BaseModel):
+    ulid: str | None = None
+    name: str
+    role_title: str | None = None
+    firm_ulid: str | None = None
+    practice: BoardContactPractice | None = None
+    email: str | None = None
+    linkedin: str | None = None
+    mutual_connections: str | None = None
+    relationship: BoardRelationship | None = None
+    last_contact_date: date | None = None
+    source_url: str | None = None
+    notes: str | None = None
+
+
+class BoardContactUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    name: str | None = None
+    role_title: str | None = None
+    firm_ulid: str | None = None
+    practice: BoardContactPractice | None = None
+    email: str | None = None
+    linkedin: str | None = None
+    mutual_connections: str | None = None
+    relationship: BoardRelationship | None = None
+    last_contact_date: date | None = None
+    source_url: str | None = None
+    notes: str | None = None
+
+
+class UpsertBoardOpportunityInput(BaseModel):
+    ulid: str | None = None
+    organisation: str
+    board_type: BoardOppBoardType | None = None
+    role: BoardOppRole | None = None
+    source_firm_ulid: str | None = None
+    source_text: str | None = None
+    chair_contact_ulid: str | None = None
+    date_surfaced: date | None = None
+    stage: BoardStage | None = None
+    interest: BoardOppInterest | None = None
+    next_step: str | None = None
+    notes: str | None = None
+
+
+class BoardOpportunityUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    organisation: str | None = None
+    board_type: BoardOppBoardType | None = None
+    role: BoardOppRole | None = None
+    source_firm_ulid: str | None = None
+    source_text: str | None = None
+    chair_contact_ulid: str | None = None
+    date_surfaced: date | None = None
+    interest: BoardOppInterest | None = None
+    next_step: str | None = None
+    notes: str | None = None
+
+
+class AdvanceBoardStageInput(BaseModel):
+    to_stage: BoardStage
+    summary: str | None = None
+
+
+class RecordConflictScreenInput(BaseModel):
+    opportunity_ulid: str
+    is_sp_competitor: bool = False
+    result: BoardConflictResult
+    checked_date: date | None = None
+    notes: str | None = None
+
+
+class SetBoardEvaluationInput(BaseModel):
+    opportunity_ulid: str
+    score_chair_board_quality: int = Field(ge=1, le=5)
+    score_mandate_contribution_fit: int = Field(ge=1, le=5)
+    score_governance_health_risk: int = Field(ge=1, le=5)
+    score_time_conflict_cost: int = Field(ge=1, le=5)
+    score_brand_portfolio_value: int = Field(ge=1, le=5)
+    score_terms: int = Field(ge=1, le=5)
+    hard_disqualifiers: list[str] = Field(default_factory=list)
+    firo_b_fit_notes: str | None = None
+
+
+class LogBoardInteractionInput(BaseModel):
+    interaction_type: BoardInteractionType
+    linked_entity_type: BoardLinkedEntityType
+    linked_entity_ulid: str
+    interaction_date: date | None = None
+    summary: str | None = None
+    next_action: str | None = None
+    due_date: date | None = None
+
+
+class UpsertBoardTaskInput(BaseModel):
+    ulid: str | None = None
+    title: str
+    linked_entity_type: BoardLinkedEntityType | None = None
+    linked_entity_ulid: str | None = None
+    due_date: date | None = None
+    status: BoardTaskStatus | None = None
+
+
+class BoardTaskUpdateInput(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    title: str | None = None
+    linked_entity_type: BoardLinkedEntityType | None = None
+    linked_entity_ulid: str | None = None
+    due_date: date | None = None
+    status: BoardTaskStatus | None = None
+
+
+class UpsertBoardCompetitorInput(BaseModel):
+    ulid: str | None = None
+    name: str
+    notes: str | None = None
+    active: bool | None = None
+
+
+class ImportBoardMarkdownInput(BaseModel):
+    body: str
