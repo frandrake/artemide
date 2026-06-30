@@ -1,0 +1,17 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import BoardCompetitors from '../../components/board/BoardCompetitors';
+---
+<AppShell title="Board · Competitors" current="board-competitors" domain="board">
+  <header class="bd-head">
+    <h1>S&amp;P competitor list</h1>
+    <p class="bd-subhead">The reference list the conflict screen checks against (R4).</p>
+  </header>
+  <BoardCompetitors client:load />
+</AppShell>
+
+<style>
+  .bd-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .bd-subhead { color: var(--charcoal-muted); }
+  .bd-head h1 { font-family: var(--font-serif); }
+</style>

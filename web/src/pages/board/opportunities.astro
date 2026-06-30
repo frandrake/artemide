@@ -1,0 +1,17 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import BoardOpportunitiesLog from '../../components/board/BoardOpportunitiesLog';
+---
+<AppShell title="Board · Opportunities" current="board-opportunities" domain="board">
+  <header class="bd-head">
+    <h1>Board opportunity log</h1>
+    <p class="bd-subhead">Every board/NED seat in motion.</p>
+  </header>
+  <BoardOpportunitiesLog client:load />
+</AppShell>
+
+<style>
+  .bd-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .bd-subhead { color: var(--charcoal-muted); }
+  .bd-head h1 { font-family: var(--font-serif); }
+</style>

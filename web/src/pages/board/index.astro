@@ -1,0 +1,17 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import BoardFirmsList from '../../components/board/BoardFirmsList';
+---
+<AppShell title="Board · Platform log" current="board-home" domain="board">
+  <header class="bd-head">
+    <h1>Board-search &amp; platform log</h1>
+    <p class="bd-subhead">Search practices, platforms and networks — grouped by tier. Confidential board domain.</p>
+  </header>
+  <BoardFirmsList client:load />
+</AppShell>
+
+<style>
+  .bd-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .bd-subhead { color: var(--charcoal-muted); }
+  .bd-head h1 { font-family: var(--font-serif); }
+</style>

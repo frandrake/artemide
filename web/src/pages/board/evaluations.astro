@@ -1,0 +1,17 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import EvaluationCompare from '../../components/board/EvaluationCompare';
+---
+<AppShell title="Board · Evaluations" current="board-evaluations" domain="board">
+  <header class="bd-head">
+    <h1>Evaluation comparison</h1>
+    <p class="bd-subhead">Side-by-side weighted scores and verdicts across scored opportunities.</p>
+  </header>
+  <EvaluationCompare client:load />
+</AppShell>
+
+<style>
+  .bd-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
+  .bd-subhead { color: var(--charcoal-muted); }
+  .bd-head h1 { font-family: var(--font-serif); }
+</style>

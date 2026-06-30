@@ -19,6 +19,14 @@ from .api.routes_admin import router as admin_router
 from .api.routes_analytics import router as analytics_router
 from .api.routes_attachments import router as attachments_router
 from .api.routes_audit import router as audit_router
+from .api.routes_board_competitors import router as board_competitors_router
+from .api.routes_board_contacts import router as board_contacts_router
+from .api.routes_board_export import router as board_export_router
+from .api.routes_board_firms import router as board_firms_router
+from .api.routes_board_import import router as board_import_router
+from .api.routes_board_interactions import router as board_interactions_router
+from .api.routes_board_opportunities import router as board_opportunities_router
+from .api.routes_board_tasks import router as board_tasks_router
 from .api.routes_comp import router as comp_router
 from .api.routes_contacts import router as contacts_router
 from .api.routes_engagement import router as engagement_router
@@ -151,6 +159,15 @@ for router in (
     interviews_router,
     # comp comparison
     comp_router,
+    # board / NED domain (owner-only, unsynced — separate from exec search)
+    board_firms_router,
+    board_contacts_router,
+    board_opportunities_router,
+    board_competitors_router,
+    board_interactions_router,
+    board_tasks_router,
+    board_export_router,
+    board_import_router,
 ):
     app.include_router(router)
 
@@ -272,6 +289,20 @@ def _engagement_detail_shell(ulid: str):
     if not ulid or ulid == "index" or "/" in ulid:
         raise HTTPException(status_code=404)
     return _serve_detail_shell("engagement-detail")
+
+
+@app.get("/board/firms/{ulid}", include_in_schema=False)
+def _board_firm_detail_shell(ulid: str):
+    if not ulid or ulid == "index" or "/" in ulid:
+        raise HTTPException(status_code=404)
+    return _serve_detail_shell("board/firm-detail")
+
+
+@app.get("/board/opportunities/{ulid}", include_in_schema=False)
+def _board_opportunity_detail_shell(ulid: str):
+    if not ulid or ulid == "index" or "/" in ulid:
+        raise HTTPException(status_code=404)
+    return _serve_detail_shell("board/opportunity-detail")
 
 
 # ---------- static UI (Phase 5+) ----------

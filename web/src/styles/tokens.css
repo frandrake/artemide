@@ -103,4 +103,16 @@
   --z-overlay: 100;
   --z-dialog: 110;
   --z-toast: 200;
+
+  /* ----- board domain (semantic aliases; reuse existing values, no new hue) ----- */
+  --board-accent: var(--vermillion);
+  --board-accent-hover: var(--vermillion-hover);
+  --board-spine-width: var(--accent-line-width);
+  /* verdict pills */
+  --verdict-proceed-bg: var(--slate-blue);
+  --verdict-proceed-fg: var(--cool-white);
+  --verdict-caution-bg: var(--state-due-soon-bg);
+  --verdict-caution-fg: var(--state-due-soon-fg);
+  --verdict-pass-bg: var(--vermillion);
+  --verdict-pass-fg: var(--cool-white);
 }
