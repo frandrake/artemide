@@ -5,6 +5,7 @@ import ThisWeekPanel from '../components/dashboard/ThisWeekPanel';
 import UpcomingTouches from '../components/dashboard/UpcomingTouches';
 import AuditHighlights from '../components/dashboard/AuditHighlights';
 import OutreachMetricsTiles from '../components/dashboard/OutreachMetricsTiles';
+import BoardSearchTile from '../components/dashboard/BoardSearchTile';
 import ProgrammeBanner from '../components/v12/ProgrammeBanner';
 ---
 <AppShell title="Dashboard · Artemide" current="dashboard">
@@ -16,6 +17,8 @@ import ProgrammeBanner from '../components/v12/ProgrammeBanner';
   <ProgrammeBanner client:load />
 
   <OutreachMetricsTiles client:load />
+
+  <BoardSearchTile client:load />
 
   <div class="dashboard-grid">
     <div class="dashboard-grid__thisweek">
