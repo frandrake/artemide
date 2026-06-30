@@ -8,6 +8,7 @@ import './board.css';
 
 const STATUSES: BoardFirmStatus[] = [
   'to_approach', 'to_register', 'to_join', 'queued', 'contacted', 'in_dialogue', 'dormant',
+  'drafted', 'consider', 'monitor',
 ];
 
 export default function BoardFirmsList() {

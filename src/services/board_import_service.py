@@ -54,6 +54,7 @@ _FIRM_KV_MAP = {
     "status": "status",
     "next-action": "next_action",
     "source-url": "source_url",
+    "source": "source_url",  # tracker uses **Source:** for the firm URL
     "notes": "notes",
 }
 _CONTACT_KV_MAP = {

@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS board_firm (
     ai_on_boards_hook TEXT,
     tier INTEGER CHECK (tier BETWEEN 1 AND 4),
     status TEXT NOT NULL DEFAULT 'to_approach'
-        CHECK (status IN ('to_approach', 'to_register', 'to_join', 'queued', 'contacted', 'in_dialogue', 'dormant')),
+        CHECK (status IN ('to_approach', 'to_register', 'to_join', 'queued', 'contacted',
+                          'in_dialogue', 'dormant', 'drafted', 'consider', 'monitor')),
     next_action TEXT,
     notes TEXT,
     source_url TEXT,

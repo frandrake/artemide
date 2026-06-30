@@ -1130,6 +1130,10 @@ class BoardFirmStatus(str, Enum):
     contacted = "contacted"
     in_dialogue = "in_dialogue"
     dormant = "dormant"
+    # outreach states carried on the firm (the board tracker's vocabulary)
+    drafted = "drafted"
+    consider = "consider"
+    monitor = "monitor"
 
 
 class BoardContactPractice(str, Enum):

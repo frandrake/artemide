@@ -579,7 +579,8 @@ export type BoardFirmType =
   | 'big_five_board_practice' | 'boutique' | 'platform' | 'network' | 'italian_european';
 export type BoardGeography = 'UK' | 'Europe' | 'Italy';
 export type BoardFirmStatus =
-  | 'to_approach' | 'to_register' | 'to_join' | 'queued' | 'contacted' | 'in_dialogue' | 'dormant';
+  | 'to_approach' | 'to_register' | 'to_join' | 'queued' | 'contacted' | 'in_dialogue' | 'dormant'
+  | 'drafted' | 'consider' | 'monitor';
 export type BoardContactPractice = 'board' | 'executive' | 'mixed';
 export type BoardRelationship = 'cold' | 'warm' | 'active';
 export type BoardOppBoardType =
