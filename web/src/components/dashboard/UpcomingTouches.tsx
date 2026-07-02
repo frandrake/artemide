@@ -45,12 +45,20 @@ export default function UpcomingTouches() {
         <ul className="upcoming__list">
           {data.map((d) => {
             const overdue = d.status === 'overdue';
-            const indicator =
-              d.status === 'overdue'
-                ? `${d.days_since_last_contact ?? '?'} days overdue`
-                : d.status === 'due_soon'
-                  ? `in ${d.days_until_next_touch ?? '?'} days`
-                  : 'no planned touch';
+            const cadence = d.due_source === 'cadence' ? ' · cadence' : '';
+            let indicator: string;
+            if (d.status === 'overdue') {
+              const late = d.days_until_next_touch != null && d.days_until_next_touch < 0
+                ? -d.days_until_next_touch
+                : d.days_since_last_contact;
+              indicator = `${late ?? '?'} days overdue${cadence}`;
+            } else if (d.status === 'due_soon') {
+              indicator = d.days_until_next_touch != null && d.days_until_next_touch <= 0
+                ? `due now${cadence}`
+                : `in ${d.days_until_next_touch ?? '?'} days${cadence}`;
+            } else {
+              indicator = 'never contacted';
+            }
             return (
               <li className="upcoming__row" key={d.partner_ulid}>
                 <a className="upcoming__partner" href={`/partners/${d.partner_ulid}`}>

@@ -207,6 +207,8 @@ export interface ContactLogResponse {
   firm_ulid: string;
   state_advanced: boolean;
   new_state: RelationshipState | null;
+  stage_advanced: boolean;
+  new_stage: OutreachStage | null;
 }
 
 export interface Note {
@@ -239,6 +241,9 @@ export interface DueTouch {
   days_since_last_contact: number | null;
   days_until_next_touch: number | null;
   status: 'overdue' | 'due_soon' | 'no_planned_touch';
+  suggested_next_touch_date: string | null;
+  due_source: 'planned' | 'cadence' | 'none';
+  cadence_ideal_days: number | null;
 }
 
 export interface QuarterPlan {

@@ -243,6 +243,10 @@ class LogContactInput(BaseModel):
     value_given: str | None = None
     value_received: str | None = None
     follow_up: str | None = None
+    advance_state: bool = True
+    advance_stage: bool = True
+    next_touch_date: date | None = None
+    next_touch_topic: str | None = None
 
 
 class UpsertPartnerInput(BaseModel):
