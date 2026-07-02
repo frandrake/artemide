@@ -24,6 +24,7 @@ from .exceptions import NotFoundError
 _CADENCE = {
     FirmTier.primary: {"ideal": 90, "overdue": 120, "dormancy": 180},
     FirmTier.specialist: {"ideal": 180, "overdue": 240, "dormancy": 365},
+    FirmTier.ned: {"ideal": 120, "overdue": 180, "dormancy": 365},
 }
 
 
@@ -31,6 +32,11 @@ _SENIORITY_RANK = {"senior_partner": 4, "partner": 3, "associate_partner": 2, "p
 
 
 DueStatus = Literal["overdue", "due_soon", "no_planned_touch"]
+
+# Where the effective next-touch date came from: an explicitly planned
+# next_touch_date, the tier cadence (last contact + ideal), or nowhere
+# (never contacted and nothing planned).
+DueSource = Literal["planned", "cadence", "none"]
 
 
 @dataclass
@@ -46,6 +52,9 @@ class DueTouch:
     days_since_last_contact: int | None
     days_until_next_touch: int | None
     status: DueStatus
+    suggested_next_touch_date: date | None = None
+    due_source: DueSource = "none"
+    cadence_ideal_days: int | None = None
 
 
 @dataclass
@@ -106,8 +115,6 @@ class PlanningService:
             tier_str = firm.tier.value
             if tier != "all" and tier_str.lower() != tier.lower():
                 continue
-            if firm.tier == FirmTier.ned and tier.lower() != "ned":
-                continue
             cadence = _CADENCE.get(firm.tier)
             if cadence is None:
                 continue
@@ -115,18 +122,36 @@ class PlanningService:
                 days_since = (
                     (today - p.last_contact_date).days if p.last_contact_date else None
                 )
+                # Effective next touch: an explicit plan wins; otherwise the
+                # tier cadence derives one from the last contact.
+                source: DueSource = "none"
+                effective_next: date | None = None
+                if p.next_touch_date is not None:
+                    effective_next = p.next_touch_date
+                    source = "planned"
+                elif p.last_contact_date is not None:
+                    effective_next = p.last_contact_date + timedelta(
+                        days=cadence["ideal"]
+                    )
+                    source = "cadence"
                 days_until = (
-                    (p.next_touch_date - today).days if p.next_touch_date else None
+                    (effective_next - today).days if effective_next else None
                 )
                 status: DueStatus | None = None
                 if days_since is not None and days_since >= cadence["overdue"]:
                     if include_overdue:
                         status = "overdue"
-                elif days_until is not None and 0 <= days_until <= window_days:
+                elif days_until is not None and days_until < 0:
+                    # A missed planned touch is overdue; a lapsed cadence
+                    # (past ideal, not yet past overdue) is due now.
+                    if source == "planned":
+                        if include_overdue:
+                            status = "overdue"
+                    else:
+                        status = "due_soon"
+                elif days_until is not None and days_until <= window_days:
                     status = "due_soon"
-                elif p.next_touch_date is None and (
-                    days_since is None or days_since >= cadence["ideal"]
-                ):
+                elif effective_next is None:
                     status = "no_planned_touch"
                 if status is None:
                     continue
@@ -142,11 +167,15 @@ class PlanningService:
                     days_since_last_contact=days_since,
                     days_until_next_touch=days_until,
                     status=status,
+                    suggested_next_touch_date=effective_next,
+                    due_source=source,
+                    cadence_ideal_days=cadence["ideal"],
                 ))
 
         def sort_key(d: DueTouch) -> tuple[int, int]:
             if d.status == "overdue":
-                return (0, -(d.days_since_last_contact or 0))
+                lateness = d.days_since_last_contact or -(d.days_until_next_touch or 0)
+                return (0, -lateness)
             if d.status == "due_soon":
                 return (1, d.days_until_next_touch or 0)
             return (2, -(d.days_since_last_contact or 0))

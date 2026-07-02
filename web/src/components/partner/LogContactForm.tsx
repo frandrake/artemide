@@ -36,7 +36,9 @@ export default function LogContactForm({
   const [valueGiven, setValueGiven] = useState('');
   const [valueReceived, setValueReceived] = useState('');
   const [followUp, setFollowUp] = useState('');
-  const [advanceState, setAdvanceState] = useState(false);
+  const [nextTouchDate, setNextTouchDate] = useState('');
+  const [nextTouchTopic, setNextTouchTopic] = useState('');
+  const [autoAdvance, setAutoAdvance] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // One Idempotency-Key per form session, regenerated on reset.
@@ -50,7 +52,9 @@ export default function LogContactForm({
     setValueGiven('');
     setValueReceived('');
     setFollowUp('');
-    setAdvanceState(false);
+    setNextTouchDate('');
+    setNextTouchTopic('');
+    setAutoAdvance(true);
     setError(null);
     setIdempotencyKey(generateUlid());
   }
@@ -72,7 +76,10 @@ export default function LogContactForm({
           value_given: valueGiven || null,
           value_received: valueReceived || null,
           follow_up: followUp || null,
-          advance_state: advanceState,
+          advance_state: autoAdvance,
+          advance_stage: autoAdvance,
+          next_touch_date: nextTouchDate || null,
+          next_touch_topic: nextTouchTopic || null,
         },
         idempotencyKey,
       );
@@ -161,13 +168,30 @@ export default function LogContactForm({
           onChange={(e) => setFollowUp(e.currentTarget.value)}
         />
 
+        <div className="log-contact-form__row">
+          <Input
+            label="Next touch"
+            type="date"
+            name="next_touch_date"
+            value={nextTouchDate}
+            onChange={(e) => setNextTouchDate(e.currentTarget.value)}
+          />
+          <Input
+            label="Next touch topic"
+            type="text"
+            name="next_touch_topic"
+            value={nextTouchTopic}
+            onChange={(e) => setNextTouchTopic(e.currentTarget.value)}
+          />
+        </div>
+
         <label className="log-contact-form__checkbox">
           <input
             type="checkbox"
-            checked={advanceState}
-            onChange={(e) => setAdvanceState(e.currentTarget.checked)}
+            checked={autoAdvance}
+            onChange={(e) => setAutoAdvance(e.currentTarget.checked)}
           />
-          <span>Advance relationship state if conditions met</span>
+          <span>Auto-advance pipeline stage and relationship state</span>
         </label>
 
         {error && <p className="log-contact-form__error" role="alert">{error}</p>}

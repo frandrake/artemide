@@ -34,7 +34,10 @@ class ContactLogInput(BaseModel):
     value_given: str | None = None
     value_received: str | None = None
     follow_up: str | None = None
-    advance_state: bool = False
+    advance_state: bool = True
+    advance_stage: bool = True
+    next_touch_date: date | None = None
+    next_touch_topic: str | None = None
 
 
 @router.get("")
@@ -75,6 +78,9 @@ def log_contact(
         value_received=body.value_received,
         follow_up=body.follow_up,
         advance_state=body.advance_state,
+        advance_stage=body.advance_stage,
+        next_touch_date=body.next_touch_date,
+        next_touch_topic=body.next_touch_topic,
     )
     payload = {
         "contact": to_response(resp.contact),
@@ -82,6 +88,8 @@ def log_contact(
         "firm_ulid": resp.firm.ulid,
         "state_advanced": resp.state_advanced,
         "new_state": resp.new_state.value if resp.new_state else None,
+        "stage_advanced": resp.stage_advanced,
+        "new_stage": resp.new_stage.value if resp.new_stage else None,
     }
     store_idempotent_response(conn, idempotency_key, payload, status_code=200)
     return payload

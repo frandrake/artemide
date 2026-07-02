@@ -32,7 +32,10 @@ def log_contact(payload: LogContactInput) -> dict:
                 value_given=payload.value_given,
                 value_received=payload.value_received,
                 follow_up=payload.follow_up,
-                advance_state=True,
+                advance_state=payload.advance_state,
+                advance_stage=payload.advance_stage,
+                next_touch_date=payload.next_touch_date,
+                next_touch_topic=payload.next_touch_topic,
             )
             return {
                 "ok": True,
@@ -41,6 +44,12 @@ def log_contact(payload: LogContactInput) -> dict:
                 "firm_ulid": resp.firm.ulid,
                 "state_advanced": resp.state_advanced,
                 "new_state": resp.new_state.value if resp.new_state else None,
+                "stage_advanced": resp.stage_advanced,
+                "new_stage": resp.new_stage.value if resp.new_stage else None,
+                "next_touch_date": (
+                    resp.partner.next_touch_date.isoformat()
+                    if resp.partner.next_touch_date else None
+                ),
             }
         except Exception as e:
             return error_response(e)

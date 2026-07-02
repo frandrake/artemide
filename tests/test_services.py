@@ -12,6 +12,7 @@ from src.models import (
     FirmTier,
     InitiatedBy,
     NoteEntityType,
+    OutreachStage,
     RelationshipState,
 )
 from src.repository import firms as firms_repo
@@ -149,6 +150,171 @@ def test_planning_list_due_touches_respects_thresholds(ctx):
     statuses = {(d.partner_name, d.status) for d in due}
     assert ("Overdue Primary", "overdue") in statuses
     assert not any(name == "Recent Specialist" for name, _ in statuses)
+
+
+def test_contact_log_advances_stage_outbound_to_sent(ctx):
+    firm = _seed_firm(ctx, name="Stage Firm A", tier=FirmTier.primary)
+    partner = PartnersService.upsert(ctx, firm.name, "Stage Partner A")
+    assert partner.outreach_stage == OutreachStage.researched
+
+    resp = ContactsService.log(
+        ctx,
+        firm_name=firm.name,
+        partner_name=partner.name,
+        contact_date=date(2026, 6, 1),
+        channel=ContactChannel.email,
+        initiated_by=InitiatedBy.me,
+        summary="Sent intro note",
+    )
+    assert resp.stage_advanced is True
+    assert resp.new_stage == OutreachStage.sent
+    assert resp.partner.outreach_stage == OutreachStage.sent
+
+
+def test_contact_log_advances_stage_inbound_to_replied(ctx):
+    firm = _seed_firm(ctx, name="Stage Firm B", tier=FirmTier.primary)
+    partner = PartnersService.upsert(ctx, firm.name, "Stage Partner B")
+
+    resp = ContactsService.log(
+        ctx,
+        firm_name=firm.name,
+        partner_name=partner.name,
+        contact_date=date(2026, 6, 2),
+        channel=ContactChannel.email,
+        initiated_by=InitiatedBy.them,
+        summary="They replied",
+    )
+    assert resp.new_stage == OutreachStage.replied
+
+
+def test_contact_log_realtime_channel_advances_to_met(ctx):
+    firm = _seed_firm(ctx, name="Stage Firm C", tier=FirmTier.specialist)
+    partner = PartnersService.upsert(ctx, firm.name, "Stage Partner C")
+
+    resp = ContactsService.log(
+        ctx,
+        firm_name=firm.name,
+        partner_name=partner.name,
+        contact_date=date(2026, 6, 3),
+        channel=ContactChannel.coffee,
+        initiated_by=InitiatedBy.me,
+        summary="Coffee in Mayfair",
+    )
+    assert resp.new_stage == OutreachStage.met
+
+
+def test_contact_log_never_moves_stage_backwards_or_from_ongoing(ctx):
+    from src.repository import partners as partners_repo
+
+    firm = _seed_firm(ctx, name="Stage Firm D", tier=FirmTier.primary)
+    partner = PartnersService.upsert(ctx, firm.name, "Stage Partner D")
+    partners_repo.update_partner_fields(
+        ctx.conn, partner.id, {"outreach_stage": OutreachStage.ongoing},
+    )
+
+    resp = ContactsService.log(
+        ctx,
+        firm_name=firm.name,
+        partner_name=partner.name,
+        contact_date=date(2026, 6, 4),
+        channel=ContactChannel.email,
+        initiated_by=InitiatedBy.me,
+        summary="Check-in",
+    )
+    assert resp.stage_advanced is False
+    assert resp.partner.outreach_stage == OutreachStage.ongoing
+
+
+def test_contact_log_advance_stage_opt_out(ctx):
+    firm = _seed_firm(ctx, name="Stage Firm E", tier=FirmTier.primary)
+    partner = PartnersService.upsert(ctx, firm.name, "Stage Partner E")
+
+    resp = ContactsService.log(
+        ctx,
+        firm_name=firm.name,
+        partner_name=partner.name,
+        contact_date=date(2026, 6, 5),
+        channel=ContactChannel.email,
+        initiated_by=InitiatedBy.me,
+        summary="Historical backfill",
+        advance_stage=False,
+    )
+    assert resp.stage_advanced is False
+    assert resp.partner.outreach_stage == OutreachStage.researched
+
+
+def test_contact_log_sets_next_touch_inline(ctx):
+    firm = _seed_firm(ctx, name="Touch Firm", tier=FirmTier.primary)
+    partner = PartnersService.upsert(ctx, firm.name, "Touch Partner")
+
+    resp = ContactsService.log(
+        ctx,
+        firm_name=firm.name,
+        partner_name=partner.name,
+        contact_date=date(2026, 6, 10),
+        channel=ContactChannel.call,
+        initiated_by=InitiatedBy.me,
+        summary="Catch-up call",
+        next_touch_date=date(2026, 7, 1),
+        next_touch_topic="Share the marketing-effectiveness piece",
+    )
+    assert resp.partner.next_touch_date == date(2026, 7, 1)
+    assert resp.partner.next_touch_topic == "Share the marketing-effectiveness piece"
+
+
+def test_planning_cadence_derives_due_touch(ctx):
+    from src.repository import partners as partners_repo
+
+    firm = _seed_firm(ctx, name="Cadence Primary", tier=FirmTier.primary)
+    today = date.today()
+    # 95d since contact: past the 90d ideal, below the 120d overdue threshold.
+    p = PartnersService.upsert(ctx, firm.name, "Cadence Partner")
+    partners_repo.update_partner_fields(
+        ctx.conn, p.id, {"last_contact_date": today - timedelta(days=95)},
+    )
+
+    due = PlanningService.list_due_touches(ctx, window_days=14)
+    row = next(d for d in due if d.partner_name == "Cadence Partner")
+    assert row.status == "due_soon"
+    assert row.due_source == "cadence"
+    assert row.suggested_next_touch_date == today - timedelta(days=5)
+    assert row.days_until_next_touch == -5
+
+
+def test_planning_ned_tier_has_cadence_and_appears_in_all(ctx):
+    from src.repository import partners as partners_repo
+
+    firm = _seed_firm(ctx, name="NED Boutique", tier=FirmTier.ned)
+    today = date.today()
+    p = PartnersService.upsert(ctx, firm.name, "NED Gatekeeper")
+    partners_repo.update_partner_fields(
+        ctx.conn, p.id, {"last_contact_date": today - timedelta(days=200)},
+    )
+
+    due = PlanningService.list_due_touches(ctx, window_days=14)
+    row = next(d for d in due if d.partner_name == "NED Gatekeeper")
+    assert row.status == "overdue"
+    assert row.tier == "ned"
+
+
+def test_planning_missed_planned_touch_is_overdue(ctx):
+    from src.repository import partners as partners_repo
+
+    firm = _seed_firm(ctx, name="Missed Plan Firm", tier=FirmTier.primary)
+    today = date.today()
+    p = PartnersService.upsert(
+        ctx, firm.name, "Missed Plan Partner",
+        next_touch_date=today - timedelta(days=3),
+    )
+    partners_repo.update_partner_fields(
+        ctx.conn, p.id, {"last_contact_date": today - timedelta(days=10)},
+    )
+
+    due = PlanningService.list_due_touches(ctx, window_days=14)
+    row = next(d for d in due if d.partner_name == "Missed Plan Partner")
+    assert row.status == "overdue"
+    assert row.due_source == "planned"
+    assert row.days_until_next_touch == -3
 
 
 def test_planning_quarter_spacing_unique_weeks(ctx):

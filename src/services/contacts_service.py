@@ -11,6 +11,7 @@ from ..models import (
     ContactLogRecord,
     FirmRecord,
     InitiatedBy,
+    OutreachStage,
     PartnerRecord,
     RelationshipState,
 )
@@ -30,6 +31,8 @@ class LogContactResponse:
     firm: FirmRecord
     state_advanced: bool
     new_state: RelationshipState | None
+    stage_advanced: bool = False
+    new_stage: OutreachStage | None = None
 
 
 def _record_to_dict(record: Any) -> dict[str, Any]:
@@ -74,6 +77,44 @@ def _evaluate_state_advance(
     return None
 
 
+_MET_CHANNELS = {ContactChannel.call, ContactChannel.coffee, ContactChannel.event}
+
+_STAGE_ORDER = [
+    OutreachStage.researched,
+    OutreachStage.drafted,
+    OutreachStage.sent,
+    OutreachStage.replied,
+    OutreachStage.met,
+]
+
+
+def _evaluate_stage_advance(
+    *,
+    stage: OutreachStage,
+    channel: ContactChannel,
+    initiated_by: InitiatedBy,
+) -> OutreachStage | None:
+    """Rule 2: outreach-stage advancement on contact.
+
+    - real-time channel (call/coffee/event) → met
+    - inbound contact → replied
+    - outbound contact → sent
+    Only ever moves forward within researched→drafted→sent→replied→met;
+    ongoing/paused/dropped are never touched.
+    """
+    if stage not in _STAGE_ORDER:
+        return None
+    if channel in _MET_CHANNELS:
+        target = OutreachStage.met
+    elif initiated_by == InitiatedBy.them:
+        target = OutreachStage.replied
+    else:
+        target = OutreachStage.sent
+    if _STAGE_ORDER.index(target) > _STAGE_ORDER.index(stage):
+        return target
+    return None
+
+
 def _is_substantive(contact: ContactLogRecord) -> bool:
     return any([
         contact.value_given,
@@ -98,7 +139,10 @@ class ContactsService:
         summary: str | None = None,
         follow_up: str | None = None,
         engagement_ulid: str | None = None,
-        advance_state: bool = False,
+        advance_state: bool = True,
+        advance_stage: bool = True,
+        next_touch_date: date | None = None,
+        next_touch_topic: str | None = None,
     ) -> LogContactResponse:
         with transaction(ctx.conn):
             firm = firms_repo.get_firm_by_name(ctx.conn, firm_name)
@@ -132,6 +176,28 @@ class ContactsService:
             )
 
             partners_repo.update_last_contact_date(ctx.conn, partner.id, contact_date)
+
+            # Inline next-touch scheduling: one log call closes the loop.
+            touch_fields: dict[str, Any] = {}
+            if next_touch_date is not None:
+                touch_fields["next_touch_date"] = next_touch_date
+            if next_touch_topic is not None:
+                touch_fields["next_touch_topic"] = next_touch_topic
+            if touch_fields:
+                partners_repo.update_partner_fields(ctx.conn, partner.id, touch_fields)
+
+            new_stage: OutreachStage | None = None
+            if advance_stage:
+                target_stage = _evaluate_stage_advance(
+                    stage=partner.outreach_stage,
+                    channel=channel,
+                    initiated_by=initiated_by,
+                )
+                if target_stage is not None:
+                    from .outreach_service import _set_stage_inline
+
+                    _set_stage_inline(ctx, partner, target_stage)
+                    new_stage = target_stage
 
             new_state: RelationshipState | None = None
             if advance_state:
@@ -178,6 +244,12 @@ class ContactsService:
                     "partner_ulid": partner.ulid,
                     "state_advanced": new_state is not None,
                     "new_state": new_state.value if new_state else None,
+                    "stage_advanced": new_stage is not None,
+                    "new_stage": new_stage.value if new_stage else None,
+                    "next_touch_date": (
+                        next_touch_date.isoformat() if next_touch_date else None
+                    ),
+                    "next_touch_topic": next_touch_topic,
                 },
             )
             return LogContactResponse(
@@ -186,6 +258,8 @@ class ContactsService:
                 firm=firm,
                 state_advanced=new_state is not None,
                 new_state=new_state,
+                stage_advanced=new_stage is not None,
+                new_stage=new_stage,
             )
 
     @staticmethod
