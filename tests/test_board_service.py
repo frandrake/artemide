@@ -8,8 +8,11 @@ import pytest
 
 from src.models import (
     AdvanceBoardStageInput,
+    BoardOutcome,
     RecordConflictScreenInput,
     SetBoardEvaluationInput,
+    SetBoardOutcomeInput,
+    SetBoardTargetInput,
     UpsertBoardContactInput,
     UpsertBoardFirmInput,
     UpsertBoardOpportunityInput,
@@ -22,6 +25,7 @@ from src.services.board_evaluation_service import BoardEvaluationService
 from src.services.board_conflict_service import BoardConflictService
 from src.services.board_firms_service import BoardFirmsService
 from src.services.board_opportunities_service import BoardOpportunitiesService
+from src.services.board_target_service import BoardTargetService
 from src.services.exceptions import ForbiddenRoleError, InvalidStateTransitionError
 
 
@@ -182,3 +186,94 @@ def test_board_does_not_bleed(ctx, db):
     report = AuditService.generate_report(ctx)
     names = [e.firm_name for e in report.primary_tier_coverage + report.specialist_tier_coverage]
     assert all("ZZZ" not in n for n in names)
+
+
+# ---------- board target: the NED-search goal + RAG read-out ----------
+
+def test_board_target_set_get_and_default_status(ctx):
+    # No target set: status still works with the default seat goal.
+    status = BoardTargetService.status(ctx)
+    assert status["target_set"] is False
+    assert status["seats_target"] == 2
+    assert status["seats_won"] == 0
+    assert status["rag"] == "red"  # empty pipeline
+
+    target = BoardTargetService.set(ctx, SetBoardTargetInput(
+        seats_target=2, target_date=date.today() + timedelta(days=365)))
+    assert target.seats_target == 2
+    again = BoardTargetService.set(ctx, SetBoardTargetInput(seats_target=3))
+    assert again.ulid == target.ulid  # single row, updated in place
+    assert BoardTargetService.get(ctx).seats_target == 3
+
+
+def test_board_target_rag_progression(ctx):
+    BoardTargetService.set(ctx, SetBoardTargetInput(
+        seats_target=1, target_date=date.today() + timedelta(days=365)))
+
+    # Early-stage pipeline only → red.
+    o = _opp(ctx, organisation="Rag plc")
+    assert BoardTargetService.status(ctx)["rag"] == "red"
+
+    # Late-stage opportunity → amber.
+    for stage in ("conflict_screen", "chair_meeting", "formal_process", "final_nomco"):
+        BoardOpportunitiesService.advance_stage(ctx, o.ulid, AdvanceBoardStageInput(to_stage=stage))
+    status = BoardTargetService.status(ctx)
+    assert status["late"] == 1
+    assert status["rag"] == "amber"
+
+    # Seat accepted → green (target met).
+    BoardOpportunitiesService.set_outcome(
+        ctx, o.ulid, SetBoardOutcomeInput(outcome=BoardOutcome.accepted))
+    status = BoardTargetService.status(ctx)
+    assert status["seats_won"] == 1
+    assert status["open_opportunities"] == 0  # decided seats leave the funnel
+    assert status["rag"] == "green"
+
+
+def test_board_target_rag_red_after_target_date(ctx):
+    BoardTargetService.set(ctx, SetBoardTargetInput(
+        seats_target=1, target_date=date.today() - timedelta(days=1)))
+    o = _opp(ctx, organisation="Late plc")
+    for stage in ("conflict_screen", "chair_meeting", "formal_process", "final_nomco"):
+        BoardOpportunitiesService.advance_stage(ctx, o.ulid, AdvanceBoardStageInput(to_stage=stage))
+    # Late-stage pipeline would be amber, but the target date has passed.
+    assert BoardTargetService.status(ctx)["rag"] == "red"
+
+
+def test_board_outcome_logged_and_pass_interest_excluded(ctx, db):
+    o = _opp(ctx, organisation="Declined plc")
+    updated = BoardOpportunitiesService.set_outcome(
+        ctx, o.ulid, SetBoardOutcomeInput(outcome=BoardOutcome.declined, summary="not the right chair"))
+    assert updated.outcome == BoardOutcome.declined
+    # R3 pattern: outcome lands in the opportunity trail.
+    rows = db.execute(
+        "SELECT summary FROM board_opportunity_log WHERE opportunity_id = ?", (o.id,)
+    ).fetchall()
+    assert any("not the right chair" in (r[0] or "") for r in rows)
+
+    # interest='pass' opportunities are not part of the open funnel
+    p = _opp(ctx, organisation="Pass plc")
+    from src.models import BoardOpportunityUpdateInput
+    BoardOpportunitiesService.update_fields(
+        ctx, p.ulid, BoardOpportunityUpdateInput(interest="pass"))
+    assert BoardTargetService.status(ctx)["open_opportunities"] == 0
+
+
+def test_bot_blocked_on_board_target(bot_ctx):
+    with pytest.raises(ForbiddenRoleError):
+        BoardTargetService.get(bot_ctx)
+    with pytest.raises(ForbiddenRoleError):
+        BoardTargetService.set(bot_ctx, SetBoardTargetInput(seats_target=2))
+    with pytest.raises(ForbiddenRoleError):
+        BoardTargetService.status(bot_ctx)
+
+
+def test_board_target_does_not_bleed(ctx, db):
+    BoardTargetService.set(ctx, SetBoardTargetInput(seats_target=2))
+    o = _opp(ctx, organisation="YYY Holdings plc")
+    BoardOpportunitiesService.set_outcome(
+        ctx, o.ulid, SetBoardOutcomeInput(outcome=BoardOutcome.lost))
+    assert db.execute("SELECT COUNT(*) FROM events_outbox").fetchone()[0] == 0
+    assert db.execute(
+        "SELECT COUNT(*) FROM search_index WHERE primary_text LIKE '%YYY%'"
+    ).fetchone()[0] == 0

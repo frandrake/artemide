@@ -1,8 +1,7 @@
 ---
 import AppShell from '../components/layout/AppShell.astro';
 import PipelineOverview from '../components/dashboard/PipelineOverview';
-import ThisWeekPanel from '../components/dashboard/ThisWeekPanel';
-import UpcomingTouches from '../components/dashboard/UpcomingTouches';
+import NextActions from '../components/dashboard/NextActions';
 import AuditHighlights from '../components/dashboard/AuditHighlights';
 import OutreachMetricsTiles from '../components/dashboard/OutreachMetricsTiles';
 import BoardSearchTile from '../components/dashboard/BoardSearchTile';
@@ -21,14 +20,11 @@ import ProgrammeBanner from '../components/v12/ProgrammeBanner';
   <BoardSearchTile client:load />
 
   <div class="dashboard-grid">
-    <div class="dashboard-grid__thisweek">
-      <ThisWeekPanel client:load />
+    <div class="dashboard-grid__nextactions">
+      <NextActions client:load />
     </div>
     <div class="dashboard-grid__pipeline">
       <PipelineOverview client:load />
-    </div>
-    <div class="dashboard-grid__upcoming">
-      <UpcomingTouches client:load />
     </div>
     <div class="dashboard-grid__audit">
       <AuditHighlights client:load />
@@ -47,26 +43,14 @@ import ProgrammeBanner from '../components/v12/ProgrammeBanner';
 
   .dashboard-grid {
     display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      "thisweek thisweek"
-      "pipeline pipeline"
-      "upcoming audit";
+      "nextactions"
+      "pipeline"
+      "audit";
     gap: var(--space-4);
   }
-  .dashboard-grid__thisweek { grid-area: thisweek; }
+  .dashboard-grid__nextactions { grid-area: nextactions; }
   .dashboard-grid__pipeline { grid-area: pipeline; }
-  .dashboard-grid__upcoming { grid-area: upcoming; }
   .dashboard-grid__audit { grid-area: audit; }
-
-  @media (max-width: 900px) {
-    .dashboard-grid {
-      grid-template-columns: 1fr;
-      grid-template-areas:
-        "thisweek"
-        "pipeline"
-        "upcoming"
-        "audit";
-    }
-  }
 </style>

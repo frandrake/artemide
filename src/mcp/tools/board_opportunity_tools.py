@@ -6,9 +6,12 @@ from ...models import (
     AdvanceBoardStageInput,
     BoardConflictCleared,
     BoardOppInterest,
+    BoardOutcome,
     BoardStage,
     RecordConflictScreenInput,
     SetBoardEvaluationInput,
+    SetBoardOutcomeInput,
+    SetBoardTargetInput,
     UpsertBoardOpportunityInput,
 )
 from ...repository import board_conflict_screens as screens_repo
@@ -21,6 +24,7 @@ from ...services.board_evaluation_service import (
     compute_board_evaluation,
 )
 from ...services.board_opportunities_service import BoardOpportunitiesService
+from ...services.board_target_service import BoardTargetService
 from .._common import error_response, tool_session
 from ..registry import mcp
 
@@ -138,5 +142,41 @@ def board_compare_evaluations(opportunity_ulids: list[str]) -> dict:
     with tool_session("board_compare_evaluations") as (conn, ctx):
         try:
             return {"ok": True, "comparison": BoardEvaluationService.compare(ctx, opportunity_ulids)}
+        except Exception as e:
+            return error_response(e)
+
+
+@mcp.tool
+def board_set_outcome(
+    opportunity_ulid: str, outcome: BoardOutcome, summary: str | None = None
+) -> dict:
+    """Record how a board opportunity ended: accepted (seat won), declined, or lost."""
+    with tool_session("board_set_outcome") as (conn, ctx):
+        try:
+            o = BoardOpportunitiesService.set_outcome(
+                ctx, opportunity_ulid, SetBoardOutcomeInput(outcome=outcome, summary=summary)
+            )
+            return {"ok": True, "opportunity": BoardOpportunitiesService.to_payload(ctx, o)}
+        except Exception as e:
+            return error_response(e)
+
+
+@mcp.tool
+def board_set_target(payload: SetBoardTargetInput) -> dict:
+    """Set the NED-search goal: number of seats and (optionally) a target date."""
+    with tool_session("board_set_target") as (conn, ctx):
+        try:
+            target = BoardTargetService.set(ctx, payload)
+            return {"ok": True, "target": to_response(target)}
+        except Exception as e:
+            return error_response(e)
+
+
+@mcp.tool
+def board_target_status() -> dict:
+    """The board programme read-out: seats won vs target, open-opportunity funnel, and RAG."""
+    with tool_session("board_target_status") as (conn, ctx):
+        try:
+            return {"ok": True, "status": BoardTargetService.status(ctx)}
         except Exception as e:
             return error_response(e)

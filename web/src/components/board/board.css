@@ -99,3 +99,16 @@
   .bd-board { grid-template-columns: repeat(7, 78vw); }
   .bd-kv { grid-template-columns: 1fr; }
 }
+
+/* ---------- board target (NED goal read-out) ---------- */
+.bd-target__head { display: flex; align-items: center; gap: var(--space-2); }
+.bd-target__headline { margin: var(--space-2) 0; font-size: 1.05rem; }
+.bd-rag { color: #fff; }
+.bd-rag--green { background: #2e7d4f; }
+.bd-rag--amber { background: #b57d1f; }
+.bd-rag--red { background: var(--vermillion, #E63946); }
+.bd-target__funnel { display: flex; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-2) 0; }
+.bd-target__stage { display: flex; flex-direction: column; align-items: center; min-width: 72px; padding: var(--space-1); border: 1px solid var(--border, #d8dde4); }
+.bd-target__stage-count { font-weight: 600; font-size: 1.1rem; }
+.bd-target__stage-label { font-size: 0.7rem; color: var(--charcoal-muted); text-align: center; }
+.bd-target__form { display: flex; gap: var(--space-2); align-items: flex-end; flex-wrap: wrap; margin-top: var(--space-2); }

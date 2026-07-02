@@ -20,6 +20,7 @@ from ..models import (
     BoardOpportunityRecord,
     BoardOpportunityUpdateInput,
     BOARD_STAGE_ORDER,
+    SetBoardOutcomeInput,
     UpsertBoardOpportunityInput,
 )
 from ..api._serde import to_response
@@ -207,6 +208,32 @@ class BoardOpportunitiesService:
                 entity_id=o.id, entity_ulid=o.ulid, before=before, after=_record_to_dict(updated),
             )
             return updated, warnings
+
+    @staticmethod
+    def set_outcome(
+        ctx: ServiceContext, ulid: str, data: SetBoardOutcomeInput
+    ) -> BoardOpportunityRecord:
+        """Record how a seat ended (accepted / declined / lost).
+
+        Allowed from any stage — a process can die before 'decision' — and
+        logged to both trails (R3 pattern). Feeds the board target read-out.
+        """
+        assert_owner(ctx, operation="set board opportunity outcome")
+        with transaction(ctx.conn):
+            o = BoardOpportunitiesService.get_by_ulid(ctx, ulid)
+            before = _record_to_dict(o)
+            opportunities_repo.set_outcome(ctx.conn, o.id, data.outcome)
+            opportunities_repo.insert_log(
+                ctx.conn, opportunity_id=o.id, event_date=date.today(),
+                event_type=BoardOppEventType.note,
+                summary=data.summary or f"outcome recorded: {data.outcome.value}",
+            )
+            updated = opportunities_repo.get_opportunity_by_id(ctx.conn, o.id) or o
+            AuditService.record(
+                ctx, action=AuditAction.update, entity_type="board_opportunity",
+                entity_id=o.id, entity_ulid=o.ulid, before=before, after=_record_to_dict(updated),
+            )
+            return updated
 
     @staticmethod
     def soft_delete(ctx: ServiceContext, ulid: str) -> None:

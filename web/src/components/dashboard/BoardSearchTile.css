@@ -48,3 +48,8 @@
 @media (max-width: 720px) {
   .board-tile { flex-direction: column; align-items: flex-start; gap: var(--space-1); }
 }
+
+.board-tile__rag { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.board-tile__rag--green { background: #2e7d4f; }
+.board-tile__rag--amber { background: #b57d1f; }
+.board-tile__rag--red { background: #E63946; }
