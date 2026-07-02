@@ -151,8 +151,14 @@ healthcare + car allowance + other`. Scenario `status` vocabulary:
 manuscript, she introduced me to a peer at Spencer Stuart." → `get_partner_state`
 to resolve the partner ULID if needed, then `log_contact` with channel,
 `initiated_by`, `summary`, and `value_given` / `value_received`. Let the service
-fire state transitions — don't set `relationship_state` by hand. Echo back what
-was recorded.
+fire state transitions — don't set `relationship_state` by hand. The service also
+auto-advances the **outreach stage** on the signal itself (outbound → `sent`,
+inbound → `replied`, call/coffee/event → `met`; never backwards, never from
+`ongoing`/`paused`/`dropped`) — no separate `set_outreach_stage` call needed.
+If Francesco mentions a follow-up ("catch up in three weeks", "ping her after
+the offsite"), pass `next_touch_date` / `next_touch_topic` inline on the same
+call. For historical backfills pass `advance_stage=false`. Echo back what was
+recorded, including any stage/state change.
 
 **2 · Compose & record an outreach (draft → send).**
 1. `get_partner_state(partner_ulid)` — pull `warm_intro_angle`,
@@ -174,11 +180,16 @@ Completed → `update_engagement(ulid, {status: "complete"})`. Slipping →
 
 **4 · Partner outreach pipeline.** `pipeline_snapshot()` for the Kanban; filter for
 narrower views. Flag partners **stuck at `drafted` > 7 days** ("ready to send when
-you are") and **`sent` with no `replied`** within the tier window (follow-up). On
-a reply/meeting → `set_outreach_stage(partner, stage=…)`.
+you are") and **`sent` with no `replied`** within the tier window (follow-up). A
+logged contact advances the stage automatically; use `set_outreach_stage` only for
+corrections or for `ongoing`/`paused`/`dropped`.
 
 **5 · Cadence & audit.** `list_due_touches` for the actionable overdue list;
-`audit_ledger` for the full coverage / dormancy / reciprocity report.
+`audit_ledger` for the full coverage / dormancy / reciprocity report. Due-ness is
+**cadence-computed**: with no explicit next touch planned, one is derived from
+last contact + tier ideal (primary 90d, ned 120d, specialist 180d) — see
+`due_source` (`planned`|`cadence`) and `suggested_next_touch_date` on each row;
+`no_planned_touch` now means never contacted. NED-tier firms are included.
 
 **6 · Programme — surface a mandate and move it.**
 1. `upsert_org(...)` — the organisation (set `watch_state`, `scale_band`,
