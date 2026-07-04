@@ -1,6 +1,6 @@
 {
   "id": "artemide-cadence",
-  "versionId": "artemide-cadence-v5",
+  "versionId": "artemide-cadence-v6",
   "name": "Artemide \u00b7 Cadence",
   "nodes": [
     {
@@ -59,6 +59,19 @@
     },
     {
       "parameters": {
+        "jsCode": "const kept = [];\nfor (const [i, item] of $input.all().entries()) {\n  const s = item.json.status;\n  if (s === 'overdue' || s === 'due_soon') {\n    kept.push({ json: item.json, pairedItem: { item: i } });\n  }\n}\n// keep the Monday queue humane\nreturn kept.slice(0, 5);"
+      },
+      "id": "cad-filter",
+      "name": "Filter due",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        0
+      ]
+    },
+    {
+      "parameters": {
         "method": "POST",
         "url": "https://api.anthropic.com/v1/messages",
         "authentication": "genericCredentialType",
@@ -82,14 +95,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"model\": \"claude-sonnet-4-6\",\n  \"max_tokens\": 400,\n  \"system\": \"You are drafting a brief, warm professional check-in email in the owner\\u0027s voice to an executive-search partner. One short paragraph, specific, no filler, end with a light question. Return only the email body text.\",\n  \"messages\": [ { \"role\": \"user\", \"content\": \"Partner: \" + $json.partner_name + \" at \" + $json.firm_name + \". Planned topic: \" + ($json.next_touch_topic || \"general check-in\") + \". Days since last contact: \" + $json.days_since_last_contact + \". Draft the check-in.\" } ]\n} }}"
+        "jsonBody": "={{ {\n  \"model\": \"claude-sonnet-5\",\n  \"max_tokens\": 400,\n  \"system\": \"You are drafting a brief, warm professional check-in email in the owner\\u0027s voice to an executive-search partner. One short paragraph, specific, no filler, end with a light question. Return only the email body text.\",\n  \"messages\": [ { \"role\": \"user\", \"content\": \"Partner: \" + $json.partner_name + \" at \" + $json.firm_name + \". Planned topic: \" + ($json.next_touch_topic || \"general check-in\") + \". Days since last contact: \" + $json.days_since_last_contact + \". Draft the check-in.\" } ]\n} }}"
       },
       "id": "cad-claude",
       "name": "Draft with Claude",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        480,
+        600,
         0
       ],
       "credentials": {
@@ -113,20 +126,20 @@
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ 'cadence-' + $('Get due touches').item.json.partner_ulid + '-' + $now.toFormat('kkkk-WW') }}"
+              "value": "={{ 'cadence-' + $('Filter due').item.json.partner_ulid + '-' + $now.toFormat('kkkk-WW') }}"
             }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ {\n  \"kind\": \"cadence_touch\",\n  \"channel\": \"email\",\n  \"partner_ulid\": $('Get due touches').item.json.partner_ulid,\n  \"recipient_hint\": $('Get due touches').item.json.partner_name,\n  \"body\": ($json.content && $json.content[0] ? $json.content[0].text : ''),\n  \"rationale\": 'cadence touch \u00b7 ' + $('Get due touches').item.json.status\n} }}"
+        "jsonBody": "={{ {\n  \"kind\": \"cadence_touch\",\n  \"channel\": \"email\",\n  \"partner_ulid\": $('Filter due').item.json.partner_ulid,\n  \"recipient_hint\": $('Filter due').item.json.partner_name,\n  \"body\": ($json.content && $json.content[0] ? $json.content[0].text : ''),\n  \"rationale\": 'cadence touch \u00b7 ' + $('Filter due').item.json.status\n} }}"
       },
       "id": "cad-prop",
       "name": "Propose message",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
+        840,
         0
       ],
       "credentials": {
@@ -137,7 +150,7 @@
     },
     {
       "parameters": {
-        "content": "CADENCE (weekly)\n\nInternal url http://artemide:8000 (public host is behind CF Access). Claude node\nbatches 1 req / 1.5s with retries to respect Anthropic rate limits. JSON bodies\nare object-expressions. Approve drafts in /messages; Sender sends.",
+        "content": "CADENCE (weekly)\n\nInternal url http://artemide:8000 (public host is behind CF Access).\nFilter due keeps only overdue/due-soon rows (cap 5/run) - never-contacted\npartners stay in the pipeline, not the cadence. Claude drafts; messages\nland in /messages as PROPOSED. Approve there; only the Sender sends.",
         "height": 300,
         "width": 470
       },
@@ -167,7 +180,7 @@
       "main": [
         [
           {
-            "node": "Draft with Claude",
+            "node": "Filter due",
             "type": "main",
             "index": 0
           }
@@ -179,6 +192,17 @@
         [
           {
             "node": "Propose message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter due": {
+      "main": [
+        [
+          {
+            "node": "Draft with Claude",
             "type": "main",
             "index": 0
           }

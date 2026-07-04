@@ -705,6 +705,32 @@ export interface BoardInteraction {
   due_date: string | null;
 }
 
+export type BoardOutcome = 'accepted' | 'declined' | 'lost';
+
+export interface BoardTarget {
+  ulid: string;
+  seats_target: number;
+  target_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BoardTargetStatus {
+  target_set: boolean;
+  seats_target: number;
+  target_date: string | null;
+  days_to_target: number | null;
+  notes: string | null;
+  seats_won: number;
+  open_opportunities: number;
+  funnel: Record<BoardStage, number>;
+  early: number;
+  mid: number;
+  late: number;
+  rag: 'red' | 'amber' | 'green';
+}
+
 export interface BoardOpportunity {
   ulid: string;
   organisation: string;
@@ -723,6 +749,7 @@ export interface BoardOpportunity {
   notes: string | null;
   eval_weighted_total: number | null;
   eval_verdict: BoardVerdict | null;
+  outcome: BoardOutcome | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

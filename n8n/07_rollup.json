@@ -1,7 +1,7 @@
 {
   "id": "artemide-rollup",
-  "versionId": "artemide-rollup-v4",
-  "name": "Artemide \u00b7 Rollup",
+  "versionId": "artemide-rollup-v5",
+  "name": "Artemide · Rollup",
   "nodes": [
     {
       "parameters": {
@@ -9,9 +9,7 @@
           "interval": [
             {
               "field": "weeks",
-              "triggerAtDay": [
-                5
-              ],
+              "triggerAtDay": [5],
               "triggerAtHour": 16
             }
           ]
@@ -21,114 +19,175 @@
       "name": "Friday 16:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [
-        0,
-        0
-      ]
+      "position": [0, 0]
     },
     {
       "parameters": {
         "method": "GET",
         "url": "http://artemide:8000/api/v1/programme/status",
         "authentication": "genericCredentialType",
-        "options": {},
-        "genericAuthType": "httpHeaderAuth"
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
       },
-      "id": "ro-st",
+      "id": "ro-prog",
       "name": "Programme status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        240,
-        -120
-      ],
+      "position": [220, 0],
       "credentials": {
         "httpHeaderAuth": {
           "name": "Header Auth account"
         }
-      }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "http://artemide:8000/api/v1/engagements?sort=fit",
+        "url": "http://artemide:8000/api/v1/engagements",
         "authentication": "genericCredentialType",
-        "options": {},
-        "genericAuthType": "httpHeaderAuth"
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
       },
       "id": "ro-eng",
       "name": "Engagements",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        240,
-        40
-      ],
+      "position": [440, 0],
       "credentials": {
         "httpHeaderAuth": {
           "name": "Header Auth account"
         }
-      }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "http://artemide:8000/api/v1/messages?status=proposed",
+        "url": "http://artemide:8000/api/v1/messages",
         "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {},
-        "genericAuthType": "httpHeaderAuth"
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "proposed"
+            }
+          ]
+        }
       },
-      "id": "ro-msg",
+      "id": "ro-msgs",
       "name": "Proposed messages",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [
-        240,
-        200
-      ],
+      "position": [660, 0],
       "credentials": {
         "httpHeaderAuth": {
           "name": "Header Auth account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prog = $('Programme status').first()?.json ?? {};\nconst eng = $('Engagements').all().map(i => i.json).filter(e => e && e.ulid);\nconst props = $('Proposed messages').all().map(i => i.json).filter(m => m && m.ulid);\nconst open = eng.filter(e => e.stage !== 'closed' && !e.deleted_at);\nreturn [{ json: {\n  programme: prog.status ?? prog,\n  open_engagements: open.slice(0, 12).map(e => ({\n    org: e.org_name, role: e.role_title, stage: e.stage,\n    fit: e.fit_score, next_step: e.next_step, next_step_date: e.next_step_date,\n  })),\n  open_engagement_count: open.length,\n  proposed_awaiting_approval: props.length,\n} }];"
+      },
+      "id": "ro-agg",
+      "name": "Compose payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"model\": \"claude-sonnet-5\",\n  \"max_tokens\": 700,\n  \"system\": \"You compose a terse Friday read-out of a private executive-search programme for its owner. Plain text (no markdown). Structure: 1) programme RAG + days to target, one line; 2) per-phase slippage, one line each, only phases that are red or amber; 3) open mandates worth attention (org - role - stage - next step); 4) how many drafted messages await approval; 5) end with ONE pointed question about the biggest slippage. Under 180 words.\",\n  \"messages\": [ { \"role\": \"user\", \"content\": JSON.stringify($json) } ]\n} }}"
+      },
+      "id": "ro-claude",
+      "name": "Compose with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Header Auth account 2"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 4,
+      "waitBetweenTries": 4000
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "231739007",
+        "text": "={{ ($json.content && $json.content[0] ? $json.content[0].text : 'Rollup composed no text — check the Artemide · Rollup execution in n8n.') }}",
+        "additionalFields": {}
+      },
+      "id": "ro-tg",
+      "name": "Send Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1320, 0],
+      "credentials": {
+        "telegramApi": {
+          "id": "artemide-telegram",
+          "name": "Telegram · Deddagpt"
         }
       }
     },
     {
       "parameters": {
-        "content": "ROLLUP (Friday 16:00)\n\nGET /programme/status + /engagements + /messages?status=proposed; Claude\ncomposes the Friday read-out incl. the slippage question; email to bot inbox.\nArtemide nodes use internal http://artemide:8000.",
-        "height": 260,
-        "width": 440
+        "content": "ROLLUP (Friday 16:00)\n\nReads /programme/status + /engagements + /messages?status=proposed over the\ninternal network, aggregates in Compose payload, Claude writes the read-out\n(incl. the slippage question), delivered to Telegram chat 231739007 via the\nDeddagpt bot. Read-only against Artemide — nothing is sent to partners.",
+        "height": 300,
+        "width": 470
       },
-      "id": "ro-stick",
+      "id": "ro-note",
       "name": "Guide",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [
-        -540,
-        0
-      ]
+      "position": [-540, -60]
     }
   ],
   "connections": {
     "Friday 16:00": {
-      "main": [
-        [
-          {
-            "node": "Programme status",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Engagements",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Proposed messages",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{ "node": "Programme status", "type": "main", "index": 0 }]]
+    },
+    "Programme status": {
+      "main": [[{ "node": "Engagements", "type": "main", "index": 0 }]]
+    },
+    "Engagements": {
+      "main": [[{ "node": "Proposed messages", "type": "main", "index": 0 }]]
+    },
+    "Proposed messages": {
+      "main": [[{ "node": "Compose payload", "type": "main", "index": 0 }]]
+    },
+    "Compose payload": {
+      "main": [[{ "node": "Compose with Claude", "type": "main", "index": 0 }]]
+    },
+    "Compose with Claude": {
+      "main": [[{ "node": "Send Telegram", "type": "main", "index": 0 }]]
     }
   },
   "active": false,

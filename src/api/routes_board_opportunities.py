@@ -16,6 +16,7 @@ from ..models import (
     BoardStage,
     RecordConflictScreenInput,
     SetBoardEvaluationInput,
+    SetBoardOutcomeInput,
     UpsertBoardOpportunityInput,
 )
 from ..api._serde import to_response, to_response_list
@@ -108,6 +109,11 @@ def advance_board_opportunity(ulid: str, body: AdvanceBoardStageInput, ctx: Serv
     payload = BoardOpportunitiesService.to_payload(ctx, o)
     payload["warnings"] = warnings  # advisory R1 surfaces here
     return payload
+
+
+@router.post("/{ulid}/outcome")
+def set_board_opportunity_outcome(ulid: str, body: SetBoardOutcomeInput, ctx: ServiceContext = Depends(get_context)):
+    return BoardOpportunitiesService.to_payload(ctx, BoardOpportunitiesService.set_outcome(ctx, ulid, body))
 
 
 @router.post("/{ulid}/conflict-screen")

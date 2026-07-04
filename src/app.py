@@ -26,6 +26,7 @@ from .api.routes_board_firms import router as board_firms_router
 from .api.routes_board_import import router as board_import_router
 from .api.routes_board_interactions import router as board_interactions_router
 from .api.routes_board_opportunities import router as board_opportunities_router
+from .api.routes_board_target import router as board_target_router
 from .api.routes_board_tasks import router as board_tasks_router
 from .api.routes_comp import router as comp_router
 from .api.routes_contacts import router as contacts_router
@@ -163,6 +164,7 @@ for router in (
     board_firms_router,
     board_contacts_router,
     board_opportunities_router,
+    board_target_router,
     board_competitors_router,
     board_interactions_router,
     board_tasks_router,

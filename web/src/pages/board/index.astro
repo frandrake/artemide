@@ -1,12 +1,14 @@
 ---
 import AppShell from '../../components/layout/AppShell.astro';
 import BoardFirmsList from '../../components/board/BoardFirmsList';
+import BoardTargetPanel from '../../components/board/BoardTargetPanel';
 ---
 <AppShell title="Board · Platform log" current="board-home" domain="board">
   <header class="bd-head">
     <h1>Board-search &amp; platform log</h1>
     <p class="bd-subhead">Search practices, platforms and networks — grouped by tier. Confidential board domain.</p>
   </header>
+  <BoardTargetPanel client:load />
   <BoardFirmsList client:load />
 </AppShell>
 

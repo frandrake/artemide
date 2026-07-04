@@ -1,5 +1,5 @@
 import { useFetch } from '../../lib/useFetch';
-import type { BoardFirm, BoardOpportunity } from '../../lib/types';
+import type { BoardFirm, BoardTargetStatus } from '../../lib/types';
 import './BoardSearchTile.css';
 
 /**
@@ -9,11 +9,10 @@ import './BoardSearchTile.css';
  */
 export default function BoardSearchTile() {
   const firms = useFetch<BoardFirm[]>('/api/v1/board/firms');
-  const opps = useFetch<BoardOpportunity[]>('/api/v1/board/opportunities');
+  const target = useFetch<BoardTargetStatus>('/api/v1/board/target/status');
 
   const firmCount = firms.data?.length;
-  const oppCount = opps.data?.length;
-  const seats = oppCount === 1 ? 'seat' : 'seats';
+  const t = target.data;
 
   return (
     <a className="board-tile" href="/board" aria-label="Open the board search domain">
@@ -21,8 +20,11 @@ export default function BoardSearchTile() {
         <span className="board-tile__chip">BOARD</span>
         <span className="board-tile__title">Board search</span>
         <span className="board-tile__counts">
-          {firmCount ?? '—'} firms · {oppCount ?? '—'} live {seats}
+          {t
+            ? `${t.seats_won}/${t.seats_target} seats · ${t.open_opportunities} in motion · ${firmCount ?? '—'} firms`
+            : `${firmCount ?? '—'} firms`}
         </span>
+        {t && <span className={`board-tile__rag board-tile__rag--${t.rag}`} title={`Board search ${t.rag}`} />}
       </div>
       <span className="board-tile__cta">Open Board →</span>
     </a>

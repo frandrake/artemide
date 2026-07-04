@@ -11,7 +11,7 @@ from ..ulid_helpers import new_ulid
 _COLUMNS = (
     "id, ulid, organisation, board_type, role, source_firm_id, source_text, "
     "chair_contact_id, date_surfaced, stage, conflict_cleared, interest, "
-    "next_step, notes, eval_weighted_total, eval_verdict, "
+    "next_step, notes, eval_weighted_total, eval_verdict, outcome, "
     "created_at, updated_at, deleted_at"
 )
 
@@ -129,6 +129,13 @@ def update_opportunity_fields(
 
 def set_stage(conn: sqlite3.Connection, opportunity_id: int, stage: Any) -> None:
     conn.execute("UPDATE board_opportunity SET stage = ? WHERE id = ?", (_val(stage), opportunity_id))
+
+
+def set_outcome(conn: sqlite3.Connection, opportunity_id: int, outcome: Any) -> None:
+    conn.execute(
+        "UPDATE board_opportunity SET outcome = ? WHERE id = ?",
+        (_val(outcome), opportunity_id),
+    )
 
 
 def set_conflict_cleared(conn: sqlite3.Connection, opportunity_id: int, conflict_cleared: Any) -> None:

@@ -1233,6 +1233,12 @@ class BoardOppEventType(str, Enum):
     note = "note"
 
 
+class BoardOutcome(str, Enum):
+    accepted = "accepted"
+    declined = "declined"
+    lost = "lost"
+
+
 # Ordered stage machine (forward-only via advance). All seven are sequential —
 # there is no separate 'closed' stage (unlike engagements); a passed-over
 # opportunity is marked interest='pass'.
@@ -1313,9 +1319,20 @@ class BoardOpportunityRecord(_Base):
     notes: str | None = None
     eval_weighted_total: float | None = None
     eval_verdict: str | None = None
+    outcome: BoardOutcome | None = None
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None = None
+
+
+class BoardTargetRecord(_Base):
+    id: int
+    ulid: str
+    seats_target: int
+    target_date: date | None = None
+    notes: str | None = None
+    created_at: datetime
+    updated_at: datetime
 
 
 class BoardOpportunityLogRecord(_Base):
@@ -1500,6 +1517,17 @@ class BoardOpportunityUpdateInput(BaseModel):
 class AdvanceBoardStageInput(BaseModel):
     to_stage: BoardStage
     summary: str | None = None
+
+
+class SetBoardOutcomeInput(BaseModel):
+    outcome: BoardOutcome
+    summary: str | None = None
+
+
+class SetBoardTargetInput(BaseModel):
+    seats_target: int = Field(ge=1)
+    target_date: date | None = None
+    notes: str | None = None
 
 
 class RecordConflictScreenInput(BaseModel):
