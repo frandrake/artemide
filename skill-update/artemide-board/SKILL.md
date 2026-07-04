@@ -47,7 +47,14 @@ evaluation state from memory.
   when `last_contact_date` is older than ~90 days (R5 — people move firms).
 - **board opportunity** — a specific seat. `board_type`, `role` (ned | sid |
   committee | trustee | adviser), ordered `stage`: surfaced → conflict_screen →
-  chair_meeting → formal_process → final_nomco → offer → decision.
+  chair_meeting → formal_process → final_nomco → offer → decision. An `outcome`
+  (accepted | declined | lost, via `board_set_outcome`) records how it ended —
+  `accepted` counts as a seat won; a decided opportunity leaves the open funnel.
+- **board target** — the single-row NED-search goal: `seats_target` (+ optional
+  `target_date`). `board_target_status` is the board programme read-out: seats
+  won vs target, the open-opportunity funnel by stage, days-to-target, and a
+  RAG (green = target met; red = date passed or nothing beyond early stages;
+  amber = something won / late-stage / ≥2 mid-stage).
 - **conflict screen** (1:1) — `result` (pass | fail | pending) maps to the
   opportunity's `conflict_cleared` (yes | no | pending).
 - **evaluation** (1:1) — six 1–5 scores with fixed weights (chair/board quality
@@ -78,7 +85,9 @@ evaluation state from memory.
 `board_record_conflict_screen` · `board_set_evaluation` (returns weighted_total,
 verdict, forced_pass, breakdown) · `board_compare_evaluations` ·
 `board_log_interaction` · `board_upsert_task` · `board_list_tasks` · `board_due`
-· `board_list_competitors` · `board_upsert_competitor` · `board_import_markdown`
+· `board_list_competitors` · `board_upsert_competitor` · `board_set_target` ·
+`board_target_status` (the goal read-out — use for "how is the board search
+going?") · `board_set_outcome` · `board_import_markdown`
 (seed the tiered ledger; idempotent) · `board_export`.
 
 The board UI lives under `https://artemide.francescofederico.net/board`
