@@ -161,6 +161,24 @@ Because this clone is the live deploy target, **never leave uncommitted
 changes here** — anything not pushed to `master` gets silently discarded
 by the next `git reset --hard` on the next push.
 
+The webhook only deploys pushes where at least one commit's **author**
+(not committer, not the GitHub account that ran the merge) is
+`hermes-artemide@bots.francescofederico.net` — scoped to Hermes' own
+work, not every push to master. **Merge strategy matters, verified
+empirically (2026-07-21, PRs #14/#15):**
+
+- `gh pr merge --merge` (a real merge commit) and `gh pr merge --squash`
+  both attribute the resulting commit's *author* to whoever ran the
+  merge (Francesco's account, via `gh`) — **auto-deploy will NOT fire**,
+  even though the content is Hermes' work.
+- `gh pr merge --rebase` replays the original commits as-is — *author*
+  stays Hermes, *committer* becomes whoever ran the merge — **auto-deploy
+  fires correctly**.
+
+**Merge Hermes-authored PRs with `--rebase`** if you want the merge
+itself to trigger a deploy. Otherwise, redeploy manually afterward (or
+just trigger the webhook by hand).
+
 ## 10. Backup cron
 
 ```cron
@@ -169,6 +187,3 @@ by the next `git reset --hard` on the next push.
 
 Day-2 tasks live in `docs/operations.md`; common failure modes live in
 `docs/troubleshooting.md`.
-
-<!-- squash-merge auto-deploy test -->
-<!-- rebase-merge auto-deploy test -->
