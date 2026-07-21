@@ -169,3 +169,5 @@ by the next `git reset --hard` on the next push.
 
 Day-2 tasks live in `docs/operations.md`; common failure modes live in
 `docs/troubleshooting.md`.
+
+<!-- squash-merge auto-deploy test -->
