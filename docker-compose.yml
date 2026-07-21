@@ -3,29 +3,17 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
-    # Loopback-only publish so Claude Code (running on this host) can reach the
-    # MCP/REST endpoint without traversing Cloudflare Access. 127.0.0.1 binding
-    # means it is NOT publicly reachable — all *external* ingress still goes via
-    # the tunnel only. Remove this block to revert to tunnel-only.
+    # Loopback-only publish — ingress is via the host's shared Traefik
+    # (see /docker/traefik/dynamic/artemide.yml), same pattern as the
+    # other self-hosted apps. Not publicly reachable on its own.
     ports:
       - "127.0.0.1:47600:8000"
     volumes:
       - artemide-data:/data
     networks:
-      - internal
       - n8n_default
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
-    depends_on:
-      - artemide
-    networks:
-      - internal
-
 networks:
-  internal:
   n8n_default:
     external: true
 
