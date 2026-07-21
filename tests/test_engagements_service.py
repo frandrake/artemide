@@ -33,6 +33,17 @@ def test_upsert_emits_surfaced_event(db):
     assert any(ev.event_type == "engagement.surfaced" and ev.entity_ulid == e.ulid for ev in events)
 
 
+def test_ned_cannot_be_created_in_executive_workstream(db):
+    ctx = _ctx(db)
+    OrgsService.upsert(ctx, UpsertOrgInput(name="Board Candidate plc", scale_band="fortune_500"))
+    org = OrgsService.get_by_name(ctx, "Board Candidate plc")
+    with pytest.raises(ValidationError, match="Board / NED workstream"):
+        EngagementsService.upsert(ctx, UpsertEngagementInput(
+            org_ulid=org.ulid, role_title="Independent NED", role_type="ned",
+        ))
+    assert engagements_repo.list_engagements(db) == []
+
+
 def test_advance_forward_ok_and_logs(db):
     ctx, e = _make_engagement(db)
     updated = EngagementsService.advance_stage(ctx, e.ulid, AdvanceStageInput(to_stage=EngagementStage.exploratory, summary="intro call"))

@@ -1,19 +1,25 @@
 ---
 import AppShell from '../../components/layout/AppShell.astro';
-import BoardFirmsList from '../../components/board/BoardFirmsList';
 import BoardTargetPanel from '../../components/board/BoardTargetPanel';
+import BoardPipeline from '../../components/board/BoardPipeline';
+import BoardTasks from '../../components/board/BoardTasks';
 ---
-<AppShell title="Board · Platform log" current="board-home" domain="board">
+<AppShell title="Board / NED dashboard · Artemide" current="board-home" domain="board">
   <header class="bd-head">
-    <h1>Board-search &amp; platform log</h1>
-    <p class="bd-subhead">Search practices, platforms and networks — grouped by tier. Confidential board domain.</p>
+    <h1>Board / NED dashboard</h1>
+    <p class="bd-subhead">Non-executive, chair, trustee and advisory search. Confidential board domain.</p>
   </header>
   <BoardTargetPanel client:load />
-  <BoardFirmsList client:load />
+  <div class="bd-grid">
+    <BoardPipeline client:load />
+    <BoardTasks client:load />
+  </div>
 </AppShell>
 
 <style>
   .bd-head { margin-bottom: var(--space-4); display: flex; flex-direction: column; gap: var(--space-1); }
   .bd-subhead { color: var(--charcoal-muted); }
   .bd-head h1 { font-family: var(--font-serif); }
+  .bd-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: var(--space-3); margin-top: var(--space-3); align-items: start; }
+  @media (max-width: 980px) { .bd-grid { grid-template-columns: 1fr; } }
 </style>

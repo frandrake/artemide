@@ -9,10 +9,13 @@ from ..models import BoardOpportunityLogRecord, BoardOpportunityRecord
 from ..ulid_helpers import new_ulid
 
 _COLUMNS = (
-    "id, ulid, organisation, board_type, role, source_firm_id, source_text, "
-    "chair_contact_id, date_surfaced, stage, conflict_cleared, interest, "
-    "next_step, notes, eval_weighted_total, eval_verdict, outcome, "
-    "created_at, updated_at, deleted_at"
+    "id, ulid, organisation, board_type, role, appointment_category, fiduciary_status, "
+    "legal_entity, time_commitment_days, term_length_months, annual_fee_gbp, "
+    "committee_expectations, independence_requirement, liability_indemnity_notes, "
+    "do_insurance_status, conflicts_notes, due_diligence_notes, next_step_due_date, "
+    "source_firm_id, source_text, chair_contact_id, date_surfaced, stage, "
+    "conflict_cleared, interest, next_step, notes, eval_weighted_total, eval_verdict, "
+    "outcome, created_at, updated_at, deleted_at"
 )
 
 _LOG_COLUMNS = (
@@ -34,6 +37,19 @@ def insert_opportunity(
     organisation: str,
     board_type: Any = None,
     role: Any = None,
+    appointment_category: Any = None,
+    fiduciary_status: Any = "requires_confirmation",
+    legal_entity: str | None = None,
+    time_commitment_days: int | None = None,
+    term_length_months: int | None = None,
+    annual_fee_gbp: int | None = None,
+    committee_expectations: str | None = None,
+    independence_requirement: str | None = None,
+    liability_indemnity_notes: str | None = None,
+    do_insurance_status: Any = "pending",
+    conflicts_notes: str | None = None,
+    due_diligence_notes: str | None = None,
+    next_step_due_date: date | None = None,
     source_firm_id: int | None = None,
     source_text: str | None = None,
     chair_contact_id: int | None = None,
@@ -47,12 +63,20 @@ def insert_opportunity(
     ulid_value = ulid or new_ulid()
     cur = conn.execute(
         "INSERT INTO board_opportunity (ulid, organisation, board_type, role, "
-        "source_firm_id, source_text, chair_contact_id, date_surfaced, stage, "
-        "interest, next_step, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "appointment_category, fiduciary_status, legal_entity, time_commitment_days, "
+        "term_length_months, annual_fee_gbp, committee_expectations, "
+        "independence_requirement, liability_indemnity_notes, do_insurance_status, "
+        "conflicts_notes, due_diligence_notes, next_step_due_date, source_firm_id, "
+        "source_text, chair_contact_id, date_surfaced, stage, interest, next_step, notes) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
-            ulid_value, organisation, _val(board_type), _val(role), source_firm_id,
-            source_text, chair_contact_id, date_surfaced, _val(stage) or "surfaced",
-            _val(interest) or "exploratory", next_step, notes,
+            ulid_value, organisation, _val(board_type), _val(role),
+            _val(appointment_category), _val(fiduciary_status) or "requires_confirmation",
+            legal_entity, time_commitment_days, term_length_months, annual_fee_gbp,
+            committee_expectations, independence_requirement, liability_indemnity_notes,
+            _val(do_insurance_status) or "pending", conflicts_notes, due_diligence_notes,
+            next_step_due_date, source_firm_id, source_text, chair_contact_id, date_surfaced,
+            _val(stage) or "surfaced", _val(interest) or "exploratory", next_step, notes,
         ),
     )
     return get_opportunity_by_id(conn, cur.lastrowid)  # type: ignore[arg-type]
@@ -108,8 +132,12 @@ def list_opportunities(
 
 
 _ALLOWED_OPPORTUNITY_FIELDS = {
-    "organisation", "board_type", "role", "source_firm_id", "source_text",
-    "chair_contact_id", "date_surfaced", "interest", "next_step", "notes",
+    "organisation", "board_type", "role", "appointment_category", "fiduciary_status",
+    "legal_entity", "time_commitment_days", "term_length_months", "annual_fee_gbp",
+    "committee_expectations", "independence_requirement", "liability_indemnity_notes",
+    "do_insurance_status", "conflicts_notes", "due_diligence_notes", "next_step_due_date",
+    "source_firm_id", "source_text", "chair_contact_id", "date_surfaced", "interest",
+    "next_step", "notes",
 }
 
 

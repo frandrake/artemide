@@ -591,6 +591,14 @@ export type BoardRelationship = 'cold' | 'warm' | 'active';
 export type BoardOppBoardType =
   | 'listed_ftse350' | 'listed_aim' | 'pe_vc' | 'private' | 'mutual' | 'charity_arts' | 'public_appointment';
 export type BoardOppRole = 'ned' | 'sid' | 'committee' | 'trustee' | 'adviser';
+export type BoardAppointmentCategory =
+  | 'ned_unspecified' | 'independent_ned' | 'non_independent_ned'
+  | 'board_chair' | 'senior_independent_director' | 'committee_chair'
+  | 'committee_member' | 'trustee' | 'advisory_board' | 'editorial_board'
+  | 'other_board';
+export type BoardFiduciaryStatus =
+  | 'statutory_fiduciary' | 'contractual_non_fiduciary' | 'requires_confirmation';
+export type BoardDoInsuranceStatus = 'confirmed' | 'not_confirmed' | 'pending';
 export type BoardStage =
   | 'surfaced' | 'conflict_screen' | 'chair_meeting' | 'formal_process'
   | 'final_nomco' | 'offer' | 'decision';
@@ -736,6 +744,19 @@ export interface BoardOpportunity {
   organisation: string;
   board_type: BoardOppBoardType | null;
   role: BoardOppRole | null;
+  appointment_category: BoardAppointmentCategory | null;
+  fiduciary_status: BoardFiduciaryStatus;
+  legal_entity: string | null;
+  time_commitment_days: number | null;
+  term_length_months: number | null;
+  annual_fee_gbp: number | null;
+  committee_expectations: string | null;
+  independence_requirement: string | null;
+  liability_indemnity_notes: string | null;
+  do_insurance_status: BoardDoInsuranceStatus;
+  conflicts_notes: string | null;
+  due_diligence_notes: string | null;
+  next_step_due_date: string | null;
   source_firm_ulid: string | null;
   source_firm_name: string | null;
   source_text: string | null;

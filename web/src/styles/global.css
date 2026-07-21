@@ -1,6 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 @import './tokens.css';
-@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@400;500;600&display=swap');
 
 /* Tailwind 4 CSS-first theme bridge — exposes our tokens as Tailwind
    utilities, so classes like text-slate-brand / bg-vermillion work. */

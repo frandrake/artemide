@@ -293,7 +293,7 @@ export function EditPartnerModal({ partner, firmName, isOpen, onClose, onSaved, 
                   checked={form.ned_gateway}
                   onChange={(e) => set('ned_gateway', e.target.checked)}
                 />
-                NED gateway
+                Board-practice contact
               </label>
               <Input
                 label="Practice focus"

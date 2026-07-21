@@ -218,7 +218,7 @@ function PartnerIntelligencePanel({ partner }: { partner: Partner }) {
     { label: 'Outreach stage', value: partner.outreach_stage },
   ];
   const visibleChips = chips.filter(c => c.value);
-  if (partner.ned_gateway) visibleChips.push({ label: 'NED gateway', value: 'Yes' });
+  if (partner.ned_gateway) visibleChips.push({ label: 'Board-practice contact', value: 'Yes' });
 
   const prose: { label: string; value: string | null | undefined }[] = [
     { label: 'Practice focus', value: partner.practice_focus },

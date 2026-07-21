@@ -139,7 +139,7 @@ export function EditFirmModal({ firm, isOpen, onClose, onSaved, onDeleteRequest 
           >
             <option value="primary">Primary</option>
             <option value="specialist">Specialist</option>
-            <option value="ned">NED</option>
+            {form.tier === 'ned' && <option value="ned" disabled>Legacy board-practice tier — reclassify</option>}
           </Select>
 
           <Input

@@ -86,6 +86,17 @@ def test_stage_machine_is_forward_only(ctx):
         BoardOpportunitiesService.advance_stage(ctx, o.ulid, AdvanceBoardStageInput(to_stage="surfaced"))
 
 
+def test_outcome_makes_board_opportunity_terminal(ctx):
+    o = _opp(ctx)
+    BoardOpportunitiesService.set_outcome(
+        ctx, o.ulid, SetBoardOutcomeInput(outcome="declined")
+    )
+    with pytest.raises(InvalidStateTransitionError, match="terminal"):
+        BoardOpportunitiesService.advance_stage(
+            ctx, o.ulid, AdvanceBoardStageInput(to_stage="conflict_screen")
+        )
+
+
 # ---------- conflict screen → conflict_cleared mapping ----------
 
 @pytest.mark.parametrize("result,expected", [("pass", "yes"), ("fail", "no"), ("pending", "pending")])

@@ -10,7 +10,7 @@ from ..services import ServiceContext
 from ..services.audit_service import AuditService
 from ..services.exceptions import NotFoundError
 from ._serde import to_response, to_response_list
-from .deps import get_context
+from .deps import get_context, require_owner
 
 router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 
@@ -37,7 +37,7 @@ def list_log(
     transport: str | None = Query(default=None),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
-    ctx: ServiceContext = Depends(get_context),
+    ctx: ServiceContext = Depends(require_owner),
 ):
     # Lightweight filtered list directly via SQL — keeps the audit
     # repository focused while still serving the explorer UI.
@@ -69,7 +69,7 @@ def list_log(
 
 
 @router.get("/log/{ulid}")
-def get_audit_entry(ulid: str, ctx: ServiceContext = Depends(get_context)):
+def get_audit_entry(ulid: str, ctx: ServiceContext = Depends(require_owner)):
     entry = audit_repo.get_audit_by_ulid(ctx.conn, ulid)
     if entry is None:
         raise NotFoundError(f"audit entry not found: {ulid}")

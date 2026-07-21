@@ -1,0 +1,25 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import PipelineOverview from '../components/dashboard/PipelineOverview';
+import OutreachMetricsTiles from '../components/dashboard/OutreachMetricsTiles';
+---
+<AppShell title="Executive workspace · Artemide" current="dashboard" domain="exec">
+  <header class="exec-head">
+    <p class="exec-head__eyebrow">EXECUTIVE SEARCH</p>
+    <h1>Executive workspace</h1>
+    <p>Full-time senior executive opportunities, search-firm relationships and outreach.</p>
+  </header>
+  <div class="exec-grid">
+    <PipelineOverview client:load />
+    <OutreachMetricsTiles client:load />
+  </div>
+</AppShell>
+
+<style>
+  .exec-head { margin-bottom: var(--space-4); }
+  .exec-head h1 { font-family: var(--font-serif); margin: 0 0 var(--space-1); }
+  .exec-head p { color: var(--charcoal-muted); }
+  .exec-head__eyebrow { color: var(--slate-blue) !important; font-size: var(--text-xs); font-weight: var(--font-weight-bold); letter-spacing: .12em; }
+  .exec-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: var(--space-3); margin-top: var(--space-3); }
+  @media (max-width: 900px) { .exec-grid { grid-template-columns: 1fr; } }
+</style>

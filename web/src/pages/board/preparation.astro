@@ -1,0 +1,9 @@
+---
+import AppShell from '../../components/layout/AppShell.astro';
+import PreparationWorkbench from '../../components/preparation/PreparationWorkbench';
+---
+<AppShell title="Board preparation packs · Artemide" current="board-preparation" domain="board">
+  <header class="page-head"><p>BOARD / NED — CONFIDENTIAL</p><h1>Preparation packs</h1><span>Board-opportunity briefing versions remain in the Board domain with immutable source provenance.</span></header>
+  <PreparationWorkbench domain="board" client:load />
+</AppShell>
+<style>.page-head{margin-bottom:var(--space-4);max-width:780px}.page-head p{font-size:var(--text-xs);font-weight:700;letter-spacing:.12em;color:var(--vermillion)}.page-head h1{font-family:var(--font-serif);margin:0 0 var(--space-1)}.page-head span{color:var(--charcoal-muted)}</style>
