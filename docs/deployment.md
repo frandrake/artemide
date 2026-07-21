@@ -171,3 +171,4 @@ Day-2 tasks live in `docs/operations.md`; common failure modes live in
 `docs/troubleshooting.md`.
 
 <!-- squash-merge auto-deploy test -->
+<!-- rebase-merge auto-deploy test -->
