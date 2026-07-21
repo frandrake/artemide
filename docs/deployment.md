@@ -125,3 +125,4 @@ Once everything is green, add the daily backup cron on the host:
 That's it. The system runs unattended from here. Day-2 tasks live in
 `docs/operations.md`; common failure modes live in
 `docs/troubleshooting.md`.
+# webhook auto-deploy verification 2026-07-21T17:45:39Z
