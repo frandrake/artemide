@@ -37,6 +37,7 @@ from .api.routes_export import router as export_router
 from .api.routes_firms import router as firms_router
 from .api.routes_fit import router as fit_router
 from .api.routes_import import router as import_router
+from .api.routes_identity_intake import router as identity_intake_router
 from .api.routes_interviews import router as interviews_router
 from .api.routes_messages import router as messages_router
 from .api.routes_notes import router as notes_router
@@ -45,10 +46,12 @@ from .api.routes_outreach import router as outreach_router
 from .api.routes_partners import router as partners_router
 from .api.routes_pipeline import router as pipeline_router
 from .api.routes_planning import router as planning_router
+from .api.routes_preparation_notifications import router as preparation_notifications_router
 from .api.routes_programme import router as programme_router
 from .api.routes_search import router as search_router
 from .api.routes_system import router as system_router
 from .api.routes_templates import router as templates_router
+from .api.routes_today import router as today_router
 from .auth import (
     COOKIE_NAME,
     SESSION_TTL_SECONDS,
@@ -148,6 +151,9 @@ for router in (
     import_router,
     admin_router,
     system_router,
+    today_router,
+    identity_intake_router,
+    preparation_notifications_router,
     # v1.2 — engagement & programme extension
     orgs_router,
     engagements_router,

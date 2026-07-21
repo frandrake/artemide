@@ -64,6 +64,8 @@ export default function BoardPipeline() {
                   <span className={`bd-pill ${o.conflict_cleared === 'yes' ? 'bd-pill--warm' : o.conflict_cleared === 'no' ? 'bd-pill--flag' : ''}`}>
                     {o.conflict_cleared}
                   </span>
+                  {o.appointment_category && <span className="bd-pill">{titleCase(o.appointment_category)}</span>}
+                  {o.eval_weighted_total != null && <span className="bd-pill">{o.eval_weighted_total.toFixed(2)} / 5</span>}
                   {o.eval_verdict && <span className={`bd-pill ${verdictTone(o.eval_verdict)}`}>{o.eval_verdict}</span>}
                 </div>
                 {BOARD_STAGE_ORDER.indexOf(o.stage) < BOARD_STAGE_ORDER.length - 1 && (

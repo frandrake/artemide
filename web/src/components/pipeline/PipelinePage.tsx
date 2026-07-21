@@ -24,16 +24,14 @@ const STAGE_LABEL: Record<OutreachStage, string> = {
 export default function PipelinePage() {
   const [tier, setTier] = useState<FirmTier | 'all'>('all');
   const [strategic, setStrategic] = useState<string>('all');
-  const [nedGateway, setNedGateway] = useState<string>('all');
 
   const path = useMemo(() => {
     const params = new URLSearchParams();
     if (tier !== 'all') params.set('tier', tier);
     if (strategic !== 'all') params.set('strategic_relevance', strategic);
-    if (nedGateway !== 'all') params.set('ned_gateway', nedGateway === 'yes' ? 'true' : 'false');
     const q = params.toString();
     return q ? `/api/v1/pipeline?${q}` : '/api/v1/pipeline';
-  }, [tier, strategic, nedGateway]);
+  }, [tier, strategic]);
 
   const { data, loading, error, refresh } = useFetch<PipelineSnapshot>(path);
 
@@ -64,18 +62,12 @@ export default function PipelinePage() {
           <option value="all">All tiers</option>
           <option value="primary">Primary</option>
           <option value="specialist">Specialist</option>
-          <option value="ned">NED</option>
         </Select>
         <Select label="Strategic relevance" value={strategic} onChange={(e) => setStrategic(e.currentTarget.value)}>
           <option value="all">All</option>
           <option value="HIGH">HIGH</option>
           <option value="MEDIUM">MEDIUM</option>
           <option value="LOW">LOW</option>
-        </Select>
-        <Select label="NED gateway" value={nedGateway} onChange={(e) => setNedGateway(e.currentTarget.value)}>
-          <option value="all">All</option>
-          <option value="yes">Yes</option>
-          <option value="no">No</option>
         </Select>
       </div>
 
@@ -150,7 +142,7 @@ function PipelineColumn({ stage, cards, dragging, onDragStart, onDrop }: ColProp
                 </span>
               )}
               {c.ned_gateway && (
-                <span className="pipeline-card__chip pipeline-card__chip--ned">NED</span>
+                <span className="pipeline-card__chip pipeline-card__chip--ned">Board-practice contact</span>
               )}
             </div>
             {c.sent_count > 0 && (

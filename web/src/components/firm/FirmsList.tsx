@@ -81,7 +81,6 @@ export default function FirmsList() {
           <option value="all">All tiers</option>
           <option value="primary">Primary</option>
           <option value="specialist">Specialist</option>
-          <option value="ned">NED</option>
         </Select>
         <Select
           label="State"
@@ -199,6 +198,6 @@ function DeletedFirmCard({ firm, onRestore }: { firm: Firm; onRestore: () => voi
 }
 
 function titleCase(s: string): string {
-  if (s === 'ned') return 'NED';
+  if (s === 'ned') return 'Legacy board-practice tier';
   return s.charAt(0).toUpperCase() + s.slice(1);
 }

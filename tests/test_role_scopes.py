@@ -106,6 +106,8 @@ async def test_owner_only_endpoints_reject_bot(client):
         ("post", f"/api/v1/templates/{ids['template']}/restore", None),
         # operator actions
         ("post", "/api/v1/admin/backup", None),
+        # Raw audit payloads can contain confidential board-domain data.
+        ("get", "/api/v1/audit/log", None),
     ]
     for method, path, body in owner_only:
         resp = await getattr(client, method)(path, json=body, headers=BOT) if body is not None \
@@ -127,6 +129,22 @@ async def test_blocked_attempts_are_audited(client):
     await client.post(f"/api/v1/messages/{ids['msg']}/approve", headers=BOT)
     denied = client.conn.execute("SELECT COUNT(*) FROM audit_log WHERE action = 'denied'").fetchone()[0]
     assert denied >= 1
+
+
+@pytest.mark.asyncio
+async def test_bot_cannot_read_board_audit_entry_by_ulid(client):
+    created = await client.post(
+        "/api/v1/board/opportunities",
+        json={"organisation": "Confidential Board plc"},
+        headers=OWNER,
+    )
+    assert created.status_code == 200
+    audit_ulid = client.conn.execute(
+        "SELECT ulid FROM audit_log WHERE entity_type = 'board_opportunity' ORDER BY id DESC LIMIT 1"
+    ).fetchone()[0]
+    response = await client.get(f"/api/v1/audit/log/{audit_ulid}", headers=BOT)
+    assert response.status_code == 403
+    assert response.json()["error"] == "forbidden_role"
 
 
 @pytest.mark.asyncio

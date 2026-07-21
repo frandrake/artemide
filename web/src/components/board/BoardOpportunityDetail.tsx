@@ -4,6 +4,7 @@ import type { BoardOpportunity } from '../../lib/types';
 import { Skeleton } from '../ui/Skeleton';
 import { boardUlidFromPath, titleCase, verdictTone } from './helpers';
 import EvaluationForm from './EvaluationForm';
+import BoardGovernanceProfile from './BoardGovernanceProfile';
 import './board.css';
 
 export default function BoardOpportunityDetail() {
@@ -39,6 +40,12 @@ export default function BoardOpportunityDetail() {
           <dt>Interest</dt><dd>{o.interest}</dd>
           <dt>Next step</dt><dd>{o.next_step ?? '—'}</dd>
         </dl>
+      </section>
+
+      <section className="bd-panel">
+        <h2>Governance profile &amp; due diligence</h2>
+        <p className="bd-card__sub">Board-only classification, legal duties, capacity, terms, conflicts and diligence. Never reused as executive-role data.</p>
+        <BoardGovernanceProfile key={o.updated_at} opportunity={o} onSaved={refresh} />
       </section>
 
       <section className="bd-panel">

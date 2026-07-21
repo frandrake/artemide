@@ -1,0 +1,15 @@
+---
+import AppShell from '../components/layout/AppShell.astro';
+import IntakeWorkbench from '../components/intake/IntakeWorkbench';
+---
+<AppShell title="Executive AI intake · Artemide" current="intake" domain="exec">
+  <header class="page-head">
+    <p>EXECUTIVE SEARCH</p>
+    <h1>AI intake review</h1>
+    <span>Stage attributed proposals, inspect every field and make an explicit decision before any downstream CRM work.</span>
+  </header>
+  <IntakeWorkbench domain="executive" client:load />
+</AppShell>
+<style>
+  .page-head{margin-bottom:var(--space-4);max-width:780px}.page-head p{font-size:var(--text-xs);font-weight:700;letter-spacing:.12em;color:var(--slate-blue)}.page-head h1{font-family:var(--font-serif);margin:0 0 var(--space-1)}.page-head span{color:var(--charcoal-muted)}
+</style>

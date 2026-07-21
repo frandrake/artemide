@@ -37,16 +37,16 @@ export default function BoardOpportunitiesLog() {
       <table className="bd-table">
         <thead>
           <tr>
-            <th>Organisation</th><th>Board type</th><th>Role</th><th>Surfaced</th>
-            <th>Stage</th><th>Conflict</th><th>Interest</th><th>Verdict</th>
+            <th>Organisation</th><th>Appointment</th><th>Board type</th><th>Surfaced</th>
+            <th>Stage</th><th>Conflict</th><th>Interest</th><th>Board seat evaluation</th>
           </tr>
         </thead>
         <tbody>
           {data.map((o) => (
             <tr key={o.ulid}>
               <td><a href={`/board/opportunities/${o.ulid}`}>{o.organisation}</a></td>
+              <td>{o.appointment_category ? titleCase(o.appointment_category) : (o.role ? o.role.toUpperCase() : 'Unclassified')}</td>
               <td>{o.board_type ? titleCase(o.board_type) : '—'}</td>
-              <td>{o.role ? o.role.toUpperCase() : '—'}</td>
               <td>{o.date_surfaced ?? '—'}</td>
               <td>{titleCase(o.stage)}</td>
               <td>
@@ -55,7 +55,7 @@ export default function BoardOpportunitiesLog() {
                 </span>
               </td>
               <td>{o.interest}</td>
-              <td>{o.eval_verdict ? <span className={`bd-pill ${verdictTone(o.eval_verdict)}`}>{titleCase(o.eval_verdict)}</span> : '—'}</td>
+              <td>{o.eval_verdict ? <><span className={`bd-pill ${verdictTone(o.eval_verdict)}`}>{titleCase(o.eval_verdict)}</span>{o.eval_weighted_total != null && ` ${o.eval_weighted_total.toFixed(2)} / 5`}</> : '—'}</td>
             </tr>
           ))}
         </tbody>

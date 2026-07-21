@@ -1170,6 +1170,33 @@ class BoardOppRole(str, Enum):
     adviser = "adviser"
 
 
+class BoardAppointmentCategory(str, Enum):
+    """Canonical appointment type, including non-fiduciary board-adjacent seats."""
+    ned_unspecified = "ned_unspecified"
+    independent_ned = "independent_ned"
+    non_independent_ned = "non_independent_ned"
+    board_chair = "board_chair"
+    senior_independent_director = "senior_independent_director"
+    committee_chair = "committee_chair"
+    committee_member = "committee_member"
+    trustee = "trustee"
+    advisory_board = "advisory_board"
+    editorial_board = "editorial_board"
+    other_board = "other_board"
+
+
+class BoardFiduciaryStatus(str, Enum):
+    statutory_fiduciary = "statutory_fiduciary"
+    contractual_non_fiduciary = "contractual_non_fiduciary"
+    requires_confirmation = "requires_confirmation"
+
+
+class BoardDoInsuranceStatus(str, Enum):
+    confirmed = "confirmed"
+    not_confirmed = "not_confirmed"
+    pending = "pending"
+
+
 class BoardStage(str, Enum):
     surfaced = "surfaced"
     conflict_screen = "conflict_screen"
@@ -1308,6 +1335,19 @@ class BoardOpportunityRecord(_Base):
     organisation: str
     board_type: BoardOppBoardType | None = None
     role: BoardOppRole | None = None
+    appointment_category: BoardAppointmentCategory | None = None
+    fiduciary_status: BoardFiduciaryStatus = BoardFiduciaryStatus.requires_confirmation
+    legal_entity: str | None = None
+    time_commitment_days: int | None = None
+    term_length_months: int | None = None
+    annual_fee_gbp: int | None = None
+    committee_expectations: str | None = None
+    independence_requirement: str | None = None
+    liability_indemnity_notes: str | None = None
+    do_insurance_status: BoardDoInsuranceStatus = BoardDoInsuranceStatus.pending
+    conflicts_notes: str | None = None
+    due_diligence_notes: str | None = None
+    next_step_due_date: date | None = None
     source_firm_id: int | None = None
     source_text: str | None = None
     chair_contact_id: int | None = None
@@ -1490,6 +1530,19 @@ class UpsertBoardOpportunityInput(BaseModel):
     organisation: str
     board_type: BoardOppBoardType | None = None
     role: BoardOppRole | None = None
+    appointment_category: BoardAppointmentCategory | None = None
+    fiduciary_status: BoardFiduciaryStatus | None = None
+    legal_entity: str | None = None
+    time_commitment_days: int | None = Field(default=None, ge=0)
+    term_length_months: int | None = Field(default=None, gt=0)
+    annual_fee_gbp: int | None = Field(default=None, ge=0)
+    committee_expectations: str | None = None
+    independence_requirement: str | None = None
+    liability_indemnity_notes: str | None = None
+    do_insurance_status: BoardDoInsuranceStatus | None = None
+    conflicts_notes: str | None = None
+    due_diligence_notes: str | None = None
+    next_step_due_date: date | None = None
     source_firm_ulid: str | None = None
     source_text: str | None = None
     chair_contact_ulid: str | None = None
@@ -1505,6 +1558,19 @@ class BoardOpportunityUpdateInput(BaseModel):
     organisation: str | None = None
     board_type: BoardOppBoardType | None = None
     role: BoardOppRole | None = None
+    appointment_category: BoardAppointmentCategory | None = None
+    fiduciary_status: BoardFiduciaryStatus | None = None
+    legal_entity: str | None = None
+    time_commitment_days: int | None = Field(default=None, ge=0)
+    term_length_months: int | None = Field(default=None, gt=0)
+    annual_fee_gbp: int | None = Field(default=None, ge=0)
+    committee_expectations: str | None = None
+    independence_requirement: str | None = None
+    liability_indemnity_notes: str | None = None
+    do_insurance_status: BoardDoInsuranceStatus | None = None
+    conflicts_notes: str | None = None
+    due_diligence_notes: str | None = None
+    next_step_due_date: date | None = None
     source_firm_ulid: str | None = None
     source_text: str | None = None
     chair_contact_ulid: str | None = None
@@ -1587,3 +1653,24 @@ class UpsertBoardCompetitorInput(BaseModel):
 
 class ImportBoardMarkdownInput(BaseModel):
     body: str
+
+
+# ---------- Today / explainable next-best-action ----------
+
+class TodayWorkstream(str, Enum):
+    executive = "executive"
+    board = "board"
+
+
+class TodayDisposition(str, Enum):
+    completed = "completed"
+    snoozed = "snoozed"
+    dismissed = "dismissed"
+
+
+class TodayFeedbackInput(BaseModel):
+    source_key: str = Field(min_length=3, max_length=255)
+    workstream: TodayWorkstream
+    disposition: TodayDisposition
+    snoozed_until: date | None = None
+    reason: str | None = Field(default=None, max_length=500)

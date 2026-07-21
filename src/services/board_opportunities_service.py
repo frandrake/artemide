@@ -35,6 +35,41 @@ _CONFLICT_SCREEN_INDEX = BOARD_STAGE_ORDER.index("conflict_screen")
 
 _EXCLUDE = {"source_firm_id", "chair_contact_id"}
 
+_ADVISORY_CATEGORIES = {"advisory_board", "editorial_board"}
+_LEGACY_ROLE_CATEGORY = {
+    "ned": "ned_unspecified",
+    "sid": "senior_independent_director",
+    "committee": "committee_member",
+    "trustee": "trustee",
+    "adviser": "advisory_board",
+}
+
+
+def _value(value: Any) -> Any:
+    return value.value if hasattr(value, "value") else value
+
+
+def _normalise_governance(
+    category: Any, fiduciary_status: Any, *, legacy_role: Any = None,
+) -> tuple[Any, Any]:
+    """Return a conservative canonical category/status pair.
+
+    Legacy labels are mapped without inventing NED independence. Advisory and
+    editorial seats are always marked contractual/non-fiduciary and an explicit
+    contradictory request is rejected.
+    """
+    if category is None and legacy_role is not None:
+        category = _LEGACY_ROLE_CATEGORY.get(_value(legacy_role))
+    category_value = _value(category)
+    status_value = _value(fiduciary_status)
+    if category_value in _ADVISORY_CATEGORIES:
+        if status_value == "statutory_fiduciary":
+            raise ValidationError(
+                "advisory and editorial board appointments must be recorded as non-fiduciary"
+            )
+        fiduciary_status = "contractual_non_fiduciary"
+    return category, fiduciary_status
+
 
 def _record_to_dict(o: BoardOpportunityRecord) -> dict[str, Any]:
     d = o.model_dump(mode="json")
@@ -102,11 +137,28 @@ class BoardOpportunitiesService:
                 existing = opportunities_repo.get_opportunity_by_ulid(ctx.conn, data.ulid)
 
             if existing is None:
+                appointment_category, fiduciary_status = _normalise_governance(
+                    data.appointment_category, data.fiduciary_status,
+                    legacy_role=data.role,
+                )
                 o = opportunities_repo.insert_opportunity(
                     ctx.conn,
                     organisation=data.organisation,
                     board_type=data.board_type,
                     role=data.role,
+                    appointment_category=appointment_category,
+                    fiduciary_status=fiduciary_status,
+                    legal_entity=data.legal_entity,
+                    time_commitment_days=data.time_commitment_days,
+                    term_length_months=data.term_length_months,
+                    annual_fee_gbp=data.annual_fee_gbp,
+                    committee_expectations=data.committee_expectations,
+                    independence_requirement=data.independence_requirement,
+                    liability_indemnity_notes=data.liability_indemnity_notes,
+                    do_insurance_status=data.do_insurance_status,
+                    conflicts_notes=data.conflicts_notes,
+                    due_diligence_notes=data.due_diligence_notes,
+                    next_step_due_date=data.next_step_due_date,
                     source_firm_id=source_firm_id,
                     source_text=data.source_text,
                     chair_contact_id=chair_contact_id,
@@ -132,6 +184,15 @@ class BoardOpportunitiesService:
                 fields["source_firm_id"] = source_firm_id
             if data.chair_contact_ulid is not None:
                 fields["chair_contact_id"] = chair_contact_id
+            category, status = _normalise_governance(
+                fields.get("appointment_category", existing.appointment_category),
+                fields.get("fiduciary_status", existing.fiduciary_status),
+                legacy_role=fields.get("role", existing.role),
+            )
+            if category is not None:
+                fields["appointment_category"] = category
+            if status is not None:
+                fields["fiduciary_status"] = status
             updated = opportunities_repo.update_opportunity_fields(ctx.conn, existing.id, fields) or existing
             AuditService.record(
                 ctx, action=AuditAction.update, entity_type="board_opportunity",
@@ -145,13 +206,26 @@ class BoardOpportunitiesService:
         assert_owner(ctx, operation="update board opportunity")
         with transaction(ctx.conn):
             o = BoardOpportunitiesService.get_by_ulid(ctx, ulid)
-            raw = data.model_dump(exclude_none=True)
+            raw = data.model_dump(exclude_unset=True)
+            if raw.get("fiduciary_status") is None and "fiduciary_status" in raw:
+                raise ValidationError("fiduciary_status cannot be cleared")
+            if raw.get("do_insurance_status") is None and "do_insurance_status" in raw:
+                raise ValidationError("do_insurance_status cannot be cleared")
             if not raw:
                 raise ValidationError("no fields supplied")
             if "source_firm_ulid" in raw:
                 raw["source_firm_id"] = BoardOpportunitiesService._resolve_firm_id(ctx, raw.pop("source_firm_ulid"))
             if "chair_contact_ulid" in raw:
                 raw["chair_contact_id"] = BoardOpportunitiesService._resolve_chair_id(ctx, raw.pop("chair_contact_ulid"))
+            category, status = _normalise_governance(
+                raw.get("appointment_category", o.appointment_category),
+                raw.get("fiduciary_status", o.fiduciary_status),
+                legacy_role=raw.get("role", o.role),
+            )
+            if category is not None:
+                raw["appointment_category"] = category
+            if status is not None:
+                raw["fiduciary_status"] = status
             before = _record_to_dict(o)
             updated = opportunities_repo.update_opportunity_fields(ctx.conn, o.id, raw) or o
             AuditService.record(
@@ -181,6 +255,10 @@ class BoardOpportunitiesService:
         assert_owner(ctx, operation="advance board opportunity")
         with transaction(ctx.conn):
             o = BoardOpportunitiesService.get_by_ulid(ctx, ulid)
+            if o.outcome is not None:
+                raise InvalidStateTransitionError(
+                    f"board opportunity is terminal (outcome={o.outcome.value})"
+                )
             from_stage = o.stage.value
             to_stage = data.to_stage.value
             BoardOpportunitiesService._check_forward(from_stage, to_stage)

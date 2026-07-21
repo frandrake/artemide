@@ -94,6 +94,9 @@
   padding: 8px 10px; font-size: var(--text-sm); border: 1px solid var(--light-gray);
   border-radius: var(--radius-sm); background: var(--pure-white); width: 100%;
 }
+.bd-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 var(--space-3); }
+.bd-governance-form { margin-top: var(--space-3); }
+.bd-warning { padding: var(--space-2); border-left: 3px solid var(--vermillion); background: var(--warm-white); margin-bottom: var(--space-3); }
 
 @media (max-width: 720px) {
   .bd-board { grid-template-columns: repeat(7, 78vw); }

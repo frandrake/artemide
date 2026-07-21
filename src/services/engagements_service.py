@@ -44,6 +44,19 @@ def _today() -> date:
     return date.today()
 
 
+def _reject_board_role(role_type: Any) -> None:
+    """NED and other board appointments belong exclusively in board_opportunity.
+
+    The enum and database value remain readable for legacy rows, but new writes
+    cannot create or reclassify an executive engagement as a board appointment.
+    """
+    value = getattr(role_type, "value", role_type)
+    if value == "ned":
+        raise ValidationError(
+            "NED, chair, trustee and advisory appointments must be created in the Board / NED workstream"
+        )
+
+
 class EngagementsService:
 
     @staticmethod
@@ -90,6 +103,7 @@ class EngagementsService:
 
     @staticmethod
     def upsert(ctx: ServiceContext, data: UpsertEngagementInput) -> EngagementRecord:
+        _reject_board_role(data.role_type)
         with transaction(ctx.conn):
             org = orgs_repo.get_org_by_ulid(ctx.conn, data.org_ulid)
             if org is None:
@@ -159,6 +173,7 @@ class EngagementsService:
         with transaction(ctx.conn):
             e = EngagementsService.get_by_ulid(ctx, ulid)
             raw = data.model_dump(exclude_none=True)
+            _reject_board_role(raw.get("role_type"))
             if not raw:
                 raise ValidationError("no fields supplied")
             before = _record_to_dict(e)

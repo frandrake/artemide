@@ -4,14 +4,14 @@ import Header from './Header.astro';
 
 interface Props {
   title?: string;
-  domain?: 'exec' | 'board';
+  domain?: 'shared' | 'exec' | 'board';
   current?:
-    | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
+    | 'today' | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
     | 'engagement' | 'drafts' | 'templates' | 'pipeline'
-    | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation'
+    | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation' | 'intake' | 'preparation'
     | 'board-home' | 'board-firms' | 'board-contacts' | 'board-opportunities'
     | 'board-pipeline' | 'board-conflicts' | 'board-evaluations' | 'board-due'
-    | 'board-competitors' | 'board-tasks' | 'board-export';
+    | 'board-competitors' | 'board-tasks' | 'board-export' | 'board-intake' | 'board-preparation';
 }
 const { title, current, domain = 'exec' } = Astro.props;
 ---

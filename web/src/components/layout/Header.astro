@@ -1,36 +1,50 @@
 ---
+type SharedCurrent = 'today';
 type ExecCurrent =
   | 'dashboard' | 'firms' | 'plan' | 'audit' | 'notes' | 'search' | 'settings'
   | 'engagement' | 'drafts' | 'templates' | 'pipeline'
-  | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation';
+  | 'engagements' | 'orgs' | 'messages' | 'programme' | 'compensation' | 'intake' | 'preparation';
 type BoardCurrent =
   | 'board-home' | 'board-firms' | 'board-contacts' | 'board-opportunities'
   | 'board-pipeline' | 'board-conflicts' | 'board-evaluations' | 'board-due'
-  | 'board-competitors' | 'board-tasks' | 'board-export';
+  | 'board-competitors' | 'board-tasks' | 'board-export' | 'board-intake' | 'board-preparation';
 
 interface Props {
-  current?: ExecCurrent | BoardCurrent;
-  domain?: 'exec' | 'board';
+  current?: SharedCurrent | ExecCurrent | BoardCurrent;
+  domain?: 'shared' | 'exec' | 'board';
 }
 const { current, domain = 'exec' } = Astro.props;
 const isBoard = domain === 'board';
+const isShared = domain === 'shared';
+
+const sharedPrimary = [
+  { id: 'today', href: '/', label: 'Today' },
+  { id: 'dashboard', href: '/executive', label: 'Executive workspace' },
+  { id: 'board-home', href: '/board', label: 'Board / NED workspace' },
+];
+const sharedMore = [
+  { id: 'audit', href: '/audit', label: 'Audit' },
+  { id: 'settings', href: '/settings', label: 'Settings' },
+];
 
 const execPrimary = [
-  { id: 'dashboard', href: '/', label: 'Dashboard' },
+  { id: 'dashboard', href: '/executive', label: 'Dashboard' },
   { id: 'firms', href: '/firms', label: 'Firms' },
-  { id: 'engagements', href: '/engagements', label: 'Engagements' },
+  { id: 'engagements', href: '/engagements', label: 'Executive opportunities' },
   { id: 'messages', href: '/messages', label: 'Messages' },
   { id: 'programme', href: '/programme', label: 'Programme' },
-  { id: 'plan', href: '/plan', label: 'Plan' },
-  { id: 'audit', href: '/audit', label: 'Audit' },
 ];
 const execMore = [
+  { id: 'plan', href: '/plan', label: 'Plan' },
+  { id: 'audit', href: '/audit', label: 'Audit' },
   { id: 'orgs', href: '/orgs', label: 'Organisations' },
-  { id: 'pipeline', href: '/pipeline', label: 'Outreach pipeline' },
+  { id: 'pipeline', href: '/pipeline', label: 'Search-firm outreach' },
   { id: 'engagement', href: '/engagement', label: 'Engagement calendar' },
   { id: 'drafts', href: '/drafts', label: 'Drafts' },
   { id: 'templates', href: '/templates', label: 'Templates' },
   { id: 'compensation', href: '/compensation', label: 'Compensation' },
+  { id: 'intake', href: '/intake', label: 'AI intake review' },
+  { id: 'preparation', href: '/preparation', label: 'Preparation packs' },
   { id: 'search', href: '/search', label: 'Search' },
   { id: 'notes', href: '/notes', label: 'Notes' },
   { id: 'audit-log', href: '/audit/log', label: 'Audit log' },
@@ -38,27 +52,29 @@ const execMore = [
 ];
 
 const boardPrimary = [
-  { id: 'board-home', href: '/board', label: 'Platform log' },
+  { id: 'board-home', href: '/board', label: 'Dashboard' },
   { id: 'board-opportunities', href: '/board/opportunities', label: 'Opportunities' },
-  { id: 'board-pipeline', href: '/board/pipeline', label: 'Pipeline' },
+  { id: 'board-pipeline', href: '/board/pipeline', label: 'Board pipeline' },
   { id: 'board-conflicts', href: '/board/conflict-queue', label: 'Conflicts' },
   { id: 'board-evaluations', href: '/board/evaluations', label: 'Evaluations' },
-  { id: 'board-due', href: '/board/outreach-due', label: 'Due' },
 ];
 const boardMore = [
+  { id: 'board-due', href: '/board/outreach-due', label: 'Due' },
   { id: 'board-firms', href: '/board/firms', label: 'Firms' },
   { id: 'board-contacts', href: '/board/contacts', label: 'Contacts' },
   { id: 'board-tasks', href: '/board/tasks', label: 'Tasks' },
+  { id: 'board-intake', href: '/board/intake', label: 'AI intake review' },
+  { id: 'board-preparation', href: '/board/preparation', label: 'Preparation packs' },
   { id: 'board-competitors', href: '/board/competitors', label: 'Competitors (S&P)' },
   { id: 'board-export', href: '/board/export', label: 'Export' },
 ];
 
-const primary = isBoard ? boardPrimary : execPrimary;
-const more = isBoard ? boardMore : execMore;
+const primary = isShared ? sharedPrimary : (isBoard ? boardPrimary : execPrimary);
+const more = isShared ? sharedMore : (isBoard ? boardMore : execMore);
 ---
 <header class:list={['header', isBoard && 'header--board']}>
   <div class="header-inner">
-    <a class="brand" href={isBoard ? '/board' : '/'} aria-label="Artemide home">
+    <a class="brand" href={isShared ? '/' : (isBoard ? '/board' : '/executive')} aria-label="Artemide home">
       <span class="brand-row">
         <span class="brand-mark"><span class="brand-mark-accent">A</span>rtemid<span class="brand-mark-accent">e</span></span>
         {isBoard && <span class="board-pill">BOARD</span>}
@@ -89,10 +105,11 @@ const more = isBoard ? boardMore : execMore;
 
     <div class="header-actions">
       <div class="domain-switch" role="group" aria-label="Search domain">
-        <a class:list={['domain-switch__opt', !isBoard && 'is-active']} href="/" aria-current={!isBoard ? 'true' : undefined}>Exec</a>
-        <a class:list={['domain-switch__opt', isBoard && 'is-active']} href="/board" aria-current={isBoard ? 'true' : undefined}>Board</a>
+        <a class:list={['domain-switch__opt', isShared && 'is-active']} href="/" aria-current={isShared ? 'true' : undefined}>Today</a>
+        <a class:list={['domain-switch__opt', !isShared && !isBoard && 'is-active']} href="/executive" aria-current={!isShared && !isBoard ? 'true' : undefined}>Executive</a>
+        <a class:list={['domain-switch__opt', isBoard && 'is-active']} href="/board" aria-current={isBoard ? 'true' : undefined}>Board / NED</a>
       </div>
-      {!isBoard && (
+      {!isBoard && !isShared && (
         <form class="search" action="/search" method="get" role="search">
           <label class="visually-hidden" for="header-search">Search</label>
           <input id="header-search" type="search" name="q" placeholder="Search" aria-label="Search" />
